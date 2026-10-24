@@ -15,7 +15,7 @@ from urllib.request import Request, urlopen
 
 from django.utils import timezone
 
-from .carddav import _etag, _fields, _records, _schema_hash
+from .carddav import _card_etag, _etags, _fields, _records, _schema_hash
 from .models import Settings, ref_names
 from .msg import msg
 from .vcard import render
@@ -61,7 +61,7 @@ def token_sha256(s):
 def _sync(s):
     fields, names = _fields(), ref_names()
     schema = _schema_hash(fields, s, names)
-    wanted = {str(r.uid): _etag(r, schema) for r in _records().defer("image")}
+    wanted = dict(_etags(schema))
     if not wanted:  # never wipe the phones because of an empty database
         raise RelayError(msg("relay_no_records"))
     have = call(s, "GET").get("cards", {})
@@ -82,7 +82,7 @@ def _sync(s):
     for i in range(0, len(changed), 500):  # bounded query size; rendered cards are sent in ~CHUNK requests
         for r in _records().filter(uid__in=changed[i:i + 500]):
             ios, android = (render(r, fields, f, s.base_url, names) for f in ("ios", "android"))
-            batch.append({"uid": str(r.uid), "etag": _etag(r, schema), "ios": ios, "android": android})
+            batch.append({"uid": str(r.uid), "etag": _card_etag(r, schema), "ios": ios, "android": android})
             size += len(ios) + len(android)
             if size >= CHUNK:
                 send(batch, delete)

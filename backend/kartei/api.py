@@ -103,20 +103,40 @@ def sections_list():
     return [ser_section(s) for s in FieldSection.objects.all()]
 
 
-def ser_record(r, fields):
-    keys = {f.key for f in fields if f.applies(r.kind)}
+RECORD_COLUMNS = ("uid", "kind", "legacy_id", "first_name", "last_name", "name", "company__uid", "image_type", "data", "version",
+                  "created_at", "updated_at", "updated_by__username", "deleted_at", "reviewed_at", "reviewed_by__username")
+
+
+def _ser_row(v, keys):
+    iso = lambda d: d.isoformat() if d else None
     return {
-        "uid": str(r.uid), "kind": r.kind, "legacy_id": r.legacy_id,
-        "first_name": r.first_name, "last_name": r.last_name, "name": r.name,
-        "company": str(r.company.uid) if r.company_id and r.company else None,
-        "image": r.version if r.image_type else None,
-        "data": {k: v for k, v in r.data.items() if k in keys},
-        "version": r.version, "created_at": r.created_at.isoformat(), "updated_at": r.updated_at.isoformat(),
-        "updated_by": r.updated_by.username if r.updated_by_id and r.updated_by else "",
-        "deleted_at": r.deleted_at.isoformat() if r.deleted_at else None,
-        "reviewed_at": r.reviewed_at.isoformat() if r.reviewed_at else None,
-        "reviewed_by": r.reviewed_by.username if r.reviewed_by_id and r.reviewed_by else "",
+        "uid": str(v["uid"]), "kind": v["kind"], "legacy_id": v["legacy_id"],
+        "first_name": v["first_name"], "last_name": v["last_name"], "name": v["name"],
+        "company": str(v["company__uid"]) if v["company__uid"] else None,
+        "image": v["version"] if v["image_type"] else None,
+        "data": {k: x for k, x in v["data"].items() if k in keys[v["kind"]]},
+        "version": v["version"], "created_at": iso(v["created_at"]), "updated_at": iso(v["updated_at"]),
+        "updated_by": v["updated_by__username"] or "", "deleted_at": iso(v["deleted_at"]),
+        "reviewed_at": iso(v["reviewed_at"]), "reviewed_by": v["reviewed_by__username"] or "",
     }
+
+
+def _keys(fields):
+    return {kind: {f.key for f in fields if f.applies(kind)} for kind in Kind.values}
+
+
+def ser_records(qs, fields):
+    """Many records at once: plain column values instead of model instances (bootstrap of 10k+ contacts)."""
+    keys = _keys(fields)
+    return [_ser_row(v, keys) for v in qs.values(*RECORD_COLUMNS)]
+
+
+def ser_record(r, fields):
+    rel = lambda o: o.username if o else None
+    return _ser_row({c: getattr(r, c) for c in RECORD_COLUMNS if "__" not in c} | {
+        "company__uid": r.company.uid if r.company_id and r.company else None,
+        "updated_by__username": rel(r.updated_by if r.updated_by_id else None),
+        "reviewed_by__username": rel(r.reviewed_by if r.reviewed_by_id else None)}, _keys(fields))
 
 
 def ser_user(u):
@@ -185,7 +205,7 @@ def logout_view(request):
 def bootstrap(request):
     now = timezone.now()
     fields = visible_fields(request.rank)
-    records = [ser_record(r, fields) for r in records_qs().filter(deleted_at__isnull=True)]
+    records = ser_records(Record.objects.filter(deleted_at__isnull=True), fields)
     s, users = Settings.get(), user_options()
     return JsonResponse({"cursor": now.isoformat(), "user": ser_user(request.user),
                          "default_language": s.default_language,
@@ -204,12 +224,12 @@ def changes(request):
     fields, users = visible_fields(request.rank), user_options()
     # ponytail: 5 s overlap covers transactions committing with an older updated_at; client dedupes by version
     cut = since - timedelta(seconds=5)
-    changed = records_qs().filter(Q(updated_at__gte=cut) | Q(reviewed_at__gte=cut))
+    changed = ser_records(Record.objects.filter(Q(updated_at__gte=cut) | Q(reviewed_at__gte=cut)), fields)
     return JsonResponse({
         "cursor": now.isoformat(), "user": ser_user(request.user), "default_language": s.default_language,
         "fields": [ser_field(f, users) for f in fields], "sections": sections_list(),
-        "records": [ser_record(r, fields) for r in changed if not r.deleted_at],
-        "deleted": [str(r.uid) for r in changed if r.deleted_at],
+        "records": [r for r in changed if not r["deleted_at"]],
+        "deleted": [r["uid"] for r in changed if r["deleted_at"]],
         **workflow(request), **dashboard_prefs(request),
     })
 
@@ -418,8 +438,7 @@ def _restore(user, r):
 @needs(MAINT)
 def trash(request):
     fields = visible_fields(request.rank)
-    return JsonResponse({"records": [ser_record(r, fields) for r in
-                                     records_qs().filter(deleted_at__isnull=False).order_by("-deleted_at")]})
+    return JsonResponse({"records": ser_records(Record.objects.filter(deleted_at__isnull=False).order_by("-deleted_at"), fields)})
 
 
 @needs(ADMIN)

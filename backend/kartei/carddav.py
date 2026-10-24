@@ -27,9 +27,20 @@ def _records():
     return Record.objects.filter(deleted_at__isnull=True).select_related("company")
 
 
-def _etag(r, schema):
-    company = f".{r.company.version}" if r.company_id and r.company else ""
-    return f'"{r.version}{company}-{schema}"'
+def _etag(version, company_version, schema):
+    company = f".{company_version}" if company_version is not None else ""
+    return f'"{version}{company}-{schema}"'
+
+
+def _card_etag(r, schema):
+    return _etag(r.version, r.company.version if r.company_id and r.company else None, schema)
+
+
+def _etags(schema, uid=None):
+    """[(uid, etag)] of all live cards from just three columns (a PROPFIND or relay sync lists every card)."""
+    qs = Record.objects.filter(deleted_at__isnull=True)
+    qs = (qs if uid is None else qs.filter(uid=uid)).values_list("uid", "version", "company__version")
+    return [(str(u), _etag(v, cv, schema)) for u, v, cv in qs]
 
 
 class Book:
@@ -43,12 +54,11 @@ class Book:
         return f'"{agg["m"].timestamp() if agg["m"] else 0}-{agg["n"]}-{self.schema}"'
 
     def etags(self, uid=None):
-        qs = _records().defer("image")
-        return [(str(r.uid), _etag(r, self.schema)) for r in (qs if uid is None else qs.filter(uid=uid))]
+        return _etags(self.schema, uid)
 
     def cards(self, uids=None):
         qs = _records() if uids is None else _records().filter(uid__in=uids)
-        return [(str(r.uid), _etag(r, self.schema), render(r, self.fields, self.flavour, self.s.base_url, self.names))
+        return [(str(r.uid), _card_etag(r, self.schema), render(r, self.fields, self.flavour, self.s.base_url, self.names))
                 for r in qs]
 
 

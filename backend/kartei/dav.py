@@ -16,6 +16,7 @@ from urllib.parse import unquote, urlparse
 
 from django.contrib.auth.hashers import check_password
 from django.core.cache import cache
+from django.utils.crypto import salted_hmac
 from django.http import HttpResponse, HttpResponseRedirect
 
 from .net import client_ip
@@ -46,7 +47,11 @@ def authorized(request, username, password_hash):
             user, _, pw = base64.b64decode(header[6:]).decode().partition(":")
         except (ValueError, UnicodeDecodeError):
             user, pw = "", ""
-        if password_hash and user == username and check_password(pw, password_hash):
+        # a phone sync makes several requests, each would pay the deliberately slow password hash (~0.2 s CPU):
+        # remember a successful check for 5 minutes; a new password means a new hash and so a new key
+        ok = "carddav-ok:" + salted_hmac("kartei.carddav", f"{password_hash}\0{user}\0{pw}").hexdigest()
+        if password_hash and user == username and (cache.get(ok) or check_password(pw, password_hash)):
+            cache.set(ok, True, 5 * 60)
             return True
         cache.set(key, cache.get(key, 0) + 1, 15 * 60)
     return False

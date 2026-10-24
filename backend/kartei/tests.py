@@ -825,6 +825,12 @@ class CardDavTests(TestCase):
         self.assertEqual(self.dav("PUT", f"/carddav/kontakte/{PERSON_UID}.vcf", "x").status_code, 403)
         self.assertEqual(self.dav("DELETE", f"/carddav/kontakte/{PERSON_UID}.vcf").status_code, 403)
 
+    def test_new_password_ends_cached_login(self):
+        depth0 = lambda: self.dav("PROPFIND", "/carddav/kontakte/", HTTP_DEPTH="0").status_code
+        self.assertEqual(depth0(), 207)  # the successful check is now cached
+        Settings.objects.filter(pk=1).update(carddav_password_hash=make_password("new-secret"))
+        self.assertEqual(depth0(), 401)
+
     def test_discovery_and_sync(self):
         r = self.dav("PROPFIND", "/carddav/", HTTP_DEPTH="0", body=
                      '<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:carddav"><d:prop>'
