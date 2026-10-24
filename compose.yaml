@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: kartei
       POSTGRES_USER: kartei
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}   # required by the image; empty only with compose.external-db.yaml
     volumes:
       - pgdata:/var/lib/postgresql   # PG 18 layout: data lives in /var/lib/postgresql/18/docker
     healthcheck:

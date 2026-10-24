@@ -29,7 +29,7 @@ Kartei runs as three Docker containers (Compose project `kartei`):
 |---|---|
 | `web` | Django backend and the web app on port 8000 (gunicorn). On every start it runs the database migrations and creates the initial admin from `.env` if needed. |
 | `exporter` | Runs all background jobs in a loop (see below). Same image as `web`. |
-| `db` | PostgreSQL 18. The data lives in the Docker volume `pgdata`. |
+| `db` | PostgreSQL 18. The data lives in the Docker volume `pgdata`. Not started if Kartei uses a [dedicated PostgreSQL server](#dedicated-postgresql). |
 
 Both `web` and `exporter` mount the export directory of the host as `/export`.
 
@@ -77,7 +77,8 @@ cp .env.example .env
 | `SECRET_KEY` | Long random string. Signs sessions and **encrypts the stored passwords** (LDAP, AD writing account, Outlook client secret, SMTP). Never change it later (see [Security](#security)). |
 | `ALLOWED_HOSTS` | Host names under which Kartei is reached, comma-separated, without scheme: `kartei.example.de,localhost`. |
 | `CSRF_TRUSTED_ORIGINS` | Full origins including scheme (and port, if not standard): `https://kartei.example.de`. |
-| `POSTGRES_PASSWORD` | Password of the database user `kartei`. |
+| `POSTGRES_PASSWORD` | Password of the database user `kartei` in the bundled `db` container. |
+| `DATABASE_URL`, `COMPOSE_FILE` | Only for a [dedicated PostgreSQL server](#dedicated-postgresql). |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Initial local admin. Created at start only if there is no active admin at all and the username is not taken yet. |
 | `EXPORT_HOST_DIR` | Host directory mounted as `/export` (default `./export_out`). |
 | `WEB_PORT` | Published port of `web` (default `8000`). `127.0.0.1:8000` publishes it on the loopback interface only. |
@@ -107,6 +108,74 @@ EXPORT_HOST_DIR=/srv/kartei-export
 
 > Warning: If the directory is a mount point, it must be mounted before the containers start. If it is mounted later (or remounted), restart the containers with `docker compose restart web exporter`, otherwise they keep writing into the directory below the mount point.
 {: .warn}
+
+### Dedicated PostgreSQL server (optional) {#dedicated-postgresql}
+
+By default the stack starts its own PostgreSQL 18 container (`db`). If your organization runs PostgreSQL centrally, as a single server, a cluster or a managed cloud database, Kartei can use it instead.
+
+**What the database needs**
+
+- PostgreSQL 14 or newer (Kartei is tested with 18).
+- An empty database with UTF-8 encoding, owned by a login role for Kartei. No superuser rights and no extensions are needed: Kartei creates and updates its tables itself on every start of `web`.
+
+  ```sql
+  CREATE ROLE kartei LOGIN PASSWORD 'a-long-random-password';
+  CREATE DATABASE kartei OWNER kartei ENCODING 'UTF8';
+  ```
+
+- Network access from the Docker host to the server, and a `pg_hba.conf` entry for this role (preferably `hostssl … scram-sha-256`).
+- Connections: each Kartei installation keeps up to about 15 connections open (`web`: 3 processes with 4 threads, plus `exporter`); idle ones are closed after 10 minutes.
+
+**Configure Kartei**
+
+Add two lines to `.env`:
+
+```sh
+DATABASE_URL=postgres://kartei:a-long-random-password@pg.example.de:5432/kartei?sslmode=verify-full&sslrootcert=system
+COMPOSE_FILE=compose.yaml:compose.external-db.yaml
+```
+
+Then start (or restart) as usual with `docker compose up -d`. `compose.external-db.yaml` leaves out the `db` container and passes `DATABASE_URL` to `web` and `exporter`; `POSTGRES_PASSWORD` is not used.
+
+| Part of `DATABASE_URL` | Notes |
+|---|---|
+| `kartei:password@` | Role and password. Percent-encode special characters in the password, e.g. `@` as `%40`, `:` as `%3A`, `/` as `%2F`. |
+| `pg.example.de:5432` | Host and port of the server or of the cluster's write endpoint. |
+| `/kartei` | Database name. |
+| `?sslmode=…` | TLS: `verify-full` checks the certificate and the host name (recommended), `require` only encrypts, `disable` turns TLS off. |
+| `&sslrootcert=…` | The CA for `verify-full`/`verify-ca`: `system` uses the CAs trusted by the container (public certificates, e.g. cloud databases); for an internal CA, give the path of a mounted file (see below). |
+
+Further PostgreSQL connection parameters can be appended the same way, e.g. `connect_timeout=5` or `application_name=kartei`.
+
+**Internal CA:** mount the CA certificate into both containers with a small extra file, e.g. `compose.local.yaml`:
+
+```yaml
+services:
+  web:
+    volumes: ["/etc/kartei/pg-ca.pem:/certs/pg-ca.pem:ro"]
+  exporter:
+    volumes: ["/etc/kartei/pg-ca.pem:/certs/pg-ca.pem:ro"]
+```
+
+and use it in `.env`: `COMPOSE_FILE=compose.yaml:compose.external-db.yaml:compose.local.yaml` and `…?sslmode=verify-full&sslrootcert=/certs/pg-ca.pem`.
+
+**Clusters:** Kartei connects to one address. Point `DATABASE_URL` at the cluster's write endpoint: a virtual IP or DNS name that follows the primary (e.g. with Patroni), HAProxy, or the endpoint of a managed database. After a failover, Kartei checks each reused connection before using it and reconnects, so at most the requests running at that moment fail. PgBouncer works in session and transaction pooling mode.
+
+**Moving from the bundled container to a dedicated server**
+
+1. Create the role and the empty database on the new server (see above).
+2. Stop Kartei and copy the data:
+
+   ```sh
+   cd /opt/kartei
+   docker compose stop web exporter
+   docker compose exec -T db pg_dump -U kartei --no-owner kartei \
+     | docker run --rm -i postgres:18 psql -q "postgres://kartei:PASSWORD@pg.example.de:5432/kartei?sslmode=require"
+   ```
+
+3. Set `DATABASE_URL` and `COMPOSE_FILE` in `.env` as above and run `docker compose up -d`. The old `db` container is no longer started; once everything works, remove it and its data with `docker compose -f compose.yaml rm -s db` and `docker volume rm kartei_pgdata`.
+
+Backup and restore of a dedicated server are usually done by its operators. For your own dumps, see [Backup](#backup).
 
 ### Start
 
@@ -183,6 +252,12 @@ Back up the database daily from a host cron job, plus `.env` once (it holds `SEC
 ```
 
 The database contains everything: contacts, photos, fields, users, settings, history and audit log. Export files can be recreated at any time with *Run now*.
+
+With a [dedicated PostgreSQL server](#dedicated-postgresql), back up the database with your usual PostgreSQL tooling, or with a client container (its version must be at least the server's):
+
+```sh
+docker run --rm postgres:18 pg_dump "postgres://kartei:PASSWORD@pg.example.de:5432/kartei?sslmode=require" | gzip > /backup/kartei-$(date +%F).sql.gz
+```
 
 ### Restore
 

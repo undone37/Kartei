@@ -1,0 +1,14 @@
+# Use a dedicated PostgreSQL server or cluster instead of the bundled db container.
+# Set DATABASE_URL in .env, then either run
+#   docker compose -f compose.yaml -f compose.external-db.yaml up -d
+# or put COMPOSE_FILE=compose.yaml:compose.external-db.yaml into .env and use plain `docker compose`.
+services:
+  db:
+    profiles: [bundled-db]   # not started
+  web:
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in .env}
+    depends_on: !reset {}
+  exporter:   # keeps waiting for web, which runs the migrations
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in .env}

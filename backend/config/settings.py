@@ -63,7 +63,8 @@ TEMPLATES = [{
 
 # an empty DATABASE_URL counts as unset (dj_database_url would fall back to a dummy backend)
 DATABASES = {"default": dj_database_url.parse(
-    os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}", conn_max_age=600)}
+    os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}", conn_max_age=600,
+    conn_health_checks=True)}  # a reused connection is checked first (e.g. after a cluster failover)
 
 AUTHENTICATION_BACKENDS = ["kartei.auth.DbLDAPBackend", "django.contrib.auth.backends.ModelBackend"]
 

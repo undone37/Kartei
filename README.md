@@ -41,6 +41,8 @@ docker compose up -d --build
 
 Instead of building, you can use the released images: set `KARTEI_IMAGE=ghcr.io/undone37/kartei:0.1.0-beta` in `.env`, then `docker compose pull && docker compose up -d --no-build` (relay: `RELAY_IMAGE=ghcr.io/undone37/kartei-relay:0.1.0-beta`).
 
+To use a dedicated PostgreSQL server or cluster instead of the bundled database container, set `DATABASE_URL` and use `compose.external-db.yaml`; the administrator manual (Installation) has the details.
+
 Kartei listens on port 8000; put a TLS reverse proxy in front of it. On the first start it creates the database, a few starter fields (`examples/fields-default.json`) and the admin account from `.env`. Everything else is configured in the browser under *Settings*; the administrator manual walks through it.
 
 ### Optional: CardDAV relay in the DMZ
