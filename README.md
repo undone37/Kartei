@@ -89,7 +89,7 @@ GitHub Actions runs the backend tests on SQLite and PostgreSQL 18, the frontend 
 
 ### Releases
 
-Push a tag such as `v1.2.0`. The *Release* workflow publishes `ghcr.io/undone37/kartei` and `ghcr.io/undone37/kartei-relay` (tags `1.2.0`, `1.2`, `1`, with SBOM and provenance attestations; a tag like `v1.2.0-beta` becomes a pre-release with only the `1.2.0-beta` image tag) and creates the GitHub release with the manuals as PDF and the SBOM files.
+Push a tag such as `v1.2.0`. The *Release* workflow publishes `ghcr.io/undone37/kartei` and `ghcr.io/undone37/kartei-relay` (tags `1.2.0`, `1.2`, `1`, with SBOM and provenance attestations; a tag like `v1.2.0-beta` becomes a pre-release with only the `1.2.0-beta` image tag) and creates the GitHub release with the manuals as PDF, the OpenAPI description (`openapi.yaml`) and the SBOM files.
 
 ### Screenshots for the manuals
 
