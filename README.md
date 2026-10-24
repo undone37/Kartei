@@ -106,3 +106,7 @@ With a development server on port 8000 on a fresh, seeded database (`seed_demo -
 | `N` / `Shift+N` | new person / company |
 | `Ctrl+S` | save |
 | `Esc` | cancel |
+
+## Contributing and license
+
+Contributions are welcome – see [CONTRIBUTING.md](CONTRIBUTING.md). Kartei is free software under the [GNU Affero General Public License v3.0](LICENSE): if you run a modified version for others over a network, you must offer them its source code.
