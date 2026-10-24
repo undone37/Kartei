@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Manuals
+    url: https://github.com/undone37/Kartei/tree/main/manuals
+    about: User and administrator manuals (German and English) – also attached as PDF to every release.
+  - name: Security vulnerability
+    url: https://github.com/undone37/Kartei/security/advisories/new
+    about: Please report security issues privately, not as a public issue.

@@ -1,0 +1,67 @@
+name: Bug report
+description: Something in Kartei doesn't work as described in the manuals
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please don't include real contact data, passwords, tokens or internal host names.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected and what happened instead. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See …
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Contacts (search, view, edit)
+        - Reviews and proposals
+        - Settings / fields
+        - Sign-in / LDAP
+        - Outlook / Exchange sync
+        - CardDAV / relay
+        - Active Directory sync
+        - Exports / import
+        - REST API
+        - Email
+        - Installation / Docker
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Kartei version
+      description: The image tag or release, e.g. 0.1.0-beta
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Role of the affected user
+      options: [Read only, Maintainer, Admin, not relevant]
+  - type: input
+    id: client
+    attributes:
+      label: Browser / client
+      description: e.g. Chrome 156 on Windows, Outlook app on iOS, phone CardDAV account
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant lines from `docker compose logs web` or `docker compose logs exporter` (remove personal data).
+      render: text
