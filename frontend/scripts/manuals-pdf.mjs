@@ -1,7 +1,7 @@
 // The manuals as print-ready PDFs in the Kartei look: cover, contents with page numbers, numbered chapters.
 // Usage: node scripts/manuals-pdf.mjs [--out ../dist] [--version 1.0.0]
 // Needs pandoc (>= 3) and pdftotext (poppler-utils); Chromium comes from Playwright.
-import { chromium } from 'playwright'
+import { chromium } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

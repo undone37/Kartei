@@ -67,6 +67,52 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  e2e:
+    name: End-to-end (browser)
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: "1"
+      EXPORT_ROOT: /tmp/export
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: System libraries for python-ldap
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libldap2-dev libsasl2-dev
+      - run: pip install -r backend/requirements.txt
+      - name: Build the frontend
+        working-directory: frontend
+        run: npm ci && npm run build && npx playwright install --with-deps chromium
+      - name: Start Kartei with sample data
+        working-directory: backend
+        run: |
+          python manage.py migrate -v0
+          ADMIN_USERNAME=admin ADMIN_PASSWORD=admin12345 python manage.py init_app
+          python manage.py seed_demo --password demo12345
+          python manage.py runserver 127.0.0.1:8000 --noreload > ../server.log 2>&1 &
+          curl -sf --retry 30 --retry-connrefused --retry-delay 1 http://127.0.0.1:8000/api/session > /dev/null
+      - name: Browser tests
+        working-directory: frontend
+        run: npm run test:e2e
+        env:
+          E2E_BASE: http://127.0.0.1:8000
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+            server.log
+
   docker:
     name: Docker image
     runs-on: ubuntu-latest

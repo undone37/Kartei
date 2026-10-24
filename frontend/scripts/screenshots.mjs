@@ -2,7 +2,7 @@
 // Usage: node scripts/screenshots.mjs [--lang de,en] [--only name,...] [--out ../manuals/img] [--theme light]
 //        [--base http://localhost:8000] [--password demo12345] [--admin-password admin12345]
 // Expects a fresh database with `manage.py seed_demo` data.
-import { chromium } from 'playwright'
+import { chromium } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 
 const arg = (name, dflt) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : dflt }

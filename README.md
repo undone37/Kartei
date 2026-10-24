@@ -83,9 +83,10 @@ Without the Vite dev server, `npm run build` lets Django serve the app at http:/
 ```sh
 cd backend && DEBUG=1 ../.venv/bin/python manage.py test kartei relay
 cd frontend && npm test && npm run check
+cd frontend && npm run test:e2e   # browser tests against a running server with seed_demo data (once: npx playwright install chromium)
 ```
 
-GitHub Actions runs the backend tests on SQLite and PostgreSQL 18, the frontend checks and the Docker build on every push, and keeps SBOMs (SPDX and CycloneDX) of the source tree and both images as a build artifact. Dependabot proposes weekly updates for Python, npm, the Docker base images and the actions; it stays on the Django LTS and on the newest Python that Django supports.
+GitHub Actions runs the backend tests on SQLite and PostgreSQL 18, the frontend checks, the browser tests and the Docker build on every push, and keeps SBOMs (SPDX and CycloneDX) of the source tree and both images as a build artifact. Dependabot proposes weekly updates for Python, npm, the Docker base images and the actions; it stays on the Django LTS and on the newest Python that Django supports.
 
 ### Releases
 

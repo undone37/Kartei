@@ -25,6 +25,7 @@ The [README](README.md#development) has the full setup. In short: Python 3.14 wi
    DEBUG=1 ../.venv/bin/python manage.py makemigrations --check --dry-run
    DEBUG=1 ../.venv/bin/python manage.py test kartei relay
    cd ../frontend && npm run check && npm test && npm run build
+   npm run test:e2e   # browser tests: needs a running server with fresh seed_demo data, see the README
    ```
 
 6. Open a pull request against `main` and describe what changed and why.

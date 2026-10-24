@@ -16,3 +16,5 @@ plan.md
 
 trainings/
 dist/
+frontend/test-results/
+frontend/playwright-report/
