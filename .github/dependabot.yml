@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: weekly }
+    groups:
+      python: { patterns: ["*"] }
+    ignore:
+      # stay on the 5.2 LTS (supported until April 2028); move to the next LTS (6.2) on purpose
+      - dependency-name: django
+        versions: [">=5.3"]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    groups:
+      frontend: { patterns: ["*"], update-types: [minor, patch] }
+    ignore:
+      # svelte-check supports TypeScript 7 only experimentally
+      - dependency-name: typescript
+        versions: [">=7"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly }
+    ignore:
+      # Python: the newest version Django officially supports (5.2 LTS: up to 3.14)
+      - dependency-name: python
+        versions: [">=3.15"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }

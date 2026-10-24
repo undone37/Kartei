@@ -1,0 +1,25 @@
+# CardDAV relay for the DMZ host: docker compose -f compose.relay.yaml up -d
+# Kartei (inside) pushes the cards to https://<relay>/push; phones read https://<relay>/carddav/.
+# The relay opens no connections itself. Put a TLS reverse proxy in front of RELAY_PORT.
+name: kartei-relay
+services:
+  carddav-relay:
+    build: { context: ., target: relay }   # no frontend build needed
+    image: ${RELAY_IMAGE:-kartei-relay:latest}
+    restart: unless-stopped
+    env_file: .env.relay
+    ports:
+      - "${RELAY_PORT:-8080}:8000"
+    volumes:
+      - relaydata:/data
+    read_only: true            # only the SQLite volume is writable
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8000/carddav/', method='OPTIONS'))"]
+      interval: 30s
+      start_period: 20s
+
+volumes:
+  relaydata:

@@ -1,0 +1,48 @@
+name: kartei  # project name: containers and volumes are kartei-*, whatever the folder is called
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kartei
+      POSTGRES_USER: kartei
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql   # PG 18 layout: data lives in /var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kartei -d kartei"]
+      interval: 5s
+      retries: 10
+
+  web:
+    build: .
+    image: ${KARTEI_IMAGE:-kartei:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://kartei:${POSTGRES_PASSWORD}@db:5432/kartei
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    volumes:
+      - ${EXPORT_HOST_DIR:-./export_out}:/export
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/session')"]
+      interval: 10s
+      start_period: 30s
+
+  exporter:
+    image: ${KARTEI_IMAGE:-kartei:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://kartei:${POSTGRES_PASSWORD}@db:5432/kartei
+    command: python manage.py export_loop
+    depends_on:
+      web: { condition: service_healthy }   # web runs the migrations
+    volumes:
+      - ${EXPORT_HOST_DIR:-./export_out}:/export
+
+volumes:
+  pgdata:

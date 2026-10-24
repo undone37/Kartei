@@ -1,0 +1,91 @@
+{
+  "format": "kartei-ad-mapping",
+  "version": 1,
+  "columns": [
+    {
+      "attr": "givenName",
+      "person": "core:first_name",
+      "company": "field:short_name"
+    },
+    {
+      "attr": "sn",
+      "person": "core:last_name",
+      "company": ""
+    },
+    {
+      "attr": "title",
+      "person": "field:job_title",
+      "company": ""
+    },
+    {
+      "attr": "department",
+      "person": "field:department",
+      "company": ""
+    },
+    {
+      "attr": "company",
+      "person": "calc:company_name",
+      "company": "core:name"
+    },
+    {
+      "attr": "telephoneNumber",
+      "person": "field:phone_work",
+      "company": "field:company_phone"
+    },
+    {
+      "attr": "mobile",
+      "person": "field:mobile",
+      "company": ""
+    },
+    {
+      "attr": "homePhone",
+      "person": "field:phone_home",
+      "company": ""
+    },
+    {
+      "attr": "otherTelephone",
+      "person": "field:assistant_phone",
+      "company": ""
+    },
+    {
+      "attr": "facsimileTelephoneNumber",
+      "person": "field:fax",
+      "company": "field:company_fax"
+    },
+    {
+      "attr": "mail",
+      "person": "field:email",
+      "company": "field:company_email"
+    },
+    {
+      "attr": "wWWHomePage",
+      "person": "field:website",
+      "company": "field:website"
+    },
+    {
+      "attr": "streetAddress",
+      "person": "field:work_street",
+      "company": "field:work_street"
+    },
+    {
+      "attr": "postalCode",
+      "person": "field:work_zip",
+      "company": "field:work_zip"
+    },
+    {
+      "attr": "l",
+      "person": "field:work_city",
+      "company": "field:work_city"
+    },
+    {
+      "attr": "st",
+      "person": "field:work_state",
+      "company": "field:work_state"
+    },
+    {
+      "attr": "co",
+      "person": "field:work_country",
+      "company": "field:work_country"
+    }
+  ]
+}

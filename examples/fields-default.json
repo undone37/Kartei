@@ -1,0 +1,232 @@
+{
+  "format": "kartei-fields",
+  "version": 2,
+  "sections": [
+    {
+      "key": "person",
+      "label": {
+        "de": "Person",
+        "en": "Person"
+      }
+    },
+    {
+      "key": "communication",
+      "label": {
+        "de": "Kommunikation",
+        "en": "Communication"
+      }
+    }
+  ],
+  "fields": [
+    {
+      "key": "job_title",
+      "label": {
+        "de": "Funktion",
+        "en": "Job title"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "title",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "email",
+      "label": {
+        "de": "E-Mail",
+        "en": "Email"
+      },
+      "applies_to": "person",
+      "type": "email",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "email_work",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "phone_work",
+      "label": {
+        "de": "Telefon",
+        "en": "Phone"
+      },
+      "applies_to": "person",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_work",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "mobile",
+      "label": {
+        "de": "Mobil",
+        "en": "Mobile"
+      },
+      "applies_to": "person",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_cell",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "company_phone",
+      "label": {
+        "de": "Telefon Zentrale",
+        "en": "Main phone"
+      },
+      "applies_to": "company",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_custom",
+      "vcard_label": "Zentrale",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "company_email",
+      "label": {
+        "de": "E-Mail Zentrale",
+        "en": "Main email"
+      },
+      "applies_to": "company",
+      "type": "email",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "email_custom",
+      "vcard_label": "Zentrale",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "website",
+      "label": {
+        "de": "Webseite",
+        "en": "Website"
+      },
+      "applies_to": "both",
+      "type": "url",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "url",
+      "vcard_label": "",
+      "copy_from": "website",
+      "archived": false,
+      "import_aliases": []
+    }
+  ]
+}

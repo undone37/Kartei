@@ -1,0 +1,7 @@
+# GitHub Pages (Jekyll) – serve this folder as the documentation site.
+title: Kartei
+markdown: kramdown
+defaults:
+  - scope: { path: "" }
+    values: { layout: default }
+exclude: [screenshots.mjs]

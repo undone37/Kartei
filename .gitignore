@@ -1,0 +1,18 @@
+# provided reference material, never commit
+tmp/
+
+.env
+.env.relay
+*.sqlite3
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+frontend/dist/
+backend/staticfiles/
+export_out/
+.claude/
+plan.md
+
+trainings/
+dist/

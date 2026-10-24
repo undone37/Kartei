@@ -1,0 +1,1813 @@
+{
+  "format": "kartei-fields",
+  "version": 2,
+  "sections": [
+    {
+      "key": "person",
+      "label": {
+        "de": "Person",
+        "en": "Person"
+      }
+    },
+    {
+      "key": "company",
+      "label": {
+        "de": "Firma",
+        "en": "Company"
+      }
+    },
+    {
+      "key": "communication",
+      "label": {
+        "de": "Kommunikation",
+        "en": "Communication"
+      }
+    },
+    {
+      "key": "business_address",
+      "label": {
+        "de": "Adresse geschäftlich",
+        "en": "Business address"
+      }
+    },
+    {
+      "key": "home_address",
+      "label": {
+        "de": "Adresse privat",
+        "en": "Home address"
+      }
+    },
+    {
+      "key": "internal",
+      "label": {
+        "de": "Intern",
+        "en": "Internal"
+      }
+    },
+    {
+      "key": "notes",
+      "label": {
+        "de": "Notizen",
+        "en": "Notes"
+      }
+    }
+  ],
+  "fields": [
+    {
+      "key": "job_title",
+      "label": {
+        "de": "Funktion",
+        "en": "Job title"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "title",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Position",
+        "Berufsbezeichnung"
+      ]
+    },
+    {
+      "key": "email",
+      "label": {
+        "de": "E-Mail",
+        "en": "Email"
+      },
+      "applies_to": "person",
+      "type": "email",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "email_work",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "E-Mail geschäftlich",
+        "E-Mail-Adresse",
+        "Business email",
+        "Email address"
+      ]
+    },
+    {
+      "key": "phone_work",
+      "label": {
+        "de": "Telefon",
+        "en": "Phone"
+      },
+      "applies_to": "person",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_work",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Telefon geschäftlich",
+        "Tel.",
+        "Business phone",
+        "Work phone"
+      ]
+    },
+    {
+      "key": "mobile",
+      "label": {
+        "de": "Mobil",
+        "en": "Mobile"
+      },
+      "applies_to": "person",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_cell",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Handy",
+        "Mobiltelefon",
+        "Mobile phone",
+        "Cell phone"
+      ]
+    },
+    {
+      "key": "company_phone",
+      "label": {
+        "de": "Telefon Zentrale",
+        "en": "Main phone"
+      },
+      "applies_to": "company",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_custom",
+      "vcard_label": "Zentrale",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Telefon",
+        "Tel.",
+        "Phone"
+      ]
+    },
+    {
+      "key": "company_email",
+      "label": {
+        "de": "E-Mail Zentrale",
+        "en": "Main email"
+      },
+      "applies_to": "company",
+      "type": "email",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "email_custom",
+      "vcard_label": "Zentrale",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "E-Mail",
+        "Email"
+      ]
+    },
+    {
+      "key": "website",
+      "label": {
+        "de": "Webseite",
+        "en": "Website"
+      },
+      "applies_to": "both",
+      "type": "url",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "url",
+      "vcard_label": "",
+      "copy_from": "website",
+      "archived": false,
+      "import_aliases": [
+        "Homepage",
+        "Internet",
+        "Web",
+        "URL"
+      ]
+    },
+    {
+      "key": "salutation",
+      "label": {
+        "de": "Anrede",
+        "en": "Salutation"
+      },
+      "applies_to": "person",
+      "type": "select",
+      "options": [
+        {
+          "value": "Herr",
+          "de": "Herr",
+          "en": "Herr"
+        },
+        {
+          "value": "Frau",
+          "de": "Frau",
+          "en": "Frau"
+        },
+        {
+          "value": "Divers",
+          "de": "Divers",
+          "en": "Divers"
+        }
+      ],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "academic_title",
+      "label": {
+        "de": "Akademischer Titel",
+        "en": "Academic title"
+      },
+      "applies_to": "person",
+      "type": "select",
+      "options": [
+        {
+          "value": "Dr.",
+          "de": "Dr.",
+          "en": "Dr."
+        },
+        {
+          "value": "Dr. Dr.",
+          "de": "Dr. Dr.",
+          "en": "Dr. Dr."
+        },
+        {
+          "value": "Dr.-Ing.",
+          "de": "Dr.-Ing.",
+          "en": "Dr.-Ing."
+        },
+        {
+          "value": "Prof.",
+          "de": "Prof.",
+          "en": "Prof."
+        },
+        {
+          "value": "Prof. Dr.",
+          "de": "Prof. Dr.",
+          "en": "Prof. Dr."
+        },
+        {
+          "value": "Prof. Dr. Dr.",
+          "de": "Prof. Dr. Dr.",
+          "en": "Prof. Dr. Dr."
+        },
+        {
+          "value": "Prof. Dr.-Ing.",
+          "de": "Prof. Dr.-Ing.",
+          "en": "Prof. Dr.-Ing."
+        },
+        {
+          "value": "Dipl.-Ing.",
+          "de": "Dipl.-Ing.",
+          "en": "Dipl.-Ing."
+        },
+        {
+          "value": "Dipl.-Kfm.",
+          "de": "Dipl.-Kfm.",
+          "en": "Dipl.-Kfm."
+        },
+        {
+          "value": "Dipl.-Inf.",
+          "de": "Dipl.-Inf.",
+          "en": "Dipl.-Inf."
+        },
+        {
+          "value": "Dipl.-Volksw.",
+          "de": "Dipl.-Volksw.",
+          "en": "Dipl.-Volksw."
+        },
+        {
+          "value": "Dipl.-Jur.",
+          "de": "Dipl.-Jur.",
+          "en": "Dipl.-Jur."
+        }
+      ],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "n_prefix",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Titel",
+        "Title"
+      ]
+    },
+    {
+      "key": "academic_degree",
+      "label": {
+        "de": "Akademischer Grad",
+        "en": "Academic degree"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "n_suffix",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "middle_name",
+      "label": {
+        "de": "2. Vorname",
+        "en": "Middle name"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "n_middle",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "nickname",
+      "label": {
+        "de": "Spitzname",
+        "en": "Nickname"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "nickname",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "phonetic_first",
+      "label": {
+        "de": "Vorname phonetisch",
+        "en": "First name (phonetic)"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": false,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "phonetic_first",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "phonetic_middle",
+      "label": {
+        "de": "2. Vorname phonetisch",
+        "en": "Middle name (phonetic)"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": false,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "phonetic_middle",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "phonetic_last",
+      "label": {
+        "de": "Nachname phonetisch",
+        "en": "Last name (phonetic)"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": false,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "phonetic_last",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "department",
+      "label": {
+        "de": "Abteilung",
+        "en": "Department"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "department",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "birthday",
+      "label": {
+        "de": "Geburtstag",
+        "en": "Birthday"
+      },
+      "applies_to": "person",
+      "type": "date",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "person",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": false,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "bday",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Geburtsdatum",
+        "Date of birth"
+      ]
+    },
+    {
+      "key": "short_name",
+      "label": {
+        "de": "Firma kurz",
+        "en": "Short name"
+      },
+      "applies_to": "company",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "company",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "nickname",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Kurzname",
+        "Kürzel"
+      ]
+    },
+    {
+      "key": "company_legal",
+      "label": {
+        "de": "Firma (Rechtsform)",
+        "en": "Legal name"
+      },
+      "applies_to": "company",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "company",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "ceo",
+      "label": {
+        "de": "Geschäftsführer",
+        "en": "Managing director"
+      },
+      "applies_to": "company",
+      "type": "contact",
+      "options": [],
+      "open_options": true,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "company",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "related_custom",
+      "vcard_label": "Geschäftsführer",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Geschäftsführung",
+        "CEO"
+      ]
+    },
+    {
+      "key": "fax",
+      "label": {
+        "de": "Fax",
+        "en": "Fax"
+      },
+      "applies_to": "person",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_fax_work",
+      "vcard_label": "",
+      "copy_from": "company_fax",
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "phone_home",
+      "label": {
+        "de": "Telefon privat",
+        "en": "Home phone"
+      },
+      "applies_to": "person",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_home",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "mobile_private",
+      "label": {
+        "de": "Handy privat",
+        "en": "Private mobile"
+      },
+      "applies_to": "person",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "fax_home",
+      "label": {
+        "de": "Fax privat",
+        "en": "Home fax"
+      },
+      "applies_to": "person",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_fax_home",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "email_private",
+      "label": {
+        "de": "E-Mail privat",
+        "en": "Private email"
+      },
+      "applies_to": "person",
+      "type": "email",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "email_home",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "email_other",
+      "label": {
+        "de": "E-Mail sonstige",
+        "en": "Other email"
+      },
+      "applies_to": "person",
+      "type": "email",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "email_custom",
+      "vcard_label": "Sonstige",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "assistant",
+      "label": {
+        "de": "Assistenz",
+        "en": "Assistant"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "related_assistant",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "assistant_phone",
+      "label": {
+        "de": "Telefon Assistenz",
+        "en": "Assistant phone"
+      },
+      "applies_to": "person",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_assistant",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "manager",
+      "label": {
+        "de": "Vorgesetzter",
+        "en": "Manager"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "related_manager",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "company_fax",
+      "label": {
+        "de": "Fax Zentrale",
+        "en": "Main fax"
+      },
+      "applies_to": "company",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_fax_custom",
+      "vcard_label": "Zentrale",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Fax"
+      ]
+    },
+    {
+      "key": "email_privacy",
+      "label": {
+        "de": "E-Mail Datenschutz",
+        "en": "Privacy email"
+      },
+      "applies_to": "company",
+      "type": "email",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "email_custom",
+      "vcard_label": "Datenschutz",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "email_billing",
+      "label": {
+        "de": "E-Mail Rechnung",
+        "en": "Billing email"
+      },
+      "applies_to": "company",
+      "type": "email",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "email_custom",
+      "vcard_label": "Rechnung",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "hotline",
+      "label": {
+        "de": "Hotline",
+        "en": "Hotline"
+      },
+      "applies_to": "both",
+      "type": "phone",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "communication",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "tel_custom",
+      "vcard_label": "Hotline",
+      "copy_from": "hotline",
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "work_street",
+      "label": {
+        "de": "Straße + Hausnr.",
+        "en": "Street"
+      },
+      "applies_to": "both",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "business_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_work_street",
+      "vcard_label": "",
+      "copy_from": "work_street",
+      "archived": false,
+      "import_aliases": [
+        "Straße",
+        "Adresse",
+        "Address"
+      ]
+    },
+    {
+      "key": "work_extra",
+      "label": {
+        "de": "Adresszusatz",
+        "en": "Address line 2"
+      },
+      "applies_to": "both",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "business_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_work_extra",
+      "vcard_label": "",
+      "copy_from": "work_extra",
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "work_pobox",
+      "label": {
+        "de": "Postfach",
+        "en": "PO box"
+      },
+      "applies_to": "both",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "business_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_work_pobox",
+      "vcard_label": "",
+      "copy_from": "work_pobox",
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "work_zip",
+      "label": {
+        "de": "PLZ",
+        "en": "Postal code"
+      },
+      "applies_to": "both",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "business_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_work_zip",
+      "vcard_label": "",
+      "copy_from": "work_zip",
+      "archived": false,
+      "import_aliases": [
+        "PLZ",
+        "Postleitzahl",
+        "Postal code",
+        "ZIP",
+        "ZIP code"
+      ]
+    },
+    {
+      "key": "work_city",
+      "label": {
+        "de": "Ort",
+        "en": "City"
+      },
+      "applies_to": "both",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "business_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_work_city",
+      "vcard_label": "",
+      "copy_from": "work_city",
+      "archived": false,
+      "import_aliases": [
+        "Ort",
+        "Stadt",
+        "City",
+        "Town"
+      ]
+    },
+    {
+      "key": "work_state",
+      "label": {
+        "de": "Bundesland",
+        "en": "State"
+      },
+      "applies_to": "both",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "business_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_work_state",
+      "vcard_label": "",
+      "copy_from": "work_state",
+      "archived": false,
+      "import_aliases": [
+        "Bundesland",
+        "State",
+        "Region"
+      ]
+    },
+    {
+      "key": "work_country",
+      "label": {
+        "de": "Land",
+        "en": "Country"
+      },
+      "applies_to": "both",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "business_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_work_country",
+      "vcard_label": "",
+      "copy_from": "work_country",
+      "archived": false,
+      "import_aliases": [
+        "Land",
+        "Country"
+      ]
+    },
+    {
+      "key": "home_street",
+      "label": {
+        "de": "Straße + Hausnr.",
+        "en": "Street"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "home_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_home_street",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "home_extra",
+      "label": {
+        "de": "Adresszusatz",
+        "en": "Address line 2"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "home_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_home_extra",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "home_pobox",
+      "label": {
+        "de": "Postfach",
+        "en": "PO box"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "home_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_home_pobox",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "home_zip",
+      "label": {
+        "de": "PLZ",
+        "en": "Postal code"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "home_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_home_zip",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "home_city",
+      "label": {
+        "de": "Ort",
+        "en": "City"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "home_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_home_city",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "home_state",
+      "label": {
+        "de": "Bundesland",
+        "en": "State"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "home_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_home_state",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "home_country",
+      "label": {
+        "de": "Land",
+        "en": "Country"
+      },
+      "applies_to": "person",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "home_address",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "adr_home_country",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "keywords",
+      "label": {
+        "de": "Schlagworte",
+        "en": "Keywords"
+      },
+      "applies_to": "both",
+      "type": "multiselect",
+      "options": [],
+      "open_options": true,
+      "quick_filter": true,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "internal",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "categories",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Schlagwörter",
+        "Stichworte",
+        "Kategorien",
+        "Tags",
+        "Categories"
+      ]
+    },
+    {
+      "key": "internal_contact",
+      "label": {
+        "de": "Ansprechpartner intern",
+        "en": "Internal contact"
+      },
+      "applies_to": "both",
+      "type": "user",
+      "options": [],
+      "open_options": false,
+      "quick_filter": true,
+      "required": true,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "internal",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "note_labeled",
+      "vcard_label": "Ansprechpartner intern",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Ansprechpartner",
+        "Zuständig",
+        "Betreuer",
+        "Owner"
+      ]
+    },
+    {
+      "key": "internal_contacts",
+      "label": {
+        "de": "Kontakte intern",
+        "en": "Internal contacts"
+      },
+      "applies_to": "both",
+      "type": "users",
+      "options": [],
+      "open_options": false,
+      "quick_filter": true,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "internal",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "note_labeled",
+      "vcard_label": "interne Kontakte",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": []
+    },
+    {
+      "key": "customer_no",
+      "label": {
+        "de": "Kundennummer",
+        "en": "Customer no."
+      },
+      "applies_to": "both",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "internal",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "",
+      "vcard_label": "",
+      "copy_from": "customer_no",
+      "archived": false,
+      "import_aliases": [
+        "Kunden-Nr.",
+        "Customer number"
+      ]
+    },
+    {
+      "key": "contract_no",
+      "label": {
+        "de": "Vertragsnummer",
+        "en": "Contract no."
+      },
+      "applies_to": "both",
+      "type": "text",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "internal",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "",
+      "vcard_label": "",
+      "copy_from": "contract_no",
+      "archived": false,
+      "import_aliases": [
+        "Vertrags-Nr.",
+        "Contract number"
+      ]
+    },
+    {
+      "key": "description",
+      "label": {
+        "de": "Beschreibung",
+        "en": "Description"
+      },
+      "applies_to": "both",
+      "type": "longtext",
+      "options": [],
+      "open_options": false,
+      "quick_filter": false,
+      "required": false,
+      "min": null,
+      "max": null,
+      "decimals": 2,
+      "section": "notes",
+      "visible_to": "read",
+      "editable_by": "maintainer",
+      "searchable": true,
+      "regex": "",
+      "help": {
+        "de": "",
+        "en": ""
+      },
+      "vcard": "note",
+      "vcard_label": "",
+      "copy_from": null,
+      "archived": false,
+      "import_aliases": [
+        "Notizen",
+        "Notiz",
+        "Bemerkung",
+        "Notes",
+        "Comments"
+      ]
+    }
+  ]
+}

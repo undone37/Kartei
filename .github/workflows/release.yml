@@ -1,0 +1,88 @@
+# Release: push a tag like v1.2.3 (or v1.2.3-beta: a pre-release, without the 1.2 / 1 image tags). Publishes both images to the GitHub container registry and creates the
+# GitHub release with the manuals as PDF and SBOMs (SPDX, CycloneDX) for the source tree and both images.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/kartei
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+
+      - id: relay
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/kartei-relay
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: relay
+          push: true
+          tags: ${{ steps.relay.outputs.tags }}
+          labels: ${{ steps.relay.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+
+      - run: mkdir dist
+      - { uses: anchore/sbom-action@v0, with: { path: ., format: spdx-json, output-file: "dist/kartei-${{ env.VERSION }}-source.spdx.json", upload-artifact: false } }
+      - { uses: anchore/sbom-action@v0, with: { path: ., format: cyclonedx-json, output-file: "dist/kartei-${{ env.VERSION }}-source.cdx.json", upload-artifact: false } }
+      - { uses: anchore/sbom-action@v0, with: { image: "${{ fromJSON(steps.meta.outputs.json).tags[0] }}", format: spdx-json, output-file: "dist/kartei-${{ env.VERSION }}-image.spdx.json", upload-artifact: false } }
+      - { uses: anchore/sbom-action@v0, with: { image: "${{ fromJSON(steps.meta.outputs.json).tags[0] }}", format: cyclonedx-json, output-file: "dist/kartei-${{ env.VERSION }}-image.cdx.json", upload-artifact: false } }
+      - { uses: anchore/sbom-action@v0, with: { image: "${{ fromJSON(steps.relay.outputs.json).tags[0] }}", format: spdx-json, output-file: "dist/kartei-relay-${{ env.VERSION }}-image.spdx.json", upload-artifact: false } }
+      - { uses: anchore/sbom-action@v0, with: { image: "${{ fromJSON(steps.relay.outputs.json).tags[0] }}", format: cyclonedx-json, output-file: "dist/kartei-relay-${{ env.VERSION }}-image.cdx.json", upload-artifact: false } }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Manuals as PDF
+        working-directory: frontend
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends pandoc poppler-utils fonts-noto-core fonts-dejavu-core
+          npm ci
+          npx playwright install --with-deps chromium
+          node scripts/manuals-pdf.mjs --out ../dist --version "$VERSION"
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$VERSION" >/dev/null 2>&1 || gh release create "$VERSION" --verify-tag --generate-notes --title "Kartei ${VERSION#v}" $([[ $VERSION == *-* ]] && echo --prerelease)
+          gh release upload "$VERSION" dist/* --clobber

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="{{ page.lang | default: 'en' }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>{{ page.title }} · Kartei</title>
+  <link rel="icon" href="{{ '/assets/favicon.svg' | relative_url }}" />
+  <link rel="stylesheet" href="{{ '/assets/kartei.css' | relative_url }}" />
+</head>
+<body>
+  <header class="top">
+    <a class="logo" href="{{ '/' | relative_url }}"><img class="mark" src="{{ '/assets/favicon.svg' | relative_url }}" alt="" /><span>Kartei</span></a>
+    <nav class="roles">
+      {% if page.lang == 'de' %}
+        <a href="{{ '/de/user.html' | relative_url }}" {% if page.role == 'user' %}class="on"{% endif %}>Benutzer</a>
+        <a href="{{ '/de/admin.html' | relative_url }}" {% if page.role == 'admin' %}class="on"{% endif %}>Administration</a>
+      {% else %}
+        <a href="{{ '/en/user.html' | relative_url }}" {% if page.role == 'user' %}class="on"{% endif %}>Users</a>
+        <a href="{{ '/en/admin.html' | relative_url }}" {% if page.role == 'admin' %}class="on"{% endif %}>Administrators</a>
+      {% endif %}
+    </nav>
+    {% if page.other %}<a class="chip" href="{{ page.other | relative_url }}">{% if page.lang == 'de' %}English{% else %}Deutsch{% endif %}</a>{% endif %}
+  </header>
+  <div class="main">
+    <aside class="side"><nav id="toc"></nav></aside>
+    <main class="content">{{ content }}</main>
+  </div>
+  <script>
+    // chapter list from the h2/h3 headings (no Jekyll plugin needed)
+    const toc = document.getElementById('toc')
+    for (const h of document.querySelectorAll('.content h2, .content h3')) {
+      const a = document.createElement('a')
+      a.href = '#' + h.id
+      a.textContent = h.textContent
+      a.className = h.tagName.toLowerCase()
+      toc.append(a)
+    }
+  </script>
+</body>
+</html>

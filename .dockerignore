@@ -1,0 +1,13 @@
+.git
+.venv
+**/node_modules
+**/__pycache__
+frontend/dist
+backend/staticfiles
+backend/*.sqlite3
+export_out
+.env
+.env.relay
+*.odt
+*.xlsx
+*.png

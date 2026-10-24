@@ -1,0 +1,315 @@
+openapi: 3.1.0
+info:
+  title: Kartei REST API
+  version: "1"
+  description: |
+    Read and write access to the Kartei contact directory for other systems. See API.md for details.
+
+    Every token reads the contacts and fields visible to the *Read only* role. Tokens created with the
+    permission *Read and write* (scope `write`) can also create, change and delete contacts, with the rights
+    of a *Maintainer* restricted to the fields *Read only* users see: admin-only fields return the validation
+    code `forbidden`, fields hidden from *Read only* users `unknown_field`. Writing with a read token returns
+    `403 forbidden`. Changes are audited as `api:<token name>`.
+servers:
+  - url: https://kartei.example.com/api/v1
+security:
+  - bearer: []
+paths:
+  /contacts:
+    get:
+      summary: List all contacts, or the changes since a cursor
+      operationId: listContacts
+      parameters:
+        - name: updated_since
+          in: query
+          required: false
+          description: |
+            ISO 8601 timestamp, normally the `cursor` of the previous response (URL-encoded).
+            Returns only changed contacts plus the UIDs of deleted ones. If it is older than the
+            recycle-bin retention, the full list is returned with `full: true`.
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Full list or delta
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/FullList"
+                  - $ref: "#/components/schemas/Delta"
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "429": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Create a contact (write tokens only)
+      operationId: createContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactCreate" }
+            example:
+              kind: person
+              first_name: Anna
+              last_name: Schmidt
+              company: d8c52355-6825-4f0c-a0f6-1300ce45a0e6
+              data: { job_title: Einkauf, mobile: "0170 1234567", keywords: [Kunde] }
+      responses:
+        "201":
+          description: The created contact
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Contact" }
+        "400": { $ref: "#/components/responses/Validation" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/Error" }
+  /contacts/{uid}:
+    parameters:
+      - name: uid
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      summary: One contact
+      operationId: getContact
+      responses:
+        "200":
+          description: The contact
+          headers:
+            ETag:
+              description: The contact's version in quotes, usable as If-Match
+              schema: { type: string, example: '"7"' }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Contact" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+    patch:
+      summary: Change a contact partially (write tokens only)
+      description: |
+        Only the given keys change; `data` is merged into the existing values and `null`, `""` or `[]` clears a
+        field. With `version` (or an `If-Match: "<version>"` header) a concurrent change returns 409 instead of
+        being overwritten.
+      operationId: updateContact
+      parameters:
+        - name: If-Match
+          in: header
+          required: false
+          description: 'Expected version, e.g. `"7"` (the ETag of GET). The body key `version` takes precedence.'
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactUpdate" }
+            example: { version: 7, data: { job_title: Leitung Einkauf, mobile: null } }
+      responses:
+        "200":
+          description: The contact after the change (unchanged, same version, if nothing differed)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Contact" }
+        "400": { $ref: "#/components/responses/Validation" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409":
+          description: The contact changed since the given version
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conflict" }
+        "429": { $ref: "#/components/responses/Error" }
+    delete:
+      summary: Move a contact to the recycle bin (write tokens only)
+      operationId: deleteContact
+      parameters:
+        - name: with_persons
+          in: query
+          required: false
+          description: "`1`: for a company, also move all its persons to the recycle bin"
+          schema: { type: string, enum: ["1"] }
+      responses:
+        "200":
+          description: Moved to the recycle bin
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, deleted]
+                properties:
+                  ok: { type: boolean, const: true }
+                  deleted:
+                    type: array
+                    description: UIDs moved to the recycle bin, the contact itself first
+                    items: { type: string, format: uuid }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: |
+        API token created by an administrator under Settings → API (starts with `kt_`). Its permission is
+        *Read only* (GET) or *Read and write* (also POST, PATCH, DELETE). Use HTTPS only.
+  responses:
+    Error:
+      description: Error with a machine-readable code
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Validation:
+      description: Invalid input (`validation` with a code per field, or `invalid_json`); nothing was changed
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ValidationError" }
+          example: { error: validation, fields: { last_name: required, email: invalid_email, customer_no: forbidden } }
+    Forbidden:
+      description: The token has the permission *Read only*
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: forbidden }
+    Unauthenticated:
+      description: Token missing, unknown or revoked
+      headers:
+        WWW-Authenticate:
+          schema: { type: string, example: 'Bearer realm="Kartei"' }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    FullList:
+      type: object
+      required: [cursor, full, contacts]
+      properties:
+        cursor: { type: string, format: date-time, description: Pass as updated_since next time }
+        full: { type: boolean, const: true, description: Replace your copy with this list }
+        contacts:
+          type: array
+          items: { $ref: "#/components/schemas/Contact" }
+    Delta:
+      type: object
+      required: [cursor, contacts, deleted]
+      properties:
+        cursor: { type: string, format: date-time }
+        contacts:
+          type: array
+          description: Created or changed contacts (insert or replace by uid; may overlap by a few seconds)
+          items: { $ref: "#/components/schemas/Contact" }
+        deleted:
+          type: array
+          description: UIDs to remove
+          items: { type: string, format: uuid }
+    Contact:
+      type: object
+      required: [uid, kind, legacy_id, first_name, last_name, name, company, company_name, display_name, data, version,
+                 updated_at]
+      properties:
+        uid: { type: string, format: uuid }
+        kind: { type: string, enum: [person, company] }
+        legacy_id: { type: string, description: ID from a system the data was imported from; empty if none }
+        first_name: { type: string, description: Persons only }
+        last_name: { type: string, description: Persons only }
+        name: { type: string, description: Companies only }
+        company: { type: [string, "null"], format: uuid, description: "Persons: UID of their company" }
+        company_name: { type: [string, "null"], description: "Persons: name of their company" }
+        display_name: { type: string }
+        data:
+          type: object
+          description: |
+            Admin-defined fields with a value, keyed by field key. Value types by field type:
+            text/phone/email/url → string; integer → number; decimal → string; date → "YYYY-MM-DD";
+            yes/no → boolean; select → string; multiselect → array of strings; user → username;
+            users → array of usernames; contact → person UID or free text.
+          additionalProperties:
+            oneOf:
+              - type: string
+              - type: number
+              - type: boolean
+              - type: array
+                items: { type: string }
+        version: { type: integer, description: Increases with every change; send it with PATCH to detect conflicts }
+        updated_at: { type: string, format: date-time }
+      example:
+        uid: 2148941b-9a89-4b3a-aad1-ea2bea426fba
+        kind: person
+        legacy_id: ""
+        first_name: David
+        last_name: Becker
+        name: ""
+        company: d8c52355-6825-4f0c-a0f6-1300ce45a0e6
+        company_name: Musterfirma Energie AG
+        display_name: David Becker
+        data:
+          job_title: Buchhaltung
+          email: david.becker@musterfirma.example
+          phone_work: "+49 511 1000-11"
+          keywords: [Kunde]
+          internal_contact: kkramer
+        version: 7
+        updated_at: "2026-10-24T20:21:50.115627+00:00"
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          enum: [invalid_updated_since, invalid_json, validation, unauthenticated, forbidden, not_found,
+                 method_not_allowed, version_conflict, too_many_attempts]
+    FieldValues:
+      type: object
+      description: |
+        {field key: value}, typed like Contact.data. Only fields visible to *Read only* users and editable by
+        maintainers. `null`, `""` or `[]` clears a field.
+      additionalProperties:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - type: "null"
+          - type: array
+            items: { type: string }
+    ContactCreate:
+      type: object
+      required: [kind]
+      description: Persons need first_name or last_name, companies a name. Other keys are ignored.
+      properties:
+        kind: { type: string, enum: [person, company] }
+        first_name: { type: string, maxLength: 100 }
+        last_name: { type: string, maxLength: 100 }
+        name: { type: string, maxLength: 200 }
+        company: { type: [string, "null"], format: uuid, description: "Persons: UID of a company" }
+        data: { $ref: "#/components/schemas/FieldValues" }
+    ContactUpdate:
+      type: object
+      description: Only the given keys change. `kind` can't be changed.
+      properties:
+        version: { type: integer, description: Expected current version (optimistic locking) }
+        first_name: { type: string, maxLength: 100 }
+        last_name: { type: string, maxLength: 100 }
+        name: { type: string, maxLength: 200 }
+        company: { type: [string, "null"], format: uuid }
+        data: { $ref: "#/components/schemas/FieldValues" }
+    ValidationError:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, enum: [validation, invalid_json] }
+        fields:
+          type: object
+          description: |
+            {key: code}. Codes: required, too_long, invalid, read_only, invalid_company, unknown_field, forbidden,
+            invalid_email, invalid_url, invalid_phone, invalid_integer, invalid_number, invalid_date, invalid_option,
+            invalid_user, invalid_contact, pattern_mismatch, too_small, too_large.
+          additionalProperties: { type: string }
+    Conflict:
+      type: object
+      required: [error, contact]
+      properties:
+        error: { type: string, const: version_conflict }
+        contact: { $ref: "#/components/schemas/Contact" }
