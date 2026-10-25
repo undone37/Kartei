@@ -9,6 +9,8 @@
   /** Two-factor sign-in under "My account": set up with a QR code, show recovery codes once, renew, switch off. */
   let setup = $state<{ secret: string; qr: string } | null>(null)
   let code = $state('')
+  let password = $state('')
+  let pwError = $state('')
   let error = $state('')
   let recovery = $state<string[] | null>(null)
   let busy = $state(false)
@@ -21,21 +23,24 @@
     qr.addData(r.uri)
     qr.make()
     setup = { secret: r.secret, qr: qr.createDataURL(5, 2) }
-    code = error = ''
+    code = error = password = pwError = ''
   }
 
   async function act(action: 'confirm' | 'recovery' | 'disable') {
     busy = true
-    error = ''
+    error = pwError = ''
     try {
-      const r = await post<{ user?: User; recovery?: string[] }>('/api/me/totp', { action, code })
+      const r = await post<{ user?: User; recovery?: string[] }>('/api/me/totp', { action, code, password })
       if (r.user) store.user = r.user
       recovery = r.recovery ?? null
       setup = null
-      code = ''
+      code = password = ''
       if (action === 'disable') toast(t('totp.disabled'))
     } catch (e) {
-      error = e instanceof ApiError && e.code === 'validation' ? terr(e.fields.code) : t('err.generic')
+      if (e instanceof ApiError && e.code === 'validation') {
+        if (e.fields.password) pwError = terr(e.fields.password)
+        if (e.fields.code) error = terr(e.fields.code)
+      } else error = e instanceof ApiError && e.code === 'too_many_attempts' ? t('err.too_many_attempts') : t('err.generic')
     } finally {
       busy = false
     }
@@ -60,9 +65,12 @@
     <label class="label" for="totp-code">{t('totp.code')}</label>
     <input id="totp-code" class="input code" class:invalid={error} bind:value={code} inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
     {#if error}<div class="error-text">{error}</div>{/if}
+    <label class="label" for="totp-pw">{t('account.old_pw')}</label>
+    <input id="totp-pw" class="input" class:invalid={pwError} type="password" bind:value={password} autocomplete="current-password" />
+    {#if pwError}<div class="error-text">{pwError}</div>{/if}
     <div class="row">
       <button class="btn" onclick={() => (setup = null)}>{t('common.cancel')}</button>
-      <button class="btn primary" disabled={busy || code.trim().length !== 6} onclick={() => act('confirm')}>{t('totp.enable')}</button>
+      <button class="btn primary" disabled={busy || code.trim().length !== 6 || !password} onclick={() => act('confirm')}>{t('totp.enable')}</button>
     </div>
   {:else if on}
     <p><span class="badge ok">{t('totp.on')}</span> {t('totp.on_hint')}</p>

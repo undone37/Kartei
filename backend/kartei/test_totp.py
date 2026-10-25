@@ -23,8 +23,10 @@ class TotpTests(ApiTestBase):
         self.as_(role)
         s = self.j("post", "/api/me/totp", {"action": "setup"})
         self.assertTrue(s["uri"].startswith("otpauth://totp/Kartei:" + role))
-        self.j("post", "/api/me/totp", {"action": "confirm", "code": "000000"}, status=400)
-        r = self.j("post", "/api/me/totp", {"action": "confirm", "code": now_code(s["secret"])})
+        pw = "pw-" + role * 3
+        self.j("post", "/api/me/totp", {"action": "confirm", "code": "000000", "password": pw}, status=400)
+        self.j("post", "/api/me/totp", {"action": "confirm", "code": now_code(s["secret"]), "password": "nope"}, status=400)
+        r = self.j("post", "/api/me/totp", {"action": "confirm", "code": now_code(s["secret"]), "password": pw})
         self.assertTrue(r["user"]["totp"])
         self.assertEqual(len(r["recovery"]), 8)
         self.client.logout()
@@ -81,6 +83,24 @@ class TotpTests(ApiTestBase):
 
     def test_wrong_codes_count_towards_the_lockout(self):
         self.enable()
-        for _ in range(10):
+        for _ in range(5):  # the second-factor lock comes before the sign-in throttle (10)
             self.login("000000", status=401)
         self.assertEqual(self.login("000000", status=429)["error"], "too_many_attempts")
+
+    def test_an_active_secret_cant_be_replaced(self):
+        self.enable()
+        self.as_("maintainer")
+        self.assertEqual(self.j("post", "/api/me/totp", {"action": "setup"}, status=409)["error"], "totp_already_on")
+        self.j("post", "/api/me/totp", {"action": "confirm", "code": "123456", "password": "pw-" + "maintainer" * 3}, status=409)
+
+    def test_wrong_codes_lock_the_second_factor_in_the_database(self):
+        secret, codes = self.enable()
+        self.as_("maintainer")
+        for _ in range(5):
+            self.j("post", "/api/me/totp", {"action": "recovery", "code": "000000"}, status=400)
+        self.assertEqual(self.j("post", "/api/me/totp", {"action": "disable", "code": codes[0]}, status=429)["error"], "too_many_attempts")
+        cache.clear()  # the sign-in throttle is per process; the lock is not
+        self.client.logout()
+        self.assertEqual(self.login(codes[0], status=429)["error"], "too_many_attempts")
+        Profile.objects.filter(user=self.users["maintainer"]).update(totp_failed_at=None)  # 15 minutes later
+        self.login(codes[0])

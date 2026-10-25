@@ -52,6 +52,8 @@ class Profile(models.Model):
     totp_secret = _secret("totp_secret_enc")
     totp_last_counter = models.BigIntegerField(null=True, blank=True)  # last accepted step, against replay
     totp_recovery = models.JSONField(default=list, blank=True)  # SHA-256 of unused recovery codes
+    totp_failures = models.PositiveSmallIntegerField(default=0)  # wrong codes in a row, shared by all workers
+    totp_failed_at = models.DateTimeField(null=True, blank=True)
 
     @property
     def rank(self):

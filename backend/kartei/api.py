@@ -193,6 +193,8 @@ def login_view(request):
     if p.totp_secret_enc:  # two-factor sign-in: the code from the authenticator app (or a recovery code) as well
         if not str(body.get("code") or "").strip():
             return err("totp_required", 401)
+        if totp_locked(p):
+            return err("too_many_attempts", 429)
         if not _second_factor(user, p, str(body["code"])):
             cache.set(key, cache.get(key, 0) + 1, 15 * 60)
             return err("invalid_code", 401)
@@ -202,19 +204,33 @@ def login_view(request):
     return JsonResponse({"user": ser_user(user)})
 
 
+TOTP_MAX_FAILURES, TOTP_LOCK = 5, timedelta(minutes=15)
+
+
+def totp_locked(p):
+    return p.totp_failures >= TOTP_MAX_FAILURES and p.totp_failed_at and p.totp_failed_at > timezone.now() - TOTP_LOCK
+
+
 def _second_factor(user, p, code):
-    """Check a TOTP code (each step only once) or use up a recovery code."""
-    if (step := totp.verify(p.totp_secret, code, p.totp_last_counter)) is not None:
-        p.totp_last_counter = step
-        p.save(update_fields=["totp_last_counter"])
-        return True
-    h = totp.hash_recovery(code)
-    if h in p.totp_recovery:
-        p.totp_recovery = [x for x in p.totp_recovery if x != h]
-        p.save(update_fields=["totp_recovery"])
-        audit.log(user, "update", "user", user.id, user.username, {"totp_recovery_used": [None, len(p.totp_recovery)]})
-        return True
-    return False
+    """Check a TOTP code (each step only once) or use up a recovery code. Under a row lock, so parallel requests
+    can't use one code twice; 5 wrong codes in a row block the check for 15 minutes (in the database, for all workers)."""
+    with transaction.atomic():
+        p = Profile.objects.select_for_update().get(pk=p.pk)
+        if totp_locked(p):
+            return False
+        if (step := totp.verify(p.totp_secret, code, p.totp_last_counter)) is not None:
+            p.totp_last_counter, p.totp_failures = step, 0
+            p.save(update_fields=["totp_last_counter", "totp_failures"])
+            return True
+        h = totp.hash_recovery(code)
+        if h in p.totp_recovery:
+            p.totp_recovery, p.totp_failures = [x for x in p.totp_recovery if x != h], 0
+            p.save(update_fields=["totp_recovery", "totp_failures"])
+            audit.log(user, "update", "user", user.id, user.username, {"totp_recovery_used": [None, len(p.totp_recovery)]})
+            return True
+        p.totp_failures, p.totp_failed_at = p.totp_failures + 1, timezone.now()
+        p.save(update_fields=["totp_failures", "totp_failed_at"])
+        return False
 
 
 @needs(READ)
@@ -223,11 +239,16 @@ def my_totp(request):
     confirm (code → on, returns recovery codes once), recovery (code → new recovery codes), disable (code → off)."""
     b, u, p = request.json, request.user, profile_of(request.user)
     action = b.get("action")
+    if action in ("setup", "confirm") and p.totp_secret_enc:  # replacing an active secret needs disabling (with a code) first
+        return err("totp_already_on", 409)
     if action == "setup":
         secret = totp.new_secret()
         request.session["totp_pending"] = secret
         return JsonResponse({"secret": secret, "uri": totp.uri(secret, u.username)})
     if action == "confirm":
+        # the password as well: a session alone (e.g. on an unlocked computer) must not be able to lock the owner out
+        if authenticate(request, username=u.username, password=str(b.get("password") or "")) != u:
+            return err("validation", fields={"password": "invalid"})
         secret = request.session.get("totp_pending", "")
         step = totp.verify(secret, b.get("code"))
         if step is None:
@@ -241,6 +262,8 @@ def my_totp(request):
     if action in ("recovery", "disable"):
         if not p.totp_secret_enc:
             return err("not_found", 404)
+        if totp_locked(p):
+            return err("too_many_attempts", 429)
         if not _second_factor(u, p, str(b.get("code") or "")):
             return err("validation", fields={"code": "invalid_code"})
         if action == "recovery":

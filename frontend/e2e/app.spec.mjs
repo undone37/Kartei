@@ -89,6 +89,7 @@ test.describe('two-factor sign-in', () => {
     await expect(user.getByRole('img', { name: 'QR code for the authenticator app' })).toBeVisible()
     const secret = (await user.locator('code').first().textContent()).trim()
     await user.getByLabel('Code from the app').fill(totpCode(secret))
+    await user.locator('#totp-pw').fill(process.env.E2E_PASSWORD || 'demo12345')
     await user.getByRole('button', { name: 'Switch on' }).click()
     await expect(user.getByText('Keep these recovery codes safe')).toBeVisible()
     const recovery = (await user.locator('.codes code').allTextContents()).map((c) => c.trim())
