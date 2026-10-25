@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TwoFactor from './TwoFactor.svelte'
   import { ApiError, patch } from '../lib/api'
   import { store } from '../lib/store.svelte'
   import { t, terr } from '../lib/i18n.svelte'
@@ -51,6 +52,7 @@
   {:else}
     <p class="muted">{t('account.ldap_hint')}</p>
   {/if}
+  <TwoFactor />
 </div>
 
 <style>

@@ -97,6 +97,8 @@ export interface User {
   is_active: boolean
   is_superuser: boolean
   last_login: string | null
+  /** two-factor sign-in is on */
+  totp?: boolean
 }
 
 export interface AuditEntry {

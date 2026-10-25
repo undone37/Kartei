@@ -59,6 +59,18 @@ At the bottom, the user menu shows the Kartei version (useful in bug reports) an
 
 The screenshot shows a maintainer's menu. Read only users don't see **Recycle bin**, **Data quality** and **Duplicates**; administrators also see **Settings**.
 
+### Two-factor sign-in
+
+Under **My account** you can protect your account with a second factor: after your password, Kartei then also asks for a 6-digit code from an authenticator app on your phone (e.g. Microsoft Authenticator, Google Authenticator, 1Password).
+
+1. *My account* → *Two-factor sign-in* → **Set up**.
+2. Scan the QR code with the app (or enter the key shown below it by hand) and type the code the app shows. **Switch on**.
+3. Kartei shows **8 recovery codes** once. Keep them safe, e.g. in your password manager: each works once instead of the app code if you don't have your phone at hand.
+
+![Setting up two-factor sign-in](../img/en/account-totp.png)
+
+When signing in, Kartei asks for the code after the password. With the current code (or a recovery code) you can get **New recovery codes** or **Switch off** the two-factor sign-in on the same page. Lost your phone and the codes? Your administrator can reset it.
+
 ### The screen layout
 
 - **Top bar:** search box, the sync button (**Sync now**), for maintainers the **New** button, and the user menu.

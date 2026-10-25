@@ -22,6 +22,7 @@ from django.utils.text import slugify
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from . import adsync, audit, batch, exports, gdpr, graph, importer, ldapusers, relaypush, reviews
+from . import adsync, audit, batch, exports, graph, importer, ldapusers, relaypush, reviews, totp
 from .msg import msg
 from .net import client_ip
 from .models import (ROLE_RANK, USER_TYPES, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind, Profile,
@@ -144,7 +145,7 @@ def ser_user(u):
     p = profile_of(u)
     return {"id": u.id, "username": u.username, "first_name": u.first_name, "last_name": u.last_name,
             "email": u.email, "role": Role.ADMIN if u.is_superuser else p.role, "language": p.language,
-            "source": p.source, "is_active": u.is_active, "is_superuser": u.is_superuser,
+            "source": p.source, "is_active": u.is_active, "is_superuser": u.is_superuser, "totp": bool(p.totp_secret_enc),
             "last_login": u.last_login.isoformat() if u.last_login else None}
 
 
@@ -189,10 +190,84 @@ def login_view(request):
     if user is None or not user.is_active:
         cache.set(key, cache.get(key, 0) + 1, 15 * 60)
         return err("invalid_credentials", 401)
+    p = profile_of(user)
+    if p.totp_secret_enc:  # two-factor sign-in: the code from the authenticator app (or a recovery code) as well
+        if not str(body.get("code") or "").strip():
+            return err("totp_required", 401)
+        if not _second_factor(user, p, str(body["code"])):
+            cache.set(key, cache.get(key, 0) + 1, 15 * 60)
+            return err("invalid_code", 401)
     cache.delete(key)
     login(request, user)
     profile_of(user)
     return JsonResponse({"user": ser_user(user)})
+
+
+def _second_factor(user, p, code):
+    """Check a TOTP code (each step only once) or use up a recovery code."""
+    if (step := totp.verify(p.totp_secret, code, p.totp_last_counter)) is not None:
+        p.totp_last_counter = step
+        p.save(update_fields=["totp_last_counter"])
+        return True
+    h = totp.hash_recovery(code)
+    if h in p.totp_recovery:
+        p.totp_recovery = [x for x in p.totp_recovery if x != h]
+        p.save(update_fields=["totp_recovery"])
+        audit.log(user, "update", "user", user.id, user.username, {"totp_recovery_used": [None, len(p.totp_recovery)]})
+        return True
+    return False
+
+
+@needs(READ)
+def my_totp(request):
+    """Two-factor sign-in for the signed-in user. action: setup (new secret, kept in the session until confirmed),
+    confirm (code → on, returns recovery codes once), recovery (code → new recovery codes), disable (code → off)."""
+    b, u, p = request.json, request.user, profile_of(request.user)
+    action = b.get("action")
+    if action == "setup":
+        secret = totp.new_secret()
+        request.session["totp_pending"] = secret
+        return JsonResponse({"secret": secret, "uri": totp.uri(secret, u.username)})
+    if action == "confirm":
+        secret = request.session.get("totp_pending", "")
+        step = totp.verify(secret, b.get("code"))
+        if step is None:
+            return err("validation", fields={"code": "invalid_code"})
+        codes, hashes = totp.new_recovery_codes()
+        p.totp_secret, p.totp_last_counter, p.totp_recovery = secret, step, hashes
+        p.save()
+        del request.session["totp_pending"]
+        audit.log(u, "update", "user", u.id, u.username, {"totp": [False, True]})
+        return JsonResponse({"user": ser_user(u), "recovery": codes})
+    if action in ("recovery", "disable"):
+        if not p.totp_secret_enc:
+            return err("not_found", 404)
+        if not _second_factor(u, p, str(b.get("code") or "")):
+            return err("validation", fields={"code": "invalid_code"})
+        if action == "recovery":
+            codes, p.totp_recovery = totp.new_recovery_codes()
+            p.save(update_fields=["totp_recovery"])
+            audit.log(u, "update", "user", u.id, u.username, {"totp_recovery_new": [None, len(codes)]})
+            return JsonResponse({"recovery": codes})
+        p.totp_secret, p.totp_last_counter, p.totp_recovery = "", None, []
+        p.save()
+        audit.log(u, "update", "user", u.id, u.username, {"totp": [True, False]})
+        return JsonResponse({"user": ser_user(u)})
+    return err("invalid", 400)
+
+
+@needs(ADMIN)
+def user_totp_reset(request, pk):
+    """An admin switches off a user's two-factor sign-in (lost phone); the user can set it up again."""
+    u = User.objects.filter(pk=pk).first()
+    if not u:
+        return err("not_found", 404)
+    p = profile_of(u)
+    if p.totp_secret_enc:
+        p.totp_secret, p.totp_last_counter, p.totp_recovery = "", None, []
+        p.save()
+        audit.log(request.user, "update", "user", u.id, u.username, {"totp": [True, False]})
+    return JsonResponse(ser_user(u))
 
 
 def logout_view(request):

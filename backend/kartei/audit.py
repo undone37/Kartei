@@ -1,6 +1,6 @@
 from .models import AuditEntry
 
-SECRET_KEYS = {"password", "secret_enc", "ldap_bind_password_enc", "carddav_password_hash", "graph_client_secret_enc", "smtp_password_enc",
+SECRET_KEYS = {"password", "totp_secret_enc", "secret_enc", "ldap_bind_password_enc", "carddav_password_hash", "graph_client_secret_enc", "smtp_password_enc",
                "ad_bind_password_enc"}
 
 

@@ -8,16 +8,23 @@
   let password = $state('')
   let error = $state('')
   let busy = $state(false)
+  /** second step: the password was right, the account has two-factor sign-in */
+  let needCode = $state(false)
+  let code = $state('')
 
   async function submit(e: SubmitEvent) {
     e.preventDefault()
     busy = true
     error = ''
     try {
-      await store.login(username.trim(), password)
+      await store.login(username.trim(), password, needCode ? code.trim() : undefined)
     } catch (err) {
-      error = err instanceof ApiError ? terr(err.code) : t('err.generic')
-      password = ''
+      if (err instanceof ApiError && err.code === 'totp_required') needCode = true
+      else {
+        error = err instanceof ApiError ? terr(err.code) : t('err.generic')
+        if (needCode) code = ''
+        else password = ''
+      }
     } finally {
       busy = false
     }
@@ -28,13 +35,23 @@
   <form class="card" onsubmit={submit}>
     <div class="brand"><img class="mark" src={logo} alt="" />Kartei</div>
     <h1>{t('login.title')}</h1>
-    <label class="label" for="u">{t('login.username')}</label>
-    <!-- svelte-ignore a11y_autofocus -->
-    <input id="u" class="input" bind:value={username} autocomplete="username" autofocus required />
-    <label class="label" for="p">{t('login.password')}</label>
-    <input id="p" class="input" type="password" bind:value={password} autocomplete="current-password" required />
-    {#if error}<div class="error-text" role="alert">{error}</div>{/if}
-    <button class="btn primary" disabled={busy || !username || !password}>{t('login.submit')}</button>
+    {#if needCode}
+      <p class="muted">{t('totp.login_hint')}</p>
+      <label class="label" for="c">{t('totp.code')}</label>
+      <!-- svelte-ignore a11y_autofocus -->
+      <input id="c" class="input" bind:value={code} inputmode="numeric" autocomplete="one-time-code" autofocus required />
+      {#if error}<div class="error-text" role="alert">{error}</div>{/if}
+      <button class="btn primary" disabled={busy || !code.trim()}>{t('login.submit')}</button>
+      <button type="button" class="btn ghost" onclick={() => { needCode = false; code = ''; password = ''; error = '' }}>{t('common.cancel')}</button>
+    {:else}
+      <label class="label" for="u">{t('login.username')}</label>
+      <!-- svelte-ignore a11y_autofocus -->
+      <input id="u" class="input" bind:value={username} autocomplete="username" autofocus required />
+      <label class="label" for="p">{t('login.password')}</label>
+      <input id="p" class="input" type="password" bind:value={password} autocomplete="current-password" required />
+      {#if error}<div class="error-text" role="alert">{error}</div>{/if}
+      <button class="btn primary" disabled={busy || !username || !password}>{t('login.submit')}</button>
+    {/if}
     <div class="langs">
       <button type="button" class="chip" class:on={i18n.lang === 'de'} onclick={() => setLang('de')}>Deutsch</button>
       <button type="button" class="chip" class:on={i18n.lang === 'en'} onclick={() => setLang('en')}>English</button>
