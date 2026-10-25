@@ -130,3 +130,32 @@ class WebhookTests(ApiTestBase):
         self.j("post", f"/api/admin/webhooks/{self.hook['id']}/nonsense", status=404)
         self.j("delete", f"/api/admin/webhooks/{self.hook['id']}")
         self.assertFalse(Webhook.objects.exists())
+
+    def test_one_failing_receiver_costs_one_attempt_per_run(self):
+        Webhook.objects.create(name="Second", url="https://second.example/hook", secret="x")
+        self.as_("maintainer")
+        for name in ("A", "B", "C"):
+            self.j("post", "/api/records", {"kind": "person", "last_name": name}, status=201)
+        urls = []
+
+        def fake(req, timeout):
+            urls.append(req.full_url)
+            if "intranet" in req.full_url:
+                raise OSError("timed out")
+            return FakeResponse()
+        with mock.patch("kartei.webhooks.urlopen", fake):
+            webhooks.deliver_due()
+        self.assertEqual(urls.count("https://intranet.example/hook"), 1)  # the other two wait for the next run
+        self.assertEqual(urls.count("https://second.example/hook"), 3)
+        self.assertEqual(WebhookDelivery.objects.filter(webhook__name="Intranet", attempts=0).count(), 2)
+
+    def test_time_budget_and_no_redirects(self):
+        self.as_("maintainer")
+        self.j("post", "/api/records", {"kind": "person", "last_name": "A"}, status=201)
+        self.j("post", "/api/records", {"kind": "person", "last_name": "B"}, status=201)
+        clock = iter([0, 0, 100, 100, 100])
+        with mock.patch("kartei.webhooks.time.monotonic", lambda: next(clock)), \
+             mock.patch("kartei.webhooks.urlopen", lambda req, timeout: FakeResponse()):
+            self.assertEqual(webhooks.deliver_due(), 1)  # the budget ran out after the first
+        self.assertIsNone(webhooks._NoRedirect().redirect_request(None, None, 302, "Found", {}, "https://elsewhere.example"))
+
