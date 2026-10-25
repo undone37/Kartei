@@ -55,6 +55,8 @@ Ein Klick auf das Personen-Symbol oben rechts öffnet das **Benutzermenü**. Dor
 
 Unter **Mein Konto** kannst du die Sprache ebenfalls wählen (*Standard (…)* nimmt die Standardsprache eurer Installation) und, wenn du ein lokales Konto hast, dein Passwort ändern (*Neues Passwort (min. 10 Zeichen)*). Meldest du dich mit deinem Netzwerk-Konto an, änderst du das Passwort dort (*Dein Passwort wird im Active Directory verwaltet.*).
 
+Ganz unten zeigt das Benutzermenü die Kartei-Version (hilfreich bei Fehlermeldungen) und einen Link zum **Quellcode**.
+
 Der Screenshot zeigt das Menü eines Bearbeiters. Mit der Rolle *Nur Lesen* fehlen **Papierkorb**, **Datenqualität** und **Dubletten**; die Administration sieht zusätzlich **Einstellungen**.
 
 ### Der Bildschirmaufbau

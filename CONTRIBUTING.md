@@ -37,7 +37,7 @@ The [README](README.md#development) has the full setup. In short: Python 3.14 wi
 - **Two languages:** every UI string exists in German and English (`frontend/src/i18n/de.ts` and `en.ts`); a test checks that both have the same keys. The API returns error codes, the frontend translates them.
 - **Configurable in the UI:** settings belong in the database and the *Settings* area, not in environment variables or code. Environment variables are only for bootstrap values (database, secret key, hosts, first admin).
 - **No customer specifics:** no company names, host names, paths or field sets of a particular installation in code, examples or documentation. Field sets are JSON files in `examples/`.
-- **Database migrations:** add a new migration for model changes (`manage.py makemigrations kartei`); never edit or squash migrations that are part of a release.
+- **Database migrations:** add a new migration for model changes (`manage.py makemigrations kartei`); never edit or squash migrations that are part of a release. CI's upgrade test runs them on the latest release's data.
 - **Audit and safety:** every change to contacts and settings is written to the audit log; anything that deletes asks for confirmation; secrets are stored encrypted or hashed and never returned by the API.
 - **Changelog:** add a line under *Unreleased* in [CHANGELOG.md](CHANGELOG.md) for every change users or administrators notice; it becomes the release text.
 - **Documentation:** user-facing changes update the manuals in `manuals/en` *and* `manuals/de`; API changes update `docs/API.md` and `docs/openapi.yaml`. If a screen changes, regenerate the screenshots (see the README, *Screenshots for the manuals*).

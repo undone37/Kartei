@@ -274,6 +274,9 @@
             <a href="/settings/fields" onclick={() => document.getElementById('user-menu')?.hidePopover()}><Settings size={16} />{t('top.settings')}</a>
           {/if}
           <button onclick={() => store.logout()}><LogOut size={16} />{t('top.logout')}</button>
+          {#if store.about}
+            <div class="about">Kartei {store.about.version} · <a href={store.about.source} target="_blank" rel="noopener">{t('top.source')}</a></div>
+          {/if}
         </div>
       </div>
     </header>
@@ -478,6 +481,9 @@
   .save-row { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
   .save-row label { display: flex; align-items: center; gap: 6px; margin-right: auto; font-size: 13px; }
   .list { flex: 1; min-height: 0; }
+  .about { padding: 8px 10px 2px; border-top: 1px solid var(--border); margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .about a { display: inline; width: auto; padding: 0; color: var(--accent); }
+  .about a:hover { background: none; text-decoration: underline; }
   .newprops { display: flex; flex-direction: column; gap: 2px; padding: 0 8px 6px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
   .newprops a { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; color: var(--text); }
   .newprops a:hover, .newprops a.on { background: var(--panel-2); text-decoration: none; }

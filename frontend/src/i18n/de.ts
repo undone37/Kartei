@@ -976,4 +976,5 @@ export default {
   'proposal.back': "Zur Startseite",
   'proposal.form_hint_new': "Der Kontakt wird nicht direkt angelegt, sondern einem Bearbeiter zur Freigabe vorgelegt.",
   'audit.type.proposal': "Vorschlag",
+  'top.source': "Quellcode",
 } as Record<string, string>

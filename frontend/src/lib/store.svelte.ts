@@ -27,6 +27,8 @@ interface Snapshot {
 class Store {
   status = $state<'loading' | 'login' | 'ready'>('loading')
   user = $state.raw<User | null>(null)
+  /** running version and source code (user menu), from the session */
+  about = $state.raw<{ version: string; source: string } | null>(null)
   defaultLang = $state<Lang>('de')
   fields = $state.raw<Field[]>([])
   /** field sections in their order */
@@ -97,7 +99,7 @@ class Store {
     // 1) render from cache immediately, 2) check session, 3) fetch deltas
     const cached = (await idbGet(CACHE_KEY).catch(() => undefined)) as Snapshot | undefined
     if (cached) this.apply(cached)
-    let session: { authenticated: boolean; default_language: Lang; user?: User }
+    let session: { authenticated: boolean; default_language: Lang; user?: User; version?: string; source?: string }
     try {
       session = await get('/api/session')
     } catch {
@@ -112,6 +114,7 @@ class Store {
       this.cursor = ''
     }
     this.user = session.user!
+    this.about = { version: session.version ?? '', source: session.source ?? '' }
     this.applyLang()
     await this.sync()
     this.status = 'ready'

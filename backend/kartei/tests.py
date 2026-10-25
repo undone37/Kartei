@@ -8,7 +8,7 @@ from unittest import mock
 
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from pathlib import Path
@@ -432,6 +432,15 @@ class PostalCodeTests(ApiTestBase):
         csv_data = "ID;Vorname;Nachname;Firma;PLZ\nP-1;A;B;;01067\n".encode()
         import_test_csv(csv_data, dry_run=False)
         self.assertEqual(Record.objects.get(legacy_id="P-1").data["work_zip"], "01067")
+
+
+class SessionTests(ApiTestBase):
+    @override_settings(KARTEI_VERSION="9.9.9-test", KARTEI_SOURCE_URL="https://example.org/fork")
+    def test_version_and_source_only_when_signed_in(self):
+        self.assertNotIn("version", self.client.get("/api/session").json())
+        self.as_("read")
+        s = self.client.get("/api/session").json()
+        self.assertEqual((s["version"], s["source"]), ("9.9.9-test", "https://example.org/fork"))
 
 
 class UserFieldTests(ApiTestBase):

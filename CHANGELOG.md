@@ -4,8 +4,16 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.2.0-beta] – 2026-10-25
+
+Second beta: read-only users can propose new contacts, Kartei can use a dedicated PostgreSQL server or cluster, images are also built for ARM64, and large directories load faster.
+
+**Updating from 0.1.0-beta:** back up the database, then either set `KARTEI_IMAGE=ghcr.io/undone37/kartei:0.2.0-beta` and run `docker compose pull && docker compose up -d --no-build`, or `git pull && docker compose up -d --build`. The database is migrated automatically on start; nothing else has to be changed.
+
 ### Added
 
+- The user menu shows the running version and a link to the source code (`KARTEI_SOURCE_URL` for modified versions).
+- An upgrade test in CI: the latest release's image with sample data, then this version's migrations; the data must stay unchanged.
 - Read-only users can propose new persons and companies (*New → Propose new person/company*); maintainers create, adjust or reject them from the list *Proposals*. Included in the proposal emails and the audit log.
 - Support for a dedicated PostgreSQL server or cluster instead of the bundled database container (`compose.external-db.yaml`), documented in the administrator manual with TLS, cluster, PgBouncer and migration notes.
 - End-to-end browser tests (Playwright) that run in CI on every push and pull request.
@@ -35,5 +43,6 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.1.0-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.2.0-beta...HEAD
+[0.2.0-beta]: https://github.com/undone37/Kartei/compare/v0.1.0-beta...v0.2.0-beta
 [0.1.0-beta]: https://github.com/undone37/Kartei/releases/tag/v0.1.0-beta
