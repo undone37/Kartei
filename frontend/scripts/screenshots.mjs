@@ -122,6 +122,13 @@ const SHOTS = [
       const { tokens } = await (await api(ctx, 'get', '/api/admin/tokens')).json()
       for (const tk of tokens.filter((x) => x.name === 'Telefonanlage')) await api(ctx, 'delete', `/api/admin/tokens/${tk.id}`)
     } },
+  { name: 'settings-handover', user: 'admin', path: '/settings/users', before: async (ctx, h) => {
+      const { users } = await (await api(ctx, 'get', '/api/admin/users')).json()
+      h.leaver = users.find((u) => u.refs && u.role !== 'admin' && u.source === 'local')
+      await api(ctx, 'patch', `/api/admin/users/${h.leaver.id}`, { is_active: false })
+    }, steps: async (p) => {
+      await p.locator('td.act button').filter({ has: p.locator('svg.lucide-arrow-right-left') }).first().click(); await wait(500)
+    }, after: async (ctx, h) => { await api(ctx, 'patch', `/api/admin/users/${h.leaver.id}`, { is_active: true }) } },
   { name: 'settings-webhooks', user: 'admin', path: '/settings/api', before: async (ctx) => {
       await api(ctx, 'post', '/api/admin/webhooks', { name: 'Intranet', url: 'https://intranet.example.de/kartei-hook', events: [] })
     }, steps: async (p) => { await p.getByRole('heading', { level: 2 }).last().evaluate((h) => h.scrollIntoView({ block: 'start' })); await wait(300) },
