@@ -2,6 +2,8 @@
 
 Thanks for helping! Bug reports, ideas, documentation fixes and code are all welcome.
 
+Everyone taking part is expected to follow the [code of conduct](CODE_OF_CONDUCT.md).
+
 ## Before you start
 
 - **Bugs and ideas:** open an [issue](https://github.com/undone37/Kartei/issues/new/choose) using the bug report or feature request form. Never post real contact data, passwords, tokens or internal host names.
@@ -37,6 +39,7 @@ The [README](README.md#development) has the full setup. In short: Python 3.14 wi
 - **No customer specifics:** no company names, host names, paths or field sets of a particular installation in code, examples or documentation. Field sets are JSON files in `examples/`.
 - **Database migrations:** add a new migration for model changes (`manage.py makemigrations kartei`); never edit or squash migrations that are part of a release.
 - **Audit and safety:** every change to contacts and settings is written to the audit log; anything that deletes asks for confirmation; secrets are stored encrypted or hashed and never returned by the API.
+- **Changelog:** add a line under *Unreleased* in [CHANGELOG.md](CHANGELOG.md) for every change users or administrators notice; it becomes the release text.
 - **Documentation:** user-facing changes update the manuals in `manuals/en` *and* `manuals/de`; API changes update `docs/API.md` and `docs/openapi.yaml`. If a screen changes, regenerate the screenshots (see the README, *Screenshots for the manuals*).
 
 ## Commit messages

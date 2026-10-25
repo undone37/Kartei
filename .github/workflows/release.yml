@@ -84,5 +84,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$VERSION" >/dev/null 2>&1 || gh release create "$VERSION" --verify-tag --generate-notes --title "Kartei ${VERSION#v}" $([[ $VERSION == *-* ]] && echo --prerelease)
+          # the version's section of CHANGELOG.md, followed by GitHub's generated notes (empty section: generated notes only)
+          awk -v v="## [${VERSION#v}]" 'index($0, v) == 1 {on = 1; next} /^## \[/ {on = 0} on' CHANGELOG.md > notes.md
+          gh release view "$VERSION" >/dev/null 2>&1 || gh release create "$VERSION" --verify-tag --generate-notes --notes-file notes.md \
+            --title "Kartei ${VERSION#v}" $([[ $VERSION == *-* ]] && echo --prerelease)
           gh release upload "$VERSION" dist/* --clobber
