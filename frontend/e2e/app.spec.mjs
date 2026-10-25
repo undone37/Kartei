@@ -270,7 +270,7 @@ test.describe('roles', () => {
 
   test('every settings tab opens for the admin', async ({ as }) => {
     const page = await as('admin')
-    for (const tab of ['fields', 'users', 'ldap', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'audit']) {
+    for (const tab of ['fields', 'users', 'ldap', 'sso', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'audit']) {
       await page.goto(`/settings/${tab}`)
       await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
     }
@@ -312,6 +312,37 @@ test.describe('webhooks', () => {
       await row.getByRole('button', { name: 'Delete' }).click()
       await dialog(page).getByRole('button', { name: 'Delete' }).click()
       await expect(row).toHaveCount(0)
+    }
+  })
+})
+
+test.describe('single sign-on', () => {
+  test('the identity provider provisions a user by SCIM; a mapped group makes it active', async ({ as }) => {
+    const page = await as('admin')
+    await page.goto('/settings/sso')
+    await page.getByRole('button', { name: /Generate (new )?token/ }).click()
+    const token = (await page.locator('.result code').textContent()).trim()
+    const scim = async (method, path, data) => {
+      const res = await page.request[method](`/scim/v2/${path}`, { data, headers: { Authorization: `Bearer ${token}` } })
+      expect(res.ok(), `${method} ${path}`).toBeTruthy()
+      return res.status() === 204 ? null : res.json()
+    }
+    const user = await scim('post', 'Users', { userName: 'e2e.scim@example.com', name: { givenName: 'Sam', familyName: 'Scim' }, active: true })
+    const group = await scim('post', 'Groups', { displayName: 'E2E Readers', members: [{ value: user.id }] })
+    try {
+      await page.reload()
+      await choose(page, page.getByLabel('Read only', { exact: true }))
+      await page.getByRole('button', { name: 'Save' }).click()
+      await expect(page.getByText('Saved')).toBeVisible()
+      await page.goto('/settings/users')
+      const r = page.getByRole('row').filter({ hasText: 'e2e.scim@example.com' })
+      await expect(r.getByText('SCIM', { exact: true })).toBeVisible()
+      await expect(r.getByRole('checkbox')).toBeChecked()
+      await expect(r.getByRole('checkbox')).toBeDisabled() // the identity provider decides
+    } finally {
+      await page.api('put', '/api/admin/settings', { scim_group_read: '' })
+      await scim('delete', `Groups/${group.id}`)
+      await page.api('delete', `/api/admin/users/${user.id}`)
     }
   })
 })

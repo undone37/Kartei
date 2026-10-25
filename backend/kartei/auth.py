@@ -85,8 +85,8 @@ class DbLDAPBackend(LDAPBackend):
 
     def get_or_build_user(self, username, ldap_user):
         user, built = super().get_or_build_user(username, ldap_user)
-        if not built and getattr(user, "profile", None) and user.profile.source == "local":
-            # never let a directory account take over a local (fallback/admin) account
+        if not built and getattr(user, "profile", None) and user.profile.source != "ldap":
+            # never let a directory account take over a local (fallback/admin) or SCIM account
             raise _LDAPUser.AuthenticationFailed("local account with same username")
         return user, built
 

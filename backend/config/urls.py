@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, re_path
 
-from kartei import api, api_v1, carddav, dashboard, quality, views
+from kartei import api, api_v1, carddav, dashboard, quality, scim, views
 
 M = api.methods
 urlpatterns = [
@@ -13,6 +13,10 @@ urlpatterns = [
     path("api/changes", api.changes),
     path("api/me", M(PATCH=api.update_me)),
     path("api/me/totp", M(POST=api.my_totp)),
+    path("api/oidc/start", api.oidc_start),
+    path("api/oidc/callback", api.oidc_callback),
+    re_path(r"^scim/v2/(?P<path>.*)$", scim.scim),
+    path("api/admin/scim/token", M(POST=api.scim_token)),
     path("api/records", M(POST=api.create_record)),
     path("api/records/<uuid:uid>", M(GET=api.get_record, PATCH=api.update_record, DELETE=api.delete_record)),
     path("api/records/<uuid:uid>/restore", M(POST=api.restore_record)),
@@ -92,5 +96,5 @@ urlpatterns = [
     path("api/admin/phones/normalize", M(POST=quality.normalize_view)),
     path("sw.js", views.service_worker),
     re_path(r"^crm(?:/(?P<rest>.*))?$", views.legacy_redirect),  # links from before the rename (mails, vCards)
-    re_path(r"^(?!api/|static/|carddav|django-admin|\.well-known/).*$", views.spa),
+    re_path(r"^(?!api/|static/|carddav|scim/|django-admin|\.well-known/).*$", views.spa),
 ]

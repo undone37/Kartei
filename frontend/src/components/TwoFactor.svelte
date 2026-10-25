@@ -18,6 +18,7 @@
   let recovery = $state<string[] | null>(null)
   let busy = $state(false)
   const on = $derived(!!store.user?.totp)
+  const noPassword = $derived(store.user?.source === 'scim') // signs in via the identity provider only
 
   async function start() {
     const r = await post<{ secret: string; uri: string }>('/api/me/totp', { action: 'setup' })
@@ -43,7 +44,7 @@
       if (e instanceof ApiError && e.code === 'validation') {
         if (e.fields.password) pwError = terr(e.fields.password)
         if (e.fields.code) error = terr(e.fields.code)
-      } else error = e instanceof ApiError && e.code === 'too_many_attempts' ? t('err.too_many_attempts') : t('err.generic')
+      } else error = e instanceof ApiError && ['too_many_attempts', 'sso_reauth'].includes(e.code) ? terr(e.code) : t('err.generic')
     } finally {
       busy = false
     }
@@ -68,12 +69,14 @@
     <label class="label" for="totp-code">{t('totp.code')}</label>
     <input id="totp-code" class="input code" class:invalid={error} bind:value={code} inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
     {#if error}<div class="error-text">{error}</div>{/if}
-    <label class="label" for="totp-pw">{t('account.old_pw')}</label>
-    <input id="totp-pw" class="input" class:invalid={pwError} type="password" bind:value={password} autocomplete="current-password" />
-    {#if pwError}<div class="error-text">{pwError}</div>{/if}
+    {#if !noPassword}
+      <label class="label" for="totp-pw">{t('account.old_pw')}</label>
+      <input id="totp-pw" class="input" class:invalid={pwError} type="password" bind:value={password} autocomplete="current-password" />
+      {#if pwError}<div class="error-text">{pwError}</div>{/if}
+    {/if}
     <div class="row">
       <button class="btn" onclick={() => (setup = null)}>{t('common.cancel')}</button>
-      <button class="btn primary" disabled={busy || code.trim().length !== 6 || !password} onclick={() => act('confirm')}>{t('totp.enable')}</button>
+      <button class="btn primary" disabled={busy || code.trim().length !== 6 || (!password && !noPassword)} onclick={() => act('confirm')}>{t('totp.enable')}</button>
     </div>
   {:else if on}
     <p><span class="badge ok">{t('totp.on')}</span> {t('totp.on_hint')}</p>

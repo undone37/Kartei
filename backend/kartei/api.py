@@ -2,6 +2,7 @@
 import json
 import re
 import secrets
+import time
 import uuid
 from datetime import timedelta
 from functools import wraps
@@ -14,18 +15,18 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
-from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.db.models import Count, Q
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from . import adsync, audit, batch, exports, gdpr, graph, handover, importer, ldapusers, relaypush, reviews, totp
+from . import adsync, audit, batch, exports, gdpr, graph, handover, importer, ldapusers, oidc, relaypush, reviews, totp
 from .msg import msg
 from .net import client_ip
-from .models import (ROLE_RANK, USER_TYPES, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind, Profile,
-                     Proposal, Record, Review, Role, Settings, assignable, user_options)
+from .models import (ROLE_RANK, USER_TYPES, ApiToken, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind,
+                     Profile, Proposal, Record, Review, Role, ScimGroup, Settings, assignable, user_options)
 from .validation import REGEX_TYPES, clean_core, merge_data
 from .vcard import TARGETS as VCARD_TARGETS
 
@@ -57,7 +58,7 @@ def needs(min_rank):
             request.rank = rank_of(request.user)
             if request.rank < min_rank:
                 return err("forbidden", 403)
-            if fn.__name__ not in ("my_totp", "update_me") and totp_due(request.user):  # set up the required 2FA first
+            if fn.__name__ not in ("my_totp", "update_me") and totp_due(request.user, request):  # set up the required 2FA first
                 return err("totp_setup_required", 403)
             request.json = {}
             if request.body and request.content_type == "application/json":
@@ -148,9 +149,14 @@ def totp_policy(u):
     return need == "all" or (need == "admins" and rank_of(u) == 2)
 
 
-def totp_due(u):
-    """Required but not set up yet: the user can't do anything else until it is."""
-    return totp_policy(u) and not profile_of(u).totp_secret_enc
+def provider_mfa(request):
+    """Signed in by single sign-on, and the admin trusts the provider's multi-factor authentication."""
+    return bool(request.session.get("sso_at")) and Settings.get().oidc_mfa_trusted
+
+
+def totp_due(u, request=None):
+    """Required but not set up yet: the user can't do anything else until it is (unless the provider's MFA counts)."""
+    return totp_policy(u) and not profile_of(u).totp_secret_enc and not (request and provider_mfa(request))
 
 
 def ser_user(u):
@@ -180,9 +186,11 @@ def snapshot(r):
 @ensure_csrf_cookie
 def session(request):
     s = Settings.get()
-    out = {"default_language": s.default_language, "authenticated": request.user.is_authenticated}
+    out = {"default_language": s.default_language, "authenticated": request.user.is_authenticated,
+           "sso": oidc.configured(s), "sso_label": s.oidc_label}
     if request.user.is_authenticated:
-        out |= {"user": ser_user(request.user), "version": dj.KARTEI_VERSION, "source": dj.KARTEI_SOURCE_URL}
+        out |= {"user": ser_user(request.user) | {"totp_due": totp_due(request.user, request)},
+                "version": dj.KARTEI_VERSION, "source": dj.KARTEI_SOURCE_URL}
     return JsonResponse(out)
 
 
@@ -194,11 +202,20 @@ def login_view(request):
     except ValueError:
         return err("invalid_json")
     username, password = str(body.get("username", "")).strip(), str(body.get("password", ""))
+    # after single sign-on a user with two-factor sign-in only sends the code (see oidc_callback)
+    sso = request.session.get("sso_pending") if not username else None
+    if sso:
+        if time.time() - sso["at"] > 300:
+            request.session.pop("sso_pending")
+            return err("sso_expired", 401)
+        user = User.objects.filter(pk=sso["user"], is_active=True).first()
+        username = user.username if user else ""
     # ponytail: per-process cache counter; use a shared cache (DB/redis) if brute force across workers matters
     key = f"login-fail:{client_ip(request)}:{username.lower()}"
     if cache.get(key, 0) >= 10:
         return err("too_many_attempts", 429)
-    user = authenticate(request, username=username, password=password)
+    if not sso:
+        user = authenticate(request, username=username, password=password)
     if user is None or not user.is_active:
         cache.set(key, cache.get(key, 0) + 1, 15 * 60)
         return err("invalid_credentials", 401)
@@ -212,9 +229,47 @@ def login_view(request):
             cache.set(key, cache.get(key, 0) + 1, 15 * 60)
             return err("invalid_code", 401)
     cache.delete(key)
-    login(request, user)
-    profile_of(user)
+    if sso:
+        request.session.pop("sso_pending")
+        _sso_login(request, user)
+    else:
+        login(request, user)
     return JsonResponse({"user": ser_user(user)})
+
+
+def _sso_login(request, user):
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    request.session["sso_at"] = int(time.time())  # stands in for the password when a SCIM user sets up 2FA
+    audit.log(user, "login", "user", user.id, user.username, {"sso": [None, "oidc"]})
+
+
+def oidc_start(request):
+    """Top-level navigation from the login page to the identity provider."""
+    s = Settings.get()
+    if not oidc.configured(s):
+        return err("not_found", 404)
+    try:
+        return HttpResponseRedirect(oidc.start(request.session, s))
+    except oidc.SignInError as e:
+        return HttpResponseRedirect(f"/?login_error={e}")
+
+
+def oidc_callback(request):
+    """The provider sends the browser back here; on success the user is signed in, else the login page shows why."""
+    s = Settings.get()
+    if not oidc.configured(s):
+        return err("not_found", 404)
+    if request.GET.get("error"):  # cancelled or refused at the provider
+        return HttpResponseRedirect("/?login_error=sso_cancelled")
+    try:
+        user = oidc.finish(request.session, s, request.GET.get("code", ""), request.GET.get("state", ""))
+    except oidc.SignInError as e:
+        return HttpResponseRedirect(f"/?login_error={e}")
+    if profile_of(user).totp_secret_enc and not s.oidc_mfa_trusted:  # unless the provider's MFA counts, the login page asks
+        request.session["sso_pending"] = {"user": user.id, "at": int(time.time())}
+        return HttpResponseRedirect("/?login_step=totp")
+    _sso_login(request, user)
+    return HttpResponseRedirect("/")
 
 
 TOTP_MAX_FAILURES, TOTP_LOCK = 5, timedelta(minutes=15)
@@ -259,9 +314,13 @@ def my_totp(request):
         request.session["totp_pending"] = secret
         return JsonResponse({"secret": secret, "uri": totp.uri(secret, u.username)})
     if action == "confirm":
-        # the password as well: a session alone (e.g. on an unlocked computer) must not be able to lock the owner out
-        if authenticate(request, username=u.username, password=str(b.get("password") or "")) != u:
-            return err("validation", fields={"password": "invalid"})
+        # the password as well: a session alone (e.g. on an unlocked computer) must not be able to lock the owner out;
+        # users without one (SCIM) instead need a single sign-on in the last 10 minutes
+        if u.has_usable_password() or p.source != "scim":
+            if authenticate(request, username=u.username, password=str(b.get("password") or "")) != u:
+                return err("validation", fields={"password": "invalid"})
+        elif time.time() - request.session.get("sso_at", 0) > 600:
+            return err("sso_reauth", 403)
         secret = request.session.get("totp_pending", "")
         step = totp.verify(secret, b.get("code"))
         if step is None:
@@ -1455,7 +1514,7 @@ def user_update(request, pk):
     if "role" in b:
         if b["role"] not in Role.values:
             return err("validation", fields={"role": "invalid"})
-        if p.source == "ldap":
+        if p.source != "local":  # LDAP or SCIM groups decide
             return err("validation", fields={"role": "ldap_managed"})
         p.role = b["role"]
     if "language" in b and b["language"] in ("", "de", "en"):
@@ -1464,7 +1523,7 @@ def user_update(request, pk):
         if a in b and p.source == "local":
             setattr(u, a, str(b[a]))
     if "is_active" in b and bool(b["is_active"]) != u.is_active:
-        if p.source == "ldap":  # AD role groups decide, see ldapusers
+        if p.source != "local":  # the directory decides, see ldapusers and scim
             return err("validation", fields={"is_active": "ldap_managed"})
         u.is_active = bool(b["is_active"])
     if b.get("password"):
@@ -1501,7 +1560,7 @@ def user_delete(request, pk):
 
 # ---------------------------------------------------------------- admin: settings
 
-SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days", "purge_anonymize", "export_interval_minutes", "ldap_uri",
+SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days", "purge_anonymize", "export_interval_minutes", "oidc_enabled", "ldap_uri",
                   "ldap_start_tls", "ldap_ca_cert", "ldap_bind_dn", "ldap_user_base", "ldap_user_filter",
                   "ldap_group_admin", "ldap_group_maintainer", "ldap_group_read", "carddav_enabled",
                   "carddav_username", "graph_enabled", "graph_tenant_id", "graph_client_id", "graph_group_id",
@@ -1511,6 +1570,8 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
                   "ad_enabled", "ad_ou", "ad_bind_dn", "ad_kinds", "ad_columns", "ad_max_shrink_percent"]
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
 SETTINGS_ATTRS += ["mail_templates", "mail_transport", "mail_graph_sender"]
+SETTINGS_ATTRS += ["oidc_issuer", "oidc_client_id", "oidc_scopes", "oidc_claim", "oidc_label", "oidc_mfa_trusted",
+                   "scim_group_admin", "scim_group_maintainer", "scim_group_read"]
 SETTINGS_ATTRS += ["carddav_relay_enabled", "carddav_relay_url", "carddav_relay_tls_verify", "carddav_relay_ca_cert",
                    "carddav_relay_max_delete_percent"]
 
@@ -1523,13 +1584,17 @@ def ser_settings(s):
             "smtp_password_set": bool(s.smtp_password_enc), "mail_template_defaults": reviews.DEFAULT_TEMPLATES,
             "graph_sync_requested": s.graph_sync_requested, "ldap_users_status": s.ldap_users_status,
             "ad_bind_password_set": bool(s.ad_bind_password_enc), "ad_status": s.ad_status,
-            "ad_sync_requested": s.ad_sync_requested, **relaypush.ser(s)}
+            "ad_sync_requested": s.ad_sync_requested, **relaypush.ser(s),
+            "oidc_client_secret_set": bool(s.oidc_client_secret_enc), "scim_token_set": bool(s.scim_token_hash),
+            "scim_seen_at": s.scim_seen_at.isoformat() if s.scim_seen_at else None,
+            "scim_groups": [{"id": str(g.id), "name": g.display_name, "members": g.n}
+                            for g in ScimGroup.objects.annotate(n=Count("members"))]}
 
 
 def _settings_snapshot(s):
     return {**{a: getattr(s, a) for a in SETTINGS_ATTRS}, "ldap_bind_password_enc": s.ldap_bind_password_enc,
             "graph_client_secret_enc": s.graph_client_secret_enc, "smtp_password_enc": s.smtp_password_enc,
-            "ad_bind_password_enc": s.ad_bind_password_enc}
+            "ad_bind_password_enc": s.ad_bind_password_enc, "oidc_client_secret_enc": s.oidc_client_secret_enc}
 
 
 @needs(ADMIN)
@@ -1553,6 +1618,8 @@ def settings_put(request):
         s.smtp_password = str(b["smtp_password"] or "")
     if "ad_bind_password" in b:
         s.ad_bind_password = str(b["ad_bind_password"] or "")
+    if "oidc_client_secret" in b:
+        s.oidc_client_secret = str(b["oidc_client_secret"] or "")
     errors |= adsync.validate(s) | relaypush.validate(s)
     if s.review_mode not in ("off", "rolling", "campaign"):
         errors["review_mode"] = "invalid"
@@ -1590,12 +1657,39 @@ def settings_put(request):
     if s.graph_enabled and not (s.graph_tenant_id and s.graph_client_id and s.graph_group_id
                                 and s.graph_client_secret_enc):
         errors["graph_enabled"] = "graph_incomplete"
+    s.oidc_issuer = str(s.oidc_issuer or "").strip()
+    if s.oidc_issuer and not re.fullmatch(r"https://[^\s?#]+", s.oidc_issuer):
+        errors["oidc_issuer"] = "https_required"
+    if s.oidc_claim not in oidc.CLAIMS:
+        errors["oidc_claim"] = "invalid"
+    if "openid" not in str(s.oidc_scopes).split():
+        errors["oidc_scopes"] = "openid_required"
+    if s.oidc_enabled and not (s.oidc_issuer and s.oidc_client_id and s.oidc_client_secret_enc and s.base_url):
+        errors["oidc_enabled"] = "oidc_incomplete"  # provider and the public URL (for the redirect URI) are needed
+    groups = {str(i) for i in ScimGroup.objects.values_list("id", flat=True)}
+    for a in ("scim_group_admin", "scim_group_maintainer", "scim_group_read"):
+        setattr(s, a, str(getattr(s, a) or ""))
+        if getattr(s, a) and getattr(s, a) not in groups:
+            errors[a] = "invalid"
     if errors:
         return err("validation", fields=errors)
     s.save()
     if change := audit.diff(before, _settings_snapshot(s)):
         audit.log(request.user, "update", "settings", 1, "settings", change)
+    if any(a.startswith("scim_group_") for a in change or {}):
+        from . import scim
+        scim.sync_all(s)  # roles and active of SCIM users follow the new mapping
     return JsonResponse(ser_settings(s))
+
+
+@needs(ADMIN)
+def scim_token(request):
+    """New bearer token for the identity provider's SCIM client; only its SHA-256 is stored, the token is shown once."""
+    s, token = Settings.get(), secrets.token_urlsafe(32)
+    s.scim_token_hash = ApiToken.digest(token)
+    s.save(update_fields=["scim_token_hash"])
+    audit.log(request.user, "update", "settings", 1, "settings", {"scim_token_hash": ["***", "***"]})
+    return JsonResponse({"token": token})
 
 
 @needs(ADMIN)

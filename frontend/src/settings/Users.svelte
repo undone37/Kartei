@@ -134,17 +134,17 @@
           {#if u.totp} <span class="badge ok" title={t('totp.title')}>{t('totp.badge')}</span>{/if}
           {#if !u.is_active && u.refs} <span class="badge warn" title={t('handover.pending_hint')}>{t('handover.pending', { n: u.refs })}</span>{/if}</td>
         <td>{[u.first_name, u.last_name].join(' ')}</td>
-        <td><span class="badge">{u.source === 'ldap' ? 'LDAP' : t('users.local')}</span></td>
+        <td><span class="badge">{u.source === 'local' ? t('users.local') : u.source.toUpperCase()}</span></td>
         <td>
-          {#if u.source === 'ldap' || u.is_superuser}
-            <span title={u.source === 'ldap' ? t('users.ldap_role') : t('users.superuser_role')}>{t(`role.${u.role}`)}</span>
+          {#if u.source !== 'local' || u.is_superuser}
+            <span title={u.is_superuser ? t('users.superuser_role') : t(`users.${u.source}_role`)}>{t(`role.${u.role}`)}</span>
           {:else}
             <select class="select sm" value={u.role} aria-label={`${t('users.role')}: ${u.username}`} onchange={(e) => update(u, { role: e.currentTarget.value as Role })}>
               {#each ['read', 'maintainer', 'admin'] as r}<option value={r}>{t(`role.${r}`)}</option>{/each}
             </select>
           {/if}
         </td>
-        <td><input type="checkbox" checked={u.is_active} aria-label={`${t('users.active')}: ${u.username}`} disabled={u.id === store.user?.id || u.source === 'ldap'} onchange={(e) => update(u, { is_active: e.currentTarget.checked })} /></td>
+        <td><input type="checkbox" checked={u.is_active} aria-label={`${t('users.active')}: ${u.username}`} disabled={u.id === store.user?.id || u.source !== 'local'} onchange={(e) => update(u, { is_active: e.currentTarget.checked })} /></td>
         <td class="muted">{u.last_login ? relTime(u.last_login) : '—'}</td>
         <td class="act">
           {#if pwFor === u.id}

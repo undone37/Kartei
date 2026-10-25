@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { KeyRound } from '@lucide/svelte'
   import logo from '../assets/logo.svg'
   import { ApiError } from '../lib/api'
   import { store } from '../lib/store.svelte'
@@ -6,10 +7,15 @@
 
   let username = $state('')
   let password = $state('')
-  let error = $state('')
+  // a failed single sign-on comes back as /?login_error=<code>; an account with two-factor sign-in as /?login_step=totp
+  const query = new URLSearchParams(location.search)
+  const ssoError = query.get('login_error')
+  const ssoCode = query.get('login_step') === 'totp'
+  let error = $state(ssoError ? terr(ssoError) : '')
+  if (ssoError || ssoCode) history.replaceState(null, '', '/')
   let busy = $state(false)
-  /** second step: the password was right, the account has two-factor sign-in */
-  let needCode = $state(false)
+  /** second step: the password (or the identity provider) was right, the account has two-factor sign-in */
+  let needCode = $state(ssoCode)
   let code = $state('')
 
   async function submit(e: SubmitEvent) {
@@ -52,6 +58,10 @@
       {#if error}<div class="error-text" role="alert">{error}</div>{/if}
       <button class="btn primary" disabled={busy || !username || !password}>{t('login.submit')}</button>
     {/if}
+    {#if store.sso && !needCode}
+      <div class="or"><span>{t('sso.or')}</span></div>
+      <a class="btn sso" href="/api/oidc/start"><KeyRound size={16} />{store.ssoLabel || t('sso.button')}</a>
+    {/if}
     <div class="langs">
       <button type="button" class="chip" class:on={i18n.lang === 'de'} onclick={() => setLang('de')}>Deutsch</button>
       <button type="button" class="chip" class:on={i18n.lang === 'en'} onclick={() => setLang('en')}>English</button>
@@ -60,6 +70,9 @@
 </div>
 
 <style>
+  .or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin: 4px 0; }
+  .or::before, .or::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+  .sso { justify-content: center; gap: 10px; }
   .wrap { height: 100%; display: grid; place-items: center; padding: 16px; }
   .card { width: 100%; max-width: 360px; padding: 28px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow); }
   .brand { display: flex; align-items: center; gap: 8px; font-weight: 650; margin-bottom: 18px; }

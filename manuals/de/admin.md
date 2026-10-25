@@ -342,6 +342,8 @@ Zusätzlich lässt sich jedes Feld auf *Bearbeiter & Admin* oder *Nur Admin* bes
 
 Lokale Benutzer bleiben als Rückfallebene erhalten, falls das Verzeichnis nicht erreichbar ist. Ein lokaler Benutzer hat immer Vorrang: Ein AD-Konto mit demselben Benutzernamen kann sich nicht anmelden.
 
+Eine dritte Art, *SCIM-Benutzer*, legt ein Identity-Provider an und verwaltet sie; siehe [Single Sign-on](#sso).
+
 ![Reiter Benutzer](../img/de/settings-users.png)
 
 ### Lokale Benutzer verwalten
@@ -428,6 +430,57 @@ Das Ergebnis zeigt, ob Verbindung und Anmeldung des Dienstkontos geklappt haben,
 - Werden gar keine Mitglieder gefunden (z. B. falsche Suchbasis), ändert sich nichts und es erscheint ein Fehler – ein Tippfehler kann also nicht alle Benutzer deaktivieren.
 
 Das Feld unter der Schaltfläche zeigt den letzten Lauf: *neu · aktualisiert · deaktiviert · lokale übersprungen* oder den Fehler.
+
+## Single Sign-on (SCIM und OpenID Connect) {#sso}
+
+*Einstellungen → Single Sign-on* verbindet Kartei mit einem Identity-Provider wie Entra ID, Okta, Authentik oder Keycloak (mit SCIM-Plugin). Der Provider **legt die Benutzer vorab per SCIM an** (mit ihren Gruppen), und sie **melden sich mit OpenID Connect an** – so gelten seine Mehrfaktor-Authentifizierung und Richtlinien, und kein Passwort erreicht Kartei. Lokale Benutzer und LDAP funktionieren weiter.
+
+![Der Reiter Single Sign-on](../img/de/settings-sso.png)
+
+### Bereitstellung (SCIM 2.0)
+
+1. Unter *Bereitstellung (SCIM 2.0)* die *SCIM-Basis-URL* (`https://kartei.example.com/scim/v2`) kopieren und *Token erzeugen* klicken. Das Token wird **einmal** angezeigt; ein neues Token ersetzt das alte. Neben der Schaltfläche zeigt *Letzter Kontakt vom Identitätsanbieter*, wann er Kartei zuletzt aufgerufen hat – ein schneller Check, ob die Bereitstellung läuft.
+2. Im Identity-Provider für die App die Bereitstellung mit dieser URL und dem Token als Bearer-Token einrichten (Entra ID: *Unternehmensanwendung → Bereitstellung → Automatisch*, *Mandanten-URL* und *Geheimes Token*). Die Benutzer und Gruppen zuweisen, die Kartei bekommen sollen.
+3. Sobald die ersten Gruppen angekommen sind, sie unter *Rollen aus Gruppen* den Rollen *Admin*, *Bearbeiter* und *Nur Lesen* zuordnen und speichern.
+
+- Ein SCIM-Benutzer ist **aktiv**, wenn der Provider es sagt und eine seiner Gruppen eine Rolle hat; die höchste Rolle gilt. Benutzer ohne zugeordnete Gruppe sind inaktiv.
+- Name, E-Mail, Rolle und *Aktiv* von SCIM-Benutzern (*Quelle* `SCIM`) sind in der Benutzerliste ausgegraut; das entscheidet der Provider. Sie haben kein Kartei-Passwort.
+- Austritte: Deaktiviert oder löscht der Provider einen Benutzer, **deaktiviert** Kartei ihn und löscht ihn nie – so behalten die Historie und die Kontakte, für die er zuständig ist, seinen Namen.
+- SCIM sieht nur Benutzer, die es selbst angelegt hat: Lokale und LDAP-Benutzer werden nie geändert, und ein SCIM-Benutzer kann keinen schon vorhandenen Namen bekommen.
+- Den letzten aktiven Admin deaktiviert oder herabstuft SCIM nie.
+- Jede Änderung durch den Provider steht im Protokoll als *SCIM*.
+
+Endpunkte: `/Users` und `/Groups` mit `GET` (Filter `userName eq`, `externalId eq`, `displayName eq`), `POST`, `PUT`, `PATCH` und `DELETE`, dazu `/ServiceProviderConfig`, `/ResourceTypes` und `/Schemas`.
+
+### Anmeldung (OpenID Connect)
+
+| Einstellung | Hinweise |
+|---|---|
+| *Aussteller-URL (Issuer)* | Kartei liest die Endpunkte aus `<Issuer>/.well-known/openid-configuration`; der Issuer dort muss genau diese URL sein. |
+| *Client-ID*, *Client-Geheimnis* | Von der im Provider registrierten App (vertraulicher Web-Client). Das Geheimnis wird verschlüsselt gespeichert. |
+| *Scopes* | Standard `openid profile email`. |
+| *Claim für die erste Anmeldung* | `preferred_username` (Standard), `upn` oder `email`. |
+| *Text der Schaltfläche auf der Anmeldeseite* | Leer = *Mit Single Sign-on anmelden*. |
+| *Umleitungs-URI* | Im Provider eintragen: `https://kartei.example.com/api/oidc/callback` (braucht die *Öffentliche Adresse* unter *Allgemein*). |
+
+Issuer-URLs gängiger Provider:
+
+| Provider | Issuer-URL |
+|---|---|
+| Entra ID | `https://login.microsoftonline.com/<Tenant-ID>/v2.0` (die Tenant-ID, nicht `common` oder `organizations`) |
+| Keycloak | `https://id.example.com/realms/<Realm>` |
+| Authentik | `https://id.example.com/application/o/<Anwendungs-Slug>/` |
+| Okta | `https://<Org>.okta.com` (oder ein eigener Autorisierungsserver) |
+
+Wer sich anmelden kann:
+
+- Nur **aktive SCIM- oder LDAP-Benutzer**, nie lokale Benutzer oder Superuser. Bei der Anmeldung wird niemand angelegt.
+- Beim ersten Mal muss der gewählte Claim dem Benutzernamen genau eines SCIM-Benutzers (oder der Verzeichnis-E-Mail eines LDAP-Benutzers) entsprechen. Teiltreffer gibt es nicht.
+- Danach speichert Kartei Aussteller und Subject (`sub`) des Kontos; ab dann zählen nur noch diese – ein umbenanntes Konto kommt weiter hinein, ein anderes Konto mit gleichem Namen nicht.
+- Bei Entra ID werden Gäste aus anderen Verzeichnissen abgewiesen.
+- Die Anmeldung nutzt den Autorisierungscode-Fluss mit PKCE; Kartei prüft Aussteller, Empfänger, Ablauf und Nonce des ID-Tokens. Jede Anmeldung steht im Protokoll.
+
+**Zwei-Faktor-Anmeldung und Single Sign-on:** Die Mehrfaktor-Authentifizierung des Providers ersetzt die von Kartei nicht. Hat ein Konto die Zwei-Faktor-Anmeldung eingeschaltet (oder ist sie [Pflicht](#allgemeine-einstellungen)), fragt Kartei nach dem Provider den Code ab. SCIM-Benutzer haben kein Kartei-Passwort: Zum Einschalten brauchen sie stattdessen eine Single-Sign-on-Anmeldung in den letzten 10 Minuten. Erzwingt der Provider bei jeder Anmeldung an Kartei MFA (z. B. per Richtlinie für bedingten Zugriff), schalte *Mehrfaktor-Authentifizierung des Providers zählt* ein: Dann fragt Kartei nach Single Sign-on keinen Code ab, und *Zwei-Faktor-Anmeldung Pflicht für* gilt für diese Sitzungen nicht. Anmeldungen mit Passwort brauchen weiterhin den Kartei-Code.
 
 ## Felder
 
