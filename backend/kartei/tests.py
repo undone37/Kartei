@@ -443,6 +443,15 @@ class SessionTests(ApiTestBase):
         s = self.client.get("/api/session").json()
         self.assertEqual((s["version"], s["source"]), ("9.9.9-test", "https://example.org/fork"))
 
+    def test_a_deactivated_user_loses_an_open_session(self):
+        for backend in ("kartei.auth.DbLDAPBackend", "django.contrib.auth.backends.ModelBackend"):
+            u = self.users["maintainer"]
+            User.objects.filter(pk=u.pk).update(is_active=True)
+            self.client.force_login(u, backend=backend)
+            self.j("get", "/api/bootstrap")
+            User.objects.filter(pk=u.pk).update(is_active=False)  # e.g. by the LDAP user import
+            self.j("get", "/api/bootstrap", status=401)
+
 
 class UserFieldTests(ApiTestBase):
     """Internal responsible (user) and internal contacts (users) reference Kartei users by username."""

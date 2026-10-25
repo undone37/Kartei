@@ -10,6 +10,10 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 - Webhooks: contact changes are POSTed to other systems within seconds, signed with HMAC-SHA256, retried for about a day (*Settings → API*).
 - Phone list: the current list (with search and filters) as a printable phone list, by company or by name, with selectable phone and email columns; the browser saves it as PDF.
 
+### Fixed
+
+- A user deactivated by the LDAP user import lost access only when their session expired (up to 14 days); now on their next request.
+
 ## [0.2.0-beta] – 2026-10-25
 
 Second beta: read-only users can propose new contacts, Kartei can use a dedicated PostgreSQL server or cluster, images are also built for ARM64, and large directories load faster.

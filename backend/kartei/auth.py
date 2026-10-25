@@ -72,6 +72,11 @@ class DbLDAPBackend(LDAPBackend):
     def settings(self, value):
         self._settings = value
 
+    def get_user(self, user_id):
+        # django-auth-ldap doesn't check is_active here: a user deactivated by the user import kept an open session
+        user = super().get_user(user_id)
+        return user if user and user.is_active else None
+
     def authenticate(self, request, username=None, password=None, **kwargs):
         if not Settings.get().ldap_uri or not password:
             return None
