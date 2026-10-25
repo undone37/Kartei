@@ -104,6 +104,27 @@ test.describe('finding contacts', () => {
   })
 })
 
+test.describe('phone list', () => {
+  test('the current list as a printable phone list, grouped by company', async ({ as }) => {
+    const page = await as('kkramer')
+    const all = await page.records()
+    const c = all.find((r) => r.kind === 'company' && all.some((p) => p.company === r.uid && p.data.phone_work))
+    await page.goto('/')
+    await search(page).fill(c.name)
+    await page.locator('[popovertarget="export-menu"]').click()
+    await page.getByRole('link', { name: /Phone list/ }).click()
+    await expect(page).toHaveURL(/\/phonelist$/)
+    const sheet = page.locator('article.sheet')
+    await expect(sheet.locator('tr.co').first()).toHaveText(new RegExp(c.name))
+    const person = all.find((p) => p.company === c.uid && p.data.phone_work)
+    await expect(sheet.getByRole('row').filter({ hasText: `${person.last_name}, ${person.first_name}` }).first()).toContainText(
+      person.data.phone_work.slice(-3))
+    await page.getByLabel('by name').check()
+    await expect(sheet.locator('tr.co')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Print / PDF' })).toBeEnabled()
+  })
+})
+
 test.describe('roles', () => {
   test('read only: no edit, new contacts only as proposals, no settings', async ({ as }) => {
     const page = await as('kkramer')

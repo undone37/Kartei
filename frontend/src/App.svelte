@@ -1,11 +1,12 @@
 <script lang="ts">
   import logo from './assets/logo.svg'
-  import { Bookmark, Building2, ChevronDown, Copy, Download, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
+  import { Bookmark, Building2, ChevronDown, Copy, Download, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, Printer, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
   import AdvancedFilter from './components/AdvancedFilter.svelte'
   import Combobox from './components/Combobox.svelte'
   import Login from './components/Login.svelte'
   import RecordForm from './components/RecordForm.svelte'
   import ProposalPage from './components/ProposalPage.svelte'
+  import PhoneList from './components/PhoneList.svelte'
   import RecordList from './components/RecordList.svelte'
   import RecordView from './components/RecordView.svelte'
   import Toasts from './components/Toasts.svelte'
@@ -47,6 +48,7 @@
     if (a === 'person' || a === 'company') return { name: 'record' as const, uid: b }
     if (a === 'new' && (b === 'person' || b === 'company')) return { name: 'new' as const, kind: b as Kind }
     if (a === 'proposal' && b) return { name: 'proposal' as const, id: Number(b) }
+    if (a === 'phonelist') return { name: 'phonelist' as const }
     if (a === 'trash') return { name: 'trash' as const }
     if (a === 'settings') return { name: 'settings' as const, tab: b ?? 'fields' }
     if (a === 'account') return { name: 'account' as const }
@@ -360,6 +362,8 @@
                                                          : proposal ? go(`/proposal/${proposal}`, true) : history.back())} />
             {/key}
           </div>
+        {:else if view.name === 'phonelist'}
+          <PhoneList items={results.map((x) => x.rec)} />
         {:else if view.name === 'proposal'}
           {#key view.id}<ProposalPage id={view.id} />{/key}
         {:else if view.name === 'trash'}
@@ -396,6 +400,7 @@
     <div id="export-menu" popover class="menu list-menu">
       <button onclick={() => exportList('xlsx')}><Download size={15} />{t('dl.xlsx', { n: results.length })}</button>
       <button onclick={() => exportList('csv')}><Download size={15} />{t('dl.csv', { n: results.length })}</button>
+      <a href="/phonelist" onclick={() => document.getElementById('export-menu')?.hidePopover()}><Printer size={15} />{t('phonelist.menu', { n: results.length })}</a>
     </div>
 
     <div id="adv-menu" popover class="menu adv-menu"><AdvancedFilter bind:adv n={results.length} /></div>
