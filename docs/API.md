@@ -40,6 +40,7 @@ Authorization: Bearer kt_…
 - **Last used:** the token list shows when each token was last used (updated at most once per minute).
 - **Scope:** tokens only work for `/api/v1/…`. They don't work for the web interface or any other endpoint. No session cookie or CSRF token is involved.
 - **Transport:** always call the API over HTTPS. The token is a password – a write token even more so.
+- **Independent of people:** a token belongs to Kartei, not to the admin who created it. It keeps working when that admin leaves, and two-factor sign-in doesn't apply to it.
 
 ## Permissions per token
 
@@ -275,6 +276,8 @@ API changes behave like changes in the web interface:
 - Phone numbers are normalized to international form if that's enabled.
 - New values in select fields that allow new options become options of the field (logged as a field change by the same `api:<token name>`).
 - If a change moves the responsibility of a contact with an open review (e.g. a new internal contact), the review follows the new responsible person.
+- User fields (person responsible, internal contacts) hold user names. When an admin [hands over](../manuals/en/admin.md#leavers) the contacts of someone who left, those values change to the successor; every affected contact is a normal change (new `version`, delta sync, `contact.updated`).
+- A contact moved to the recycle bin is reported in the delta sync's `deleted`. When it is later purged, it is gone for good, and its history may be anonymised (setting *Anonymise the history when deleting permanently*).
 - Changed contacts appear in everyone's list right away and in the next delta sync of all API clients – including your own, so expect to see your own changes there.
 
 ## The contact object
@@ -489,7 +492,7 @@ Instead of polling, a system can be notified right away: an administrator adds a
 | Event | When |
 |---|---|
 | `contact.created` | a person or company was created (also by import or an accepted proposal) |
-| `contact.updated` | a contact was changed (form, bulk edit, import, merge, REST API, accepted proposal) |
+| `contact.updated` | a contact was changed (form, bulk edit, import, merge, REST API, accepted proposal, restore from the history, handover to a successor) |
 | `contact.deleted` | a contact was moved to the recycle bin |
 | `contact.restored` | a contact was restored from the recycle bin |
 | `ping` | the *Send test event* button |

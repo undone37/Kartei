@@ -64,8 +64,10 @@ The screenshot shows a maintainer's menu. Read only users don't see **Recycle bi
 Under **My account** you can protect your account with a second factor: after your password, Kartei then also asks for a 6-digit code from an authenticator app on your phone (e.g. Microsoft Authenticator, Google Authenticator, 1Password).
 
 1. *My account* → *Two-factor sign-in* → **Set up**.
-2. Scan the QR code with the app (or enter the key shown below it by hand) and type the code the app shows. **Switch on**.
+2. Scan the QR code with the app (or enter the key shown below it by hand) and type the code the app shows, plus your current password. **Switch on**.
 3. Kartei shows **8 recovery codes** once. Keep them safe, e.g. in your password manager: each works once instead of the app code if you don't have your phone at hand.
+
+If your administrator requires two-factor sign-in, Kartei shows this setup right after you sign in, and you can't switch it off afterwards.
 
 ![Setting up two-factor sign-in](../img/en/account-totp.png)
 

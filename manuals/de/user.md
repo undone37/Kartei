@@ -64,8 +64,10 @@ Der Screenshot zeigt das Menü eines Bearbeiters. Mit der Rolle *Nur Lesen* fehl
 Unter **Mein Konto** kannst du dein Konto mit einem zweiten Faktor schützen: Nach dem Passwort fragt Kartei dann zusätzlich einen 6-stelligen Code aus einer Authenticator-App auf deinem Handy ab (z. B. Microsoft Authenticator, Google Authenticator, 1Password).
 
 1. *Mein Konto* → *Zwei-Faktor-Anmeldung* → **Einrichten**.
-2. Scanne den QR-Code mit der App (oder gib den Schlüssel darunter von Hand ein) und tipp den Code ein, den die App zeigt. **Einschalten**.
+2. Scanne den QR-Code mit der App (oder gib den Schlüssel darunter von Hand ein) und tipp den Code ein, den die App zeigt, dazu dein aktuelles Passwort. **Einschalten**.
 3. Kartei zeigt einmalig **8 Wiederherstellungscodes**. Bewahr sie sicher auf, z. B. im Passwortmanager: Jeder funktioniert einmal statt des App-Codes, falls du dein Handy nicht zur Hand hast.
+
+Verlangt dein Administrator die Zwei-Faktor-Anmeldung, zeigt Kartei diese Einrichtung direkt nach der Anmeldung, und du kannst sie danach nicht abschalten.
 
 ![Zwei-Faktor-Anmeldung einrichten](../img/de/account-totp.png)
 

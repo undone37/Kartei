@@ -352,7 +352,7 @@ Lokale Benutzer bleiben als Rückfallebene erhalten, falls das Verzeichnis nicht
 - **Rolle ändern:** in der Spalte *Rolle* auswählen, das wirkt sofort.
 - **Passwort zurücksetzen:** Schlüsselsymbol (*Passwort setzen*) → neues Passwort eingeben → *Speichern*.
 - **Deaktivieren:** Haken bei *Aktiv* entfernen. Der Benutzer kann sich nicht mehr anmelden, bleibt aber in der Liste und in den Benutzerfeldern der Kontakte (als inaktiv markiert), bis du sie [übergibst](#leavers). Das ist meist besser als Löschen.
-- **Zwei-Faktor-Anmeldung:** schalten die Benutzer selbst unter *Mein Konto* ein; die Liste kennzeichnet sie mit **2FA**. Hat jemand Handy und Wiederherstellungscodes verloren, schaltet das Schildsymbol (*Zwei-Faktor-Anmeldung zurücksetzen*) sie nach einer Rückfrage ab, sodass wieder das Passwort reicht (prüf die Anfrage vorher). Gilt für lokale und LDAP-Benutzer.
+- **Zwei-Faktor-Anmeldung:** schalten die Benutzer selbst unter *Mein Konto* ein; die Liste kennzeichnet sie mit **2FA**. Hat jemand Handy und Wiederherstellungscodes verloren, schaltet das Schildsymbol (*Zwei-Faktor-Anmeldung zurücksetzen*) sie nach einer Rückfrage ab, sodass wieder das Passwort reicht (prüf die Anfrage vorher). Gilt für lokale und LDAP-Benutzer. Zur Pflicht machen: *Zwei-Faktor-Anmeldung Pflicht für* unter [Allgemeine Einstellungen](#allgemeine-einstellungen).
 - **Löschen:** Papierkorbsymbol, dann im Dialog bestätigen. Das Konto kann sich nicht mehr anmelden, und seine eigenen gespeicherten Filter (auch geteilte) werden gelöscht; erst möglich, wenn kein Kontakt den Benutzer mehr nennt (vorher [übergeben](#leavers)). AD-Benutzer kommen beim nächsten Benutzerimport wieder, solange sie in einer Rollengruppe sind. Dich selbst kannst du nicht löschen.
 
 > Hinweis: Der letzte aktive Admin lässt sich weder herabstufen noch deaktivieren oder löschen (*Der letzte Admin kann nicht entfernt werden*). Der erste Admin aus der `.env` ist ein Superuser (Tooltip *Hauptadministrator (Superuser) – immer Admin*); seine Rolle lässt sich in der Liste nicht ändern.
@@ -377,6 +377,8 @@ Deaktivieren (lokale Benutzer) oder aus den Rollengruppen entfernen (LDAP-Benutz
 - **Vorschläge** von ihnen bleiben offen; Bearbeiter entscheiden wie gewohnt.
 - **API-Tokens und Webhooks** gehören Kartei, nicht dem Admin, der sie angelegt hat, und funktionieren weiter.
 - **Löschen** lässt sich ein Konto erst, wenn kein Kontakt es mehr nennt (*vorher übergeben*).
+
+![Kontakte einer ausgeschiedenen Person übergeben](../img/de/settings-handover.png)
 
 ## Anmeldung über LDAP / AD
 
@@ -942,13 +944,14 @@ Jeder Empfänger bekommt den Text in seiner Sprache (oder in der Standardsprache
 > Tipp: Die Links in den E-Mails werden aus der *Öffentlichen Adresse* unter *Allgemein* gebildet. Setz sie, bevor die ersten E-Mails rausgehen.
 {: .tip}
 
-## Allgemeine Einstellungen
+## Allgemeine Einstellungen {#allgemeine-einstellungen}
 
 ![Reiter Allgemein](../img/de/settings-general.png)
 
 | Einstellung | Bedeutung |
 |---|---|
 | *Standardsprache* | Sprache für alle, die unter *Mein Konto* keine eigene gewählt haben, und für E-Mails an feste Empfänger. Die Anmeldeseite folgt der Browsersprache. |
+| *Zwei-Faktor-Anmeldung Pflicht für* | *Niemanden (freiwillig)*, *Administratoren* oder *Alle*. Betroffene ohne sie sehen nach der Anmeldung nur die Einrichtung (Authenticator-App, Passwort, Wiederherstellungscodes) und können sie nicht abschalten; das gilt auch für dich. Alle anderen können sie weiterhin unter *Mein Konto* einschalten. |
 | *Öffentliche Adresse* | z. B. `https://kartei.example.de`. Für Links in E-Mails, in vCards (`SOURCE`) und für die CardDAV-Adresse. |
 | *Papierkorb automatisch leeren nach (Tagen)* | Kontakte im Papierkorb werden nach so vielen Tagen endgültig gelöscht. *0* = nie (Standard). |
 | *Beim endgültigen Löschen den Verlauf anonymisieren* | An (Standard): Ein endgültig gelöschter Kontakt verliert auch im Verlauf und im Protokoll Name und Werte; siehe [Datenschutz](#datenschutz). |
@@ -1101,7 +1104,7 @@ Kartei enthält personenbezogene Daten. Zwei Funktionen helfen bei den Rechten d
 - **Nur einmal angezeigt:** Das CardDAV-Passwort und die API-Token werden nur als Hash gespeichert. Sie erscheinen einmal beim Erzeugen; danach lassen sie sich nur ersetzen.
 - **Sperren nach Fehlversuchen:** Nach 10 fehlgeschlagenen Anmeldungen für einen Benutzernamen, 20 fehlgeschlagenen CardDAV-Anmeldungen bzw. 20 fehlgeschlagenen API-Anfragen ist die Absenderadresse 15 Minuten gesperrt. Hinter dem Reverse Proxy ist das der letzte Eintrag von `X-Forwarded-For`; sorg dafür, dass der Proxy ihn anhängt und Port 8000 nicht direkt erreichbar ist (ohne Proxy: `PROXY_HEADERS=0`).
 - **Nur HTTPS:** Cookies sind als *Secure* markiert. Lass `SECURE_COOKIES=1` im Betrieb.
-- **Zwei-Faktor-Anmeldung:** Schalte sie für jedes Admin-Konto ein, vor allem für das lokale aus der `.env` (*Mein Konto*). CardDAV, REST-API und Webhooks betrifft sie nicht.
+- **Zwei-Faktor-Anmeldung:** Schalte sie für jedes Admin-Konto ein, vor allem für das lokale aus der `.env` (*Mein Konto*), oder mach sie für Administratoren zur Pflicht (*Allgemeine Einstellungen*). CardDAV, REST-API und Webhooks betrifft sie nicht.
 - **Minimale Rechte:** Das LDAP-Dienstkonto braucht nur Leserechte. Gib dem AD-Schreibkonto nur Rechte auf der Ziel-OU, beschränke die Outlook-App auf die Postfächer der Gruppe und `Mail.Send` auf das sendende Postfach.
 - **Sichtbarkeit der Felder:** CardDAV, Outlook-Sync und API sehen nur Felder, die für *Alle* sichtbar sind. Exporte und der AD-Sync enthalten, was du einrichtest – schütze die Exportfreigabe entsprechend.
 - **Notfallzugang:** `/django-admin/` ist eine versteckte Rückfallebene für Superuser. Nutze sie nur im Notfall; Änderungen dort umgehen die Prüfungen von Kartei und landen nicht im Protokoll.
