@@ -4,6 +4,15 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.3.0-beta] – 2026-10-25
+
+Third beta, focused on sign-in and people:
+- **Sign-in:** single sign-on with any OpenID Connect provider, with users and roles provisioned in advance via SCIM 2.0, and two-factor sign-in that admins can require.
+- **People:** a handover for people who leave, and data-protection reports.
+- **Contacts:** vCard import, undo from the history, a printable phone list, webhooks and incremental CardDAV sync.
+
+**Upgrading:** make a backup, then pull the new image or rebuild. Three database migrations run automatically when the container starts. Nothing needs to be configured, and new features stay off or voluntary until an admin switches them on. The one exception: emptying the recycle bin now also anonymises the history of the purged contacts (*Settings → General*, on by default).
+
 ### Added
 
 - Handover when someone leaves: the user list marks people who left but are still named in contacts; *Hand over …* puts a successor in their place in all user fields (responsible, internal contacts), open reviews follow, every change is in the contacts' history. Users still named in contacts can't be deleted; review mails no longer go to deactivated users.
@@ -63,6 +72,7 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.2.0-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.3.0-beta...HEAD
+[0.3.0-beta]: https://github.com/undone37/Kartei/compare/v0.2.0-beta...v0.3.0-beta
 [0.2.0-beta]: https://github.com/undone37/Kartei/compare/v0.1.0-beta...v0.2.0-beta
 [0.1.0-beta]: https://github.com/undone37/Kartei/releases/tag/v0.1.0-beta
