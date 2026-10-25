@@ -353,8 +353,9 @@ A third kind, *SCIM users*, is created and managed by an identity provider; see 
 - **Create:** *Local user* → enter *Username*, *Password* (at least 10 characters), optionally first and last name, *Email* and *Role* → *Create*. Users need an email address to receive review emails.
 - **Change role:** select it in the *Role* column; it takes effect at once.
 - **Reset password:** key icon (*Set password*) → enter the new password → *Save*.
-- **Deactivate:** clear *Active*. The user can no longer sign in, but stays in the list and in user fields of contacts (marked as inactive). Prefer this to deleting.
-- **Delete:** trash icon, then confirm in the dialog. The account can no longer sign in, and its own saved filters (shared ones too) are deleted; contacts keep the user name in responsible fields. AD users come back with the next user import while they are in a role group. You cannot delete yourself.
+- **Deactivate:** clear *Active*. The user can no longer sign in, but stays in the list and in user fields of contacts (marked as inactive) until you [hand them over](#leavers). Prefer this to deleting.
+- **Two-factor sign-in:** users switch it on themselves under *My account*; the list marks them **2FA**. If someone lost phone and recovery codes, the shield symbol (*Reset two-factor sign-in*) switches it off after a confirmation, so the password alone works again (verify the request first). Works for local and LDAP users.
+- **Delete:** trash icon, then confirm in the dialog. The account can no longer sign in, and its own saved filters (shared ones too) are deleted; only possible once no contact names the user any more ([hand them over](#leavers) first). AD users come back with the next user import while they are in a role group. You cannot delete yourself.
 
 > Note: The last active admin cannot be demoted, deactivated or deleted (*The last admin cannot be removed*). The initial admin from `.env` is a superuser (tooltip *Main administrator (superuser) – always admin*); its role cannot be changed in the list.
 {: .tip}
@@ -367,6 +368,17 @@ For LDAP users (*Source* `LDAP`), *Role*, *Active* and the password are greyed o
 - disable or enable the AD account.
 
 The change takes effect at the next sign-in or at the next user import (daily, or *Save & import users now*). Users who are no longer in any role group are **deactivated, not deleted**, so their name still appears in the contacts they are responsible for. If they are added to a group again, they are reactivated.
+
+### When someone leaves {#leavers}
+
+Deactivate them (local users) or remove them from the role groups (LDAP users; the next user import deactivates them). They can't sign in any more; an open session ends with their next request.
+
+- **History stays complete.** Every audit and history entry keeps the name of who made the change, even after the account is deleted.
+- **Hand over their contacts.** The user list marks people who left but are still named in contacts (*N contacts to hand over*). *Hand over …* (arrows icon) shows how many contacts and open reviews are affected; pick a successor and confirm. The successor takes their place in every user field (person responsible, internal contacts); open reviews follow the new responsible. Each change is in the contact's history, marked as a handover. This also works for active users, e.g. after a change of jobs.
+- **Open reviews** of someone who left stay open until the handover; Kartei no longer mails them.
+- **Proposals** they made stay open; maintainers decide as usual.
+- **API tokens and webhooks** belong to Kartei, not to the admin who created them, and keep working.
+- **Deleting** an account is only possible once no contact names it any more (*hand them over first*).
 
 ## LDAP / AD sign-in
 
@@ -988,6 +1000,7 @@ Each recipient gets the text in their own language (the default language if they
 | *Default language* | Language for users who have not chosen one in *My account*, and for emails to fixed recipients. The sign-in page follows the browser language. |
 | *Public URL* | e.g. `https://kartei.example.de`. Used for links in emails, in vCards (`SOURCE`) and for the CardDAV address. |
 | *Empty recycle bin automatically after (days)* | Contacts in the recycle bin are deleted permanently after this many days. *0* = never (default). |
+| *Anonymise the history when deleting permanently* | On (default): a contact deleted permanently also loses its name and values in its history and the audit log; see [Data protection](#data-protection). |
 | *Export interval (minutes)* | Interval of all background jobs (see [Background jobs](#background-jobs)). Default 15, minimum 1. |
 
 ### Phone numbers
@@ -1118,12 +1131,26 @@ Not logged: sign-ins, and the individual runs of exports and syncs (their result
 
 Each contact also has its own history tab, see the [user manual](user.html).
 
+## Data protection {#data-protection}
+
+Kartei holds personal data. Two functions help with the rights of the people in it (GDPR):
+
+**Access report (Art. 15).** On a contact, the document symbol (*Access report*, admins only) opens a report of everything Kartei holds about the contact, including fields only admins see, the full history, proposals and reviews, and **where the data goes**: phones (CardDAV, relay), Outlook / Exchange, Active Directory, the exports that contain the contact, API tokens and webhooks, each with the fields or columns concerned. *Print / PDF* prints it or saves it as PDF for the person. Creating a report is recorded in the contact's history.
+
+![Access report](../img/en/report.png)
+
+**Erasure (Art. 17).** Deleting a contact first moves it to the recycle bin. *Delete permanently* (or the automatic emptying under *General*) removes it for good. With *Anonymise the history when deleting permanently* (on by default), its entries in the history and the audit log then keep only who did what and when: the name and all values are removed (shown as *(anonymised)*). Turn it off only if you need the values for a documented reason.
+
+> Data that has already been passed on (export files, other systems via the API or webhooks) is not erased by Kartei: the next export run no longer contains the contact, phones and Outlook remove it at the next sync; other systems must delete it themselves (the webhook event `contact.deleted` tells them).
+{: .tip}
+
 ## Security
 
 - **`SECRET_KEY`:** the LDAP password, the AD writing password, the Outlook client secret and the SMTP password are stored encrypted with a key derived from `SECRET_KEY`. If the key changes, these values are lost (they read as empty) and must be entered again, and all users are signed out. Keep `SECRET_KEY` stable and in your backup.
 - **Shown once:** the CardDAV password and API tokens are stored only as hashes. They are shown once when created; afterwards they can only be replaced.
 - **Rate limits:** after 10 failed sign-ins for one username, after 20 failed CardDAV logins and after 20 failed API requests, the client address is blocked for 15 minutes. Behind the reverse proxy, the address is the last entry of `X-Forwarded-For`; make sure the proxy appends it and that port 8000 is not reachable directly (or set `PROXY_HEADERS=0` without a proxy).
 - **HTTPS only:** cookies are marked *Secure*. Keep `SECURE_COOKIES=1` in production.
+- **Two-factor sign-in:** switch it on for every admin account, especially the local one from `.env` (*My account*). It doesn't affect CardDAV, the REST API or webhooks.
 - **Least privilege:** the LDAP service account only needs read access. Give the AD writing account rights on the target OU only, limit the Outlook app to the group's mailboxes, and limit `Mail.Send` to the sending mailbox.
 - **Field visibility:** CardDAV, Outlook sync and the API only see fields visible to *Everyone*. Exports and the AD sync contain whatever you configure; protect the export share accordingly.
 - **Emergency access:** `/django-admin/` is a hidden fallback for superusers. Use it only in emergencies; changes made there bypass Kartei's checks and are not written to the audit log.

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ClipboardCheck, Copy, Download, ExternalLink, Info, Mail, Pencil, Phone, Star, Trash2, UserPlus, ArrowLeft } from '@lucide/svelte'
+  import { ClipboardCheck, Copy, Download, FileText, ExternalLink, Info, Mail, Pencil, Phone, Star, Trash2, UserPlus, ArrowLeft } from '@lucide/svelte'
   import ReviewPanel from './ReviewPanel.svelte'
   import BatchPanel from './BatchPanel.svelte'
   import { untrack } from 'svelte'
@@ -163,6 +163,7 @@
         {/if}
         {#if store.isAdmin}
           <button class="btn icon" onclick={requestReview} title={t('review.request')}><ClipboardCheck size={15} /></button>
+          <a class="btn icon" href="/report/{rec.uid}" title={t('report.button')} aria-label={t('report.button')}><FileText size={15} /></a>
         {/if}
         <a class="btn icon" href="/{rec.kind}/{rec.uid}.vcf" download title={t('view.vcard')}><Download size={15} /></a>
         {#if store.canEdit}

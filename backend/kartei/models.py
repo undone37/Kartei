@@ -51,6 +51,13 @@ class Profile(models.Model):
     # SCIM (scim.py): the identity provider's id and its "active"; is_active also needs a role group
     external_id = models.CharField(max_length=255, blank=True)
     scim_active = models.BooleanField(default=True)
+    # two-factor sign-in (totp.py): secret stored encrypted; empty = off
+    totp_secret_enc = models.TextField(blank=True)
+    totp_secret = _secret("totp_secret_enc")
+    totp_last_counter = models.BigIntegerField(null=True, blank=True)  # last accepted step, against replay
+    totp_recovery = models.JSONField(default=list, blank=True)  # SHA-256 of unused recovery codes
+    totp_failures = models.PositiveSmallIntegerField(default=0)  # wrong codes in a row, shared by all workers
+    totp_failed_at = models.DateTimeField(null=True, blank=True)
 
     @property
     def rank(self):
@@ -64,8 +71,11 @@ def ad_default_columns():
 class Settings(models.Model):
     """Singleton (pk=1) holding everything an admin configures in the UI."""
     default_language = models.CharField(max_length=2, choices=LANGUAGES, default="de")
+    # two-factor sign-in is required for: nobody (voluntary), admins, or everyone
+    totp_required = models.CharField(max_length=6, choices=[(v, v) for v in ("none", "admins", "all")], default="none")
     base_url = models.URLField(blank=True)
     trash_days = models.PositiveIntegerField(default=0)  # 0 = recycle bin is never purged
+    purge_anonymize = models.BooleanField(default=True)  # purging also removes values and name from the history (GDPR)
     export_interval_minutes = models.PositiveIntegerField(default=15)
 
     ldap_uri = models.CharField(max_length=255, blank=True)  # empty = LDAP disabled

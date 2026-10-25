@@ -61,6 +61,18 @@ Ganz unten zeigt das Benutzermenü die Kartei-Version (hilfreich bei Fehlermeldu
 
 Der Screenshot zeigt das Menü eines Bearbeiters. Mit der Rolle *Nur Lesen* fehlen **Papierkorb**, **Datenqualität** und **Dubletten**; die Administration sieht zusätzlich **Einstellungen**.
 
+### Zwei-Faktor-Anmeldung
+
+Unter **Mein Konto** kannst du dein Konto mit einem zweiten Faktor schützen: Nach dem Passwort fragt Kartei dann zusätzlich einen 6-stelligen Code aus einer Authenticator-App auf deinem Handy ab (z. B. Microsoft Authenticator, Google Authenticator, 1Password).
+
+1. *Mein Konto* → *Zwei-Faktor-Anmeldung* → **Einrichten**.
+2. Scanne den QR-Code mit der App (oder gib den Schlüssel darunter von Hand ein) und tipp den Code ein, den die App zeigt. **Einschalten**.
+3. Kartei zeigt einmalig **8 Wiederherstellungscodes**. Bewahr sie sicher auf, z. B. im Passwortmanager: Jeder funktioniert einmal statt des App-Codes, falls du dein Handy nicht zur Hand hast.
+
+![Zwei-Faktor-Anmeldung einrichten](../img/de/account-totp.png)
+
+Bei der Anmeldung fragt Kartei nach dem Passwort den Code ab. Mit dem aktuellen Code (oder einem Wiederherstellungscode) holst du dir auf derselben Seite **Neue Wiederherstellungscodes** oder **schaltest** die Zwei-Faktor-Anmeldung **aus**. Handy und Codes verloren? Die Administration kann sie zurücksetzen.
+
 ### Der Bildschirmaufbau
 
 - **Oben:** Suchfeld, der Knopf **Jetzt synchronisieren**, für Bearbeiter der Knopf **Neu**, und das Benutzermenü.

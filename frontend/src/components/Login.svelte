@@ -7,21 +7,30 @@
 
   let username = $state('')
   let password = $state('')
-  // a failed "Sign in with Microsoft" comes back as /?login_error=<code>
-  const ssoError = new URLSearchParams(location.search).get('login_error')
+  // a failed single sign-on comes back as /?login_error=<code>; an account with two-factor sign-in as /?login_step=totp
+  const query = new URLSearchParams(location.search)
+  const ssoError = query.get('login_error')
+  const ssoCode = query.get('login_step') === 'totp'
   let error = $state(ssoError ? terr(ssoError) : '')
-  if (ssoError) history.replaceState(null, '', '/')
+  if (ssoError || ssoCode) history.replaceState(null, '', '/')
   let busy = $state(false)
+  /** second step: the password (or the identity provider) was right, the account has two-factor sign-in */
+  let needCode = $state(ssoCode)
+  let code = $state('')
 
   async function submit(e: SubmitEvent) {
     e.preventDefault()
     busy = true
     error = ''
     try {
-      await store.login(username.trim(), password)
+      await store.login(username.trim(), password, needCode ? code.trim() : undefined)
     } catch (err) {
-      error = err instanceof ApiError ? terr(err.code) : t('err.generic')
-      password = ''
+      if (err instanceof ApiError && err.code === 'totp_required') needCode = true
+      else {
+        error = err instanceof ApiError ? terr(err.code) : t('err.generic')
+        if (needCode) code = ''
+        else password = ''
+      }
     } finally {
       busy = false
     }
@@ -32,14 +41,24 @@
   <form class="card" onsubmit={submit}>
     <div class="brand"><img class="mark" src={logo} alt="" />Kartei</div>
     <h1>{t('login.title')}</h1>
-    <label class="label" for="u">{t('login.username')}</label>
-    <!-- svelte-ignore a11y_autofocus -->
-    <input id="u" class="input" bind:value={username} autocomplete="username" autofocus required />
-    <label class="label" for="p">{t('login.password')}</label>
-    <input id="p" class="input" type="password" bind:value={password} autocomplete="current-password" required />
-    {#if error}<div class="error-text" role="alert">{error}</div>{/if}
-    <button class="btn primary" disabled={busy || !username || !password}>{t('login.submit')}</button>
-    {#if store.sso}
+    {#if needCode}
+      <p class="muted">{t('totp.login_hint')}</p>
+      <label class="label" for="c">{t('totp.code')}</label>
+      <!-- svelte-ignore a11y_autofocus -->
+      <input id="c" class="input" bind:value={code} inputmode="numeric" autocomplete="one-time-code" autofocus required />
+      {#if error}<div class="error-text" role="alert">{error}</div>{/if}
+      <button class="btn primary" disabled={busy || !code.trim()}>{t('login.submit')}</button>
+      <button type="button" class="btn ghost" onclick={() => { needCode = false; code = ''; password = ''; error = '' }}>{t('common.cancel')}</button>
+    {:else}
+      <label class="label" for="u">{t('login.username')}</label>
+      <!-- svelte-ignore a11y_autofocus -->
+      <input id="u" class="input" bind:value={username} autocomplete="username" autofocus required />
+      <label class="label" for="p">{t('login.password')}</label>
+      <input id="p" class="input" type="password" bind:value={password} autocomplete="current-password" required />
+      {#if error}<div class="error-text" role="alert">{error}</div>{/if}
+      <button class="btn primary" disabled={busy || !username || !password}>{t('login.submit')}</button>
+    {/if}
+    {#if store.sso && !needCode}
       <div class="or"><span>{t('sso.or')}</span></div>
       <a class="btn sso" href="/api/oidc/start"><KeyRound size={16} />{store.ssoLabel || t('sso.button')}</a>
     {/if}

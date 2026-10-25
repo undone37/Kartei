@@ -25,7 +25,7 @@ interface Snapshot {
 }
 
 class Store {
-  status = $state<'loading' | 'login' | 'ready'>('loading')
+  status = $state<'loading' | 'login' | 'totp' | 'ready'>('loading')
   user = $state.raw<User | null>(null)
   /** running version and source code (user menu), from the session */
   about = $state.raw<{ version: string; source: string } | null>(null)
@@ -121,6 +121,7 @@ class Store {
     this.user = session.user!
     this.about = { version: session.version ?? '', source: session.source ?? '' }
     this.applyLang()
+    if (this.user.totp_due) return void (this.status = 'totp')
     await this.sync()
     this.status = 'ready'
     setInterval(() => this.sync(), POLL_MS)
@@ -163,10 +164,12 @@ class Store {
     this.status = 'login'
   }
 
-  async login(username: string, password: string) {
-    const { user } = await post<{ user: User }>('/api/login', { username, password })
+  /** code: the two-factor code, asked for after the server answered "totp_required" */
+  async login(username: string, password: string, code?: string) {
+    const { user } = await post<{ user: User }>('/api/login', { username, password, ...(code ? { code } : {}) })
     this.user = user
     this.applyLang()
+    if (user.totp_due) return void (this.status = 'totp')
     await this.sync()
     this.status = 'ready'
   }

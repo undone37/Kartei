@@ -160,3 +160,31 @@ class OidcTests(ApiTestBase):
         self.assertTrue(r["oidc_client_secret_set"])
         self.assertNotIn("new", json.dumps(r))
         self.assertEqual(self.client.get("/api/session").json()["sso_label"], "Sign in with Example ID")
+
+    def test_two_factor_still_asked_after_single_sign_on(self):
+        from . import totp
+        p = Profile.objects.get(user__username="read")
+        p.totp_secret = secret = totp.new_secret()
+        p.save()
+        self.assertEqual(self.sso(sub="sub-2", preferred_username="read@example.com"), "/?login_step=totp")
+        self.assertIsNone(self.who())
+        self.assertEqual(self.j("post", "/api/login", {"code": "000000"}, status=401)["error"], "invalid_code")
+        self.j("post", "/api/login", {"username": "", "code": totp.code_at(secret, int(time.time() // totp.STEP))})
+        self.assertEqual(self.who(), "read")
+        self.client.logout()
+        self.assertEqual(self.j("post", "/api/login", {"code": "123456"}, status=401)["error"], "invalid_credentials")
+
+    def test_scim_user_sets_up_two_factor_after_a_fresh_sign_on(self):
+        from . import totp
+        u = User.objects.get(username="maintainer@example.com")
+        u.set_unusable_password()
+        u.save()
+        self.client.force_login(u)  # a session without a recent single sign-on
+        s = self.j("post", "/api/me/totp", {"action": "setup"})
+        code = totp.code_at(s["secret"], int(time.time() // totp.STEP))
+        self.assertEqual(self.j("post", "/api/me/totp", {"action": "confirm", "code": code}, status=403)["error"], "sso_reauth")
+        self.client.logout()
+        self.assertEqual(self.sso(), "/")
+        s = self.j("post", "/api/me/totp", {"action": "setup"})
+        code = totp.code_at(s["secret"], int(time.time() // totp.STEP))
+        self.assertTrue(self.j("post", "/api/me/totp", {"action": "confirm", "code": code})["user"]["totp"])

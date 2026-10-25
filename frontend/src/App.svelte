@@ -4,10 +4,12 @@
   import AdvancedFilter from './components/AdvancedFilter.svelte'
   import Combobox from './components/Combobox.svelte'
   import Login from './components/Login.svelte'
+  import TotpRequired from './components/TotpRequired.svelte'
   import RecordForm from './components/RecordForm.svelte'
   import ProposalPage from './components/ProposalPage.svelte'
   import PhoneList from './components/PhoneList.svelte'
   import VcardImport from './components/VcardImport.svelte'
+  import ReportPage from './components/ReportPage.svelte'
   import RecordList from './components/RecordList.svelte'
   import RecordView from './components/RecordView.svelte'
   import Toasts from './components/Toasts.svelte'
@@ -51,6 +53,7 @@
     if (a === 'proposal' && b) return { name: 'proposal' as const, id: Number(b) }
     if (a === 'phonelist') return { name: 'phonelist' as const }
     if (a === 'import' && b === 'vcard') return { name: 'vcard' as const }
+    if (a === 'report' && b) return { name: 'report' as const, uid: b }
     if (a === 'trash') return { name: 'trash' as const }
     if (a === 'settings') return { name: 'settings' as const, tab: b ?? 'fields' }
     if (a === 'account') return { name: 'account' as const }
@@ -226,6 +229,8 @@
   <div class="boot"><div class="spinner"></div></div>
 {:else if store.status === 'login'}
   <Login />
+{:else if store.status === 'totp'}
+  <TotpRequired />
 {:else}
   <div class="app">
     <header class="top">
@@ -368,6 +373,8 @@
           </div>
         {:else if view.name === 'vcard'}
           <VcardImport />
+        {:else if view.name === 'report'}
+          {#key view.uid}<ReportPage uid={view.uid} />{/key}
         {:else if view.name === 'phonelist'}
           <PhoneList items={results.map((x) => x.rec)} />
         {:else if view.name === 'proposal'}

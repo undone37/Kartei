@@ -353,8 +353,9 @@ Eine dritte Art, *SCIM-Benutzer*, legt ein Identity-Provider an und verwaltet si
 - **Anlegen:** *Lokaler Benutzer* → *Benutzername*, *Passwort* (mindestens 10 Zeichen), optional Vor- und Nachname, *E-Mail* und *Rolle* eingeben → *Anlegen*. Für Prüf-E-Mails braucht der Benutzer eine E-Mail-Adresse.
 - **Rolle ändern:** in der Spalte *Rolle* auswählen, das wirkt sofort.
 - **Passwort zurücksetzen:** Schlüsselsymbol (*Passwort setzen*) → neues Passwort eingeben → *Speichern*.
-- **Deaktivieren:** Haken bei *Aktiv* entfernen. Der Benutzer kann sich nicht mehr anmelden, bleibt aber in der Liste und in den Benutzerfeldern der Kontakte (als inaktiv markiert). Das ist meist besser als Löschen.
-- **Löschen:** Papierkorbsymbol, dann im Dialog bestätigen. Das Konto kann sich nicht mehr anmelden, und seine eigenen gespeicherten Filter (auch geteilte) werden gelöscht; Kontakte behalten den Benutzernamen in Verantwortlich-Feldern. AD-Benutzer kommen beim nächsten Benutzerimport wieder, solange sie in einer Rollengruppe sind. Dich selbst kannst du nicht löschen.
+- **Deaktivieren:** Haken bei *Aktiv* entfernen. Der Benutzer kann sich nicht mehr anmelden, bleibt aber in der Liste und in den Benutzerfeldern der Kontakte (als inaktiv markiert), bis du sie [übergibst](#leavers). Das ist meist besser als Löschen.
+- **Zwei-Faktor-Anmeldung:** schalten die Benutzer selbst unter *Mein Konto* ein; die Liste kennzeichnet sie mit **2FA**. Hat jemand Handy und Wiederherstellungscodes verloren, schaltet das Schildsymbol (*Zwei-Faktor-Anmeldung zurücksetzen*) sie nach einer Rückfrage ab, sodass wieder das Passwort reicht (prüf die Anfrage vorher). Gilt für lokale und LDAP-Benutzer.
+- **Löschen:** Papierkorbsymbol, dann im Dialog bestätigen. Das Konto kann sich nicht mehr anmelden, und seine eigenen gespeicherten Filter (auch geteilte) werden gelöscht; erst möglich, wenn kein Kontakt den Benutzer mehr nennt (vorher [übergeben](#leavers)). AD-Benutzer kommen beim nächsten Benutzerimport wieder, solange sie in einer Rollengruppe sind. Dich selbst kannst du nicht löschen.
 
 > Hinweis: Der letzte aktive Admin lässt sich weder herabstufen noch deaktivieren oder löschen (*Der letzte Admin kann nicht entfernt werden*). Der erste Admin aus der `.env` ist ein Superuser (Tooltip *Hauptadministrator (Superuser) – immer Admin*); seine Rolle lässt sich in der Liste nicht ändern.
 {: .tip}
@@ -367,6 +368,17 @@ Bei LDAP-Benutzern (*Herkunft* `LDAP`) sind *Rolle*, *Aktiv* und das Passwort ge
 - AD-Konto deaktivieren oder aktivieren.
 
 Die Änderung greift bei der nächsten Anmeldung oder beim nächsten Benutzerimport (täglich oder per *Speichern & Benutzer jetzt importieren*). Wer in keiner Rollengruppe mehr ist, wird **deaktiviert, nicht gelöscht** – so bleibt der Name an den Kontakten sichtbar, für die er zuständig war. Kommt er wieder in eine Gruppe, wird er reaktiviert.
+
+### Wenn jemand das Unternehmen verlässt {#leavers}
+
+Deaktivieren (lokale Benutzer) oder aus den Rollengruppen entfernen (LDAP-Benutzer; der nächste Benutzerimport deaktiviert sie). Anmelden geht dann nicht mehr; eine offene Sitzung endet mit der nächsten Anfrage.
+
+- **Der Verlauf bleibt vollständig.** Jeder Eintrag im Protokoll und im Verlauf behält den Namen dessen, der die Änderung gemacht hat – auch nach dem Löschen des Kontos.
+- **Kontakte übergeben.** Die Benutzerliste markiert Ausgeschiedene, die noch in Kontakten eingetragen sind (*N Kontakte zu übergeben*). *Übergeben …* (Pfeil-Symbol) zeigt, wie viele Kontakte und offene Überprüfungen betroffen sind; Nachfolge auswählen und bestätigen. Die Nachfolge übernimmt in allen Benutzerfeldern (Verantwortliche, interne Kontakte); offene Überprüfungen gehen an die neue Verantwortliche. Jede Änderung steht im Verlauf des Kontakts, als Übergabe gekennzeichnet. Das geht auch bei aktiven Benutzern, z. B. nach einem Stellenwechsel.
+- **Offene Überprüfungen** Ausgeschiedener bleiben bis zur Übergabe offen; Kartei schickt ihnen keine Mails mehr.
+- **Vorschläge** von ihnen bleiben offen; Bearbeiter entscheiden wie gewohnt.
+- **API-Tokens und Webhooks** gehören Kartei, nicht dem Admin, der sie angelegt hat, und funktionieren weiter.
+- **Löschen** lässt sich ein Konto erst, wenn kein Kontakt es mehr nennt (*vorher übergeben*).
 
 ## Anmeldung über LDAP / AD
 
@@ -988,6 +1000,7 @@ Jeder Empfänger bekommt den Text in seiner Sprache (oder in der Standardsprache
 | *Standardsprache* | Sprache für alle, die unter *Mein Konto* keine eigene gewählt haben, und für E-Mails an feste Empfänger. Die Anmeldeseite folgt der Browsersprache. |
 | *Öffentliche Adresse* | z. B. `https://kartei.example.de`. Für Links in E-Mails, in vCards (`SOURCE`) und für die CardDAV-Adresse. |
 | *Papierkorb automatisch leeren nach (Tagen)* | Kontakte im Papierkorb werden nach so vielen Tagen endgültig gelöscht. *0* = nie (Standard). |
+| *Beim endgültigen Löschen den Verlauf anonymisieren* | An (Standard): Ein endgültig gelöschter Kontakt verliert auch im Verlauf und im Protokoll Name und Werte; siehe [Datenschutz](#datenschutz). |
 | *Export-Intervall (Minuten)* | Takt aller Hintergrundaufgaben (siehe [Hintergrundaufgaben](#hintergrundaufgaben)). Standard 15, mindestens 1. |
 
 ### Telefonnummern
@@ -1118,12 +1131,26 @@ Nicht protokolliert werden Anmeldungen und die einzelnen Läufe von Exporten und
 
 Jeder Kontakt hat außerdem einen eigenen Reiter *Verlauf*, siehe [Benutzerhandbuch](user.html).
 
+## Datenschutz {#datenschutz}
+
+Kartei enthält personenbezogene Daten. Zwei Funktionen helfen bei den Rechten der betroffenen Personen (DSGVO):
+
+**Datenauskunft (Art. 15).** Am Kontakt öffnet das Dokumentsymbol (*Datenauskunft*, nur Admins) eine Aufstellung über alles, was Kartei zum Kontakt speichert – auch Felder, die nur Admins sehen –, den vollständigen Verlauf, Vorschläge und Prüfungen sowie **wohin die Daten gehen**: Telefone (CardDAV, Relay), Outlook / Exchange, Active Directory, die Exporte, die den Kontakt enthalten, API-Token und Webhooks, jeweils mit den betroffenen Feldern bzw. Spalten. *Drucken / PDF* druckt sie oder speichert sie als PDF für die Person. Die Erstellung steht im Verlauf des Kontakts.
+
+![Datenauskunft](../img/de/report.png)
+
+**Löschung (Art. 17).** Löschen verschiebt einen Kontakt zunächst in den Papierkorb. *Endgültig löschen* (oder das automatische Leeren unter *Allgemein*) entfernt ihn dauerhaft. Mit *Beim endgültigen Löschen den Verlauf anonymisieren* (Standard: an) behalten seine Einträge in Verlauf und Protokoll danach nur, wer wann was getan hat; Name und alle Werte werden entfernt (angezeigt als *(anonymisiert)*). Schalte das nur ab, wenn du die Werte aus einem dokumentierten Grund brauchst.
+
+> Bereits weitergegebene Daten (Exportdateien, andere Systeme über API oder Webhooks) löscht Kartei nicht selbst: Der nächste Export enthält den Kontakt nicht mehr, Telefone und Outlook entfernen ihn beim nächsten Abgleich; andere Systeme müssen ihn selbst löschen (das Webhook-Ereignis `contact.deleted` sagt es ihnen).
+{: .tip}
+
 ## Sicherheit
 
 - **`SECRET_KEY`:** Das LDAP-Passwort, das Passwort des AD-Schreibkontos, der Outlook-Clientschlüssel und das SMTP-Passwort werden mit einem aus dem `SECRET_KEY` abgeleiteten Schlüssel verschlüsselt gespeichert. Ändert sich der Schlüssel, sind diese Werte verloren (sie gelten als leer) und müssen neu eingegeben werden; außerdem werden alle Benutzer abgemeldet. Halte den `SECRET_KEY` stabil und in der Sicherung.
 - **Nur einmal angezeigt:** Das CardDAV-Passwort und die API-Token werden nur als Hash gespeichert. Sie erscheinen einmal beim Erzeugen; danach lassen sie sich nur ersetzen.
 - **Sperren nach Fehlversuchen:** Nach 10 fehlgeschlagenen Anmeldungen für einen Benutzernamen, 20 fehlgeschlagenen CardDAV-Anmeldungen bzw. 20 fehlgeschlagenen API-Anfragen ist die Absenderadresse 15 Minuten gesperrt. Hinter dem Reverse Proxy ist das der letzte Eintrag von `X-Forwarded-For`; sorg dafür, dass der Proxy ihn anhängt und Port 8000 nicht direkt erreichbar ist (ohne Proxy: `PROXY_HEADERS=0`).
 - **Nur HTTPS:** Cookies sind als *Secure* markiert. Lass `SECURE_COOKIES=1` im Betrieb.
+- **Zwei-Faktor-Anmeldung:** Schalte sie für jedes Admin-Konto ein, vor allem für das lokale aus der `.env` (*Mein Konto*). CardDAV, REST-API und Webhooks betrifft sie nicht.
 - **Minimale Rechte:** Das LDAP-Dienstkonto braucht nur Leserechte. Gib dem AD-Schreibkonto nur Rechte auf der Ziel-OU, beschränke die Outlook-App auf die Postfächer der Gruppe und `Mail.Send` auf das sendende Postfach.
 - **Sichtbarkeit der Felder:** CardDAV, Outlook-Sync und API sehen nur Felder, die für *Alle* sichtbar sind. Exporte und der AD-Sync enthalten, was du einrichtest – schütze die Exportfreigabe entsprechend.
 - **Notfallzugang:** `/django-admin/` ist eine versteckte Rückfallebene für Superuser. Nutze sie nur im Notfall; Änderungen dort umgehen die Prüfungen von Kartei und landen nicht im Protokoll.
