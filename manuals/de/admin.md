@@ -479,8 +479,8 @@ Jede Änderung an Abschnitten steht im Protokoll.
 | *Einfachauswahl*, *Mehrfachauswahl* | Feste Werte, im Formular als durchsuchbare Liste. |
 | *Telefon*, *E-Mail*, *Webadresse* | Geprüft und anklickbar; Telefonnummern werden vereinheitlicht (siehe [Allgemein](#allgemeine-einstellungen)). |
 | *Datum*, *Ja/Nein* | Echte Datums- und Ja/Nein-Werte (auch in Excel richtig typisiert). |
-| *Benutzer* | Ein Kartei-Benutzer, z. B. der interne Zuständige. Das **erste** Feld vom Typ *Benutzer* bestimmt, wer den Kontakt prüft. |
-| *Mehrere Benutzer* | Mehrere Kartei-Benutzer, z. B. interne Kontakte. |
+| *Benutzer* | Ein Kartei-Benutzer, z. B. der interne Zuständige. Das **erste** Feld vom Typ *Benutzer* bestimmt, wer den Kontakt prüft. Administratoren und inaktive Benutzer werden nicht angeboten; ein früher eingetragener Wert bleibt erhalten. |
+| *Mehrere Benutzer* | Mehrere Kartei-Benutzer, z. B. interne Kontakte. Auch hier werden Administratoren und inaktive Benutzer nicht angeboten. |
 | *Kontakt (Person der Firma)* | Verweist auf eine Person derselben Firma, z. B. den Geschäftsführer. |
 
 Exporte, vCards und der AD-Sync zeigen die Namen der Benutzer und verknüpften Personen, nicht ihre IDs.
@@ -582,7 +582,7 @@ Kartei bestimmt die Art jeder Zeile in dieser Reihenfolge:
 
 - **Abgleich:** Ist eine Spalte der *Alt-ID* zugeordnet, wird jede Zeile dem Kontakt derselben Art mit derselben Alt-ID zugeordnet, und ein erneuter Import **aktualisiert** diese Kontakte. Ohne Alt-ID legt jeder Import neue Kontakte an.
 - **Firmenzuordnung:** Personen werden der Firma zugeordnet, deren Name in der Spalte für *Firma (Verknüpfung über den Namen)* steht. Unbekannte Firmen werden angelegt. Firmen werden vor den Personen importiert.
-- **Benutzerfelder** (*Benutzer*, *Mehrere Benutzer*) werden über Benutzername, vollen Namen oder eindeutige Initialen den aktiven Kartei-Benutzern zugeordnet. Unbekannte Namen ergeben einen Hinweis und werden weggelassen.
+- **Benutzerfelder** (*Benutzer*, *Mehrere Benutzer*) werden über Benutzername, vollen Namen oder eindeutige Initialen den aktiven Kartei-Benutzern zugeordnet; Administratoren werden nicht zugeordnet. Unbekannte Namen und Administratoren ergeben einen Hinweis und werden weggelassen.
 - **Auswahlfelder:** Unbekannte Werte werden als neue Auswahlwerte ergänzt. Mehrere Werte in einer Zelle trennst du mit Komma oder Semikolon.
 - **Ungültige Werte** (z. B. eine fehlerhafte E-Mail-Adresse oder ein Wert, der nicht zum Format des Felds passt) werden mit Hinweis übersprungen; der Rest der Zeile wird importiert. Leere Zellen überschreiben keine Feldwerte (eine leere Spalte für Vorname, Nachname oder Firmenname leert diesen Namen aber).
 - Zeilen ohne Namen werden übersprungen, ebenso Zeilen, deren Alt-ID zu einem inzwischen zusammengeführten Kontakt gehört.

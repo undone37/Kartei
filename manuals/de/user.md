@@ -342,7 +342,7 @@ Hat jemand anderes denselben Kontakt gespeichert, während du ihn bearbeitet has
 ### Auswahlfelder, Benutzer und verknüpfte Personen
 
 - **Auswahlfelder** (z. B. *Anrede*, *Schlagworte*): Tipp, um die Optionen zu durchsuchen. Manche Felder erlauben neue Werte: neuen Wert eintippen und **„…“ hinzufügen** wählen. Er steht dann allen als Option zur Verfügung.
-- **Benutzerfelder** (z. B. *Ansprechpartner intern*, *Kontakte intern*): Kolleginnen und Kollegen nach Name oder Benutzername auswählen. Der *Ansprechpartner intern* ist für den Kontakt verantwortlich und bekommt seine Prüfungen; darauf beruht die Liste **Verantwortlich**. Unter *Kontakte intern* können mehrere Personen stehen; darauf beruht die Liste **Intern**.
+- **Benutzerfelder** (z. B. *Ansprechpartner intern*, *Kontakte intern*): Kolleginnen und Kollegen nach Name oder Benutzername auswählen (Administratoren werden nicht angeboten). Der *Ansprechpartner intern* ist für den Kontakt verantwortlich und bekommt seine Prüfungen; darauf beruht die Liste **Verantwortlich**. Unter *Kontakte intern* können mehrere Personen stehen; darauf beruht die Liste **Intern**.
 - **Verknüpfte Personen** (z. B. *Geschäftsführer* einer Firma): eine Person der Firma auswählen. Erlaubt das Feld freien Text, kannst du auch einen Namen tippen und **„…“ als Text übernehmen** wählen.
 
 ### Firmenänderungen und Mitarbeiter

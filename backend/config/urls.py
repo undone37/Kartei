@@ -20,6 +20,7 @@ urlpatterns = [
     path("api/records/<uuid:uid>/propagate", M(POST=api.propagate)),
     path("api/records/<uuid:uid>/review/confirm", M(POST=api.review_confirm)),
     path("api/records/<uuid:uid>/review/request", M(POST=api.review_request)),
+    path("api/proposals", M(POST=api.propose_new)),
     path("api/proposals/<int:pk>", M(PATCH=api.own_proposal, DELETE=api.own_proposal)),
     path("api/proposals/<int:pk>/accept", M(POST=lambda r, pk: api.decide_proposal(r, pk, "accept"))),
     path("api/proposals/<int:pk>/reject", M(POST=lambda r, pk: api.decide_proposal(r, pk, "reject"))),

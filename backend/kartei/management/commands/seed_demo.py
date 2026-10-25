@@ -133,6 +133,14 @@ class Command(BaseCommand):
         Proposal.objects.create(record=companies[2][0], kind="delete", reason="company_gone",
                                 comment="Firma laut Handelsregister aufgelöst", proposer=users["kkramer"],
                                 proposer_name="kkramer")
+        c0 = companies[0][0]  # a new colleague at a customer, proposed by the read-only user
+        Proposal.objects.create(kind="create", record_kind="person", proposer=users["kkramer"], proposer_name="kkramer",
+                                comment="Neue Ansprechpartnerin laut Telefonat",
+                                changes={"core": {"first_name": "Nina", "last_name": "Neumann", "company": str(c0.uid)},
+                                         "data": data(salutation="Frau", job_title="Einkauf", department="Einkauf",
+                                                      email=f"nina.neumann@{companies[0][1]}",
+                                                      phone_work=f"{c0.data['company_phone']}-77",
+                                                      internal_contact="kkramer")})
 
         # dashboard: recently viewed, favorites, saved filters
         for username in ("mmuster", "kkramer"):

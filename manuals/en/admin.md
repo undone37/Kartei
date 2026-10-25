@@ -479,8 +479,8 @@ Every change to a section is recorded in the audit log.
 | *Single select*, *Multi select* | Fixed options, searchable list in the form. |
 | *Phone*, *Email*, *URL* | Validated, clickable; phone numbers are normalized (see [General](#general-settings)). |
 | *Date*, *Yes/No* | Real date and checkbox values (also typed correctly in Excel). |
-| *User* | One Kartei user, e.g. the internal person responsible. The **first** *User* field of a contact determines who reviews it. |
-| *Multiple users* | Several Kartei users, e.g. internal contacts. |
+| *User* | One Kartei user, e.g. the internal person responsible. The **first** *User* field of a contact determines who reviews it. Administrators and inactive users are not offered; a value set earlier stays. |
+| *Multiple users* | Several Kartei users, e.g. internal contacts. Here too, administrators and inactive users are not offered. |
 | *Contact (person of the company)* | Links a person of the same company, e.g. the managing director. |
 
 Exports, vCards and the AD sync show the names of users and linked persons, not their IDs.
@@ -582,7 +582,7 @@ Kartei decides the kind of each row in this order:
 
 - **Matching:** if a column is mapped to *Legacy ID*, each row is matched with the contact of the same kind and legacy ID, and importing the file again **updates** those contacts. Without a legacy ID, every import creates new contacts.
 - **Company link:** persons are linked to the company with the name in the column mapped to *Company (linked by name)*. Unknown companies are created. Companies are imported before persons.
-- **User fields** (*User*, *Multiple users*) are matched against active Kartei users by username, full name or unique initials. Unknown names produce a warning and are left out.
+- **User fields** (*User*, *Multiple users*) are matched against active Kartei users by username, full name or unique initials; administrators are not assigned. Unknown names and administrators produce a warning and are left out.
 - **Select fields:** unknown values are added as new options. Several values in one cell are separated by comma or semicolon.
 - **Invalid values** (e.g. a wrong email address, a value that does not match the field's format) are skipped with a warning; the rest of the row is imported. Empty cells do not overwrite field values (but an empty first name, last name or company name column does clear that name).
 - Rows without a name are skipped. Rows whose legacy ID belongs to a contact that was merged into another one are skipped too.

@@ -19,7 +19,7 @@ from django.utils.text import slugify
 
 from . import audit
 from .msg import msg
-from .models import USER_TYPES, FieldDef, Record
+from .models import USER_TYPES, FieldDef, Record, assignable
 from .validation import clean_value
 
 FORMAT = "kartei-import-mapping"
@@ -142,9 +142,9 @@ def _split_multi(v):
 
 
 def user_lookup():
-    """{lowercased username / full name / unique initials: username} over active users."""
+    """{lowercased username / full name / unique initials: username} over the assignable users (active, no admins)."""
     out, initials = {}, {}
-    for u in User.objects.filter(is_active=True):
+    for u in filter(assignable, User.objects.filter(is_active=True).select_related("profile")):
         out[u.username.lower()] = u.username
         if full := f"{u.first_name} {u.last_name}".strip():
             out[full.lower()] = u.username

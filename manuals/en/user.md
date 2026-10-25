@@ -342,7 +342,7 @@ If someone else saved the same contact while you were editing, Kartei shows *…
 ### Choice fields, users and linked persons
 
 - **Choice fields** (e.g. *Salutation*, *Keywords*): type to search the options. Some fields allow new values; type the new value and choose **Add "…"**. It then becomes an option for everyone.
-- **User fields** (e.g. *Internal contact*, *Internal contacts*): pick colleagues by name or username. The *Internal contact* is the person responsible for the contact and gets its reviews; the list **Responsible** is based on it. *Internal contacts* can hold several colleagues; the list **Internal** is based on it.
+- **User fields** (e.g. *Internal contact*, *Internal contacts*): pick colleagues by name or username (administrators are not offered). The *Internal contact* is the person responsible for the contact and gets its reviews; the list **Responsible** is based on it. *Internal contacts* can hold several colleagues; the list **Internal** is based on it.
 - **Linked persons** (e.g. *Managing director* of a company): choose one of the company's persons. If the field allows free text, you can also type a name and choose **Use "…" as text**.
 
 ### Company changes and their employees

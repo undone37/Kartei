@@ -101,6 +101,17 @@ class ProposalNotifyTests(NotifyBase):
         self.assertIn("Change, by read", en.body)
         self.assertIn("(bearbeitet)", next(m for m in mail.outbox[2:] if m.to == ["m@example.com"]).body)
 
+    def test_new_contact_proposal_mail(self):
+        Settings.objects.update(proposal_notify=True)
+        self.as_("read")
+        p = self.j("post", "/api/proposals", {"kind": "company", "name": "Neu AG", "data": {"internal_contact": "read"}},
+                   status=201)["proposal"]
+        with locmem():
+            self.assertEqual(reviews.notify_proposals(Settings.get()), 2)
+        de = next(m for m in mail.outbox if m.to == ["m@example.com"])
+        self.assertIn("Neu AG: neue Firma, von read", de.body)
+        self.assertIn(f"https://kartei.example/proposal/{p['id']}", de.body)
+
     def test_fixed_recipients_and_delete_reason(self):
         Settings.objects.update(proposal_notify=True, proposal_notify_to="team@example.com, chef@example.com")
         self.as_("read")

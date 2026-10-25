@@ -255,9 +255,11 @@ def remind(s):
 
 # words used inside the list of proposals (the surrounding text is the "proposals" template)
 PROPOSAL_WORDS = {
-    "de": {"change": "Änderung", "delete": "Löschung", "edited": " (bearbeitet)", "by": "von",
+    "de": {"change": "Änderung", "delete": "Löschung", "new_person": "neue Person", "new_company": "neue Firma",
+           "edited": " (bearbeitet)", "by": "von",
            "left": "hat das Unternehmen verlassen", "company_gone": "Firma existiert nicht mehr", "other": "anderer Grund"},
-    "en": {"change": "Change", "delete": "Deletion", "edited": " (edited)", "by": "by",
+    "en": {"change": "Change", "delete": "Deletion", "new_person": "new person", "new_company": "new company",
+           "edited": " (edited)", "by": "by",
            "left": "left the company", "company_gone": "company no longer exists", "other": "other reason"},
 }
 
@@ -276,7 +278,7 @@ def notify_proposals(s):
     if not mail_ready(s) or not s.proposal_notify:
         return 0
     now = timezone.now()  # taken before reading, so an edit during sending is mailed again next tick
-    props = list(Proposal.objects.filter(status="pending", record__deleted_at__isnull=True)
+    props = list(Proposal.objects.filter(Q(record__isnull=True) | Q(record__deleted_at__isnull=True), status="pending")
                  .filter(Q(notified_at__isnull=True) | Q(notified_at__lt=F("updated_at")))
                  .select_related("record").order_by("created_at"))
     if not props:
@@ -291,9 +293,11 @@ def notify_proposals(s):
             w = PROPOSAL_WORDS.get(lang, PROPOSAL_WORDS["de"])
             items = []
             for p in mine:
-                what = w.get(p.kind, p.kind) + (f" ({w.get(p.reason, p.reason)})" if p.reason else "")
-                line = (f"- {p.record.display_name}: {what}{w['edited'] if p.notified_at else ''}, {w['by']} "
-                        f"{p.proposer_name}\n  {base}/{p.record.kind}/{p.record.uid}")
+                what = w.get(p.kind if p.record_id else f"new_{p.record_kind}", p.kind)
+                what += f" ({w.get(p.reason, p.reason)})" if p.reason else ""
+                link = f"{base}/{p.record.kind}/{p.record.uid}" if p.record_id else f"{base}/proposal/{p.id}"
+                line = (f"- {p.label}: {what}{w['edited'] if p.notified_at else ''}, {w['by']} "
+                        f"{p.proposer_name}\n  {link}")
                 items.append(line + (f'\n  "{p.comment[:500]}"' if p.comment else ""))
             greeting = name or ("zusammen" if lang == "de" else "all")
             subject, body = render_mail(s, "proposals", lang, n=len(mine), name=greeting, items="\n".join(items),

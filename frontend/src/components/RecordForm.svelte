@@ -17,9 +17,10 @@
   import { RANK, type Field, type Kind, type Proposal, type Rec } from '../lib/types'
 
   interface Props {
-    rec: Rec | null; kind: Kind; presetCompany?: string | null; onclose: (saved?: Rec) => void
-    /** propose: the change goes to a maintainer (with `proposal`: edit that pending proposal);
-        adjust: a maintainer edits `proposal` and applies it */
+    /** proposal: id of a proposal just sent for a new contact */
+    rec: Rec | null; kind: Kind; presetCompany?: string | null; onclose: (saved?: Rec, proposal?: number) => void
+    /** propose: the change (or, without `rec`, the new contact) goes to a maintainer (with `proposal`: edit that
+        pending proposal); adjust: a maintainer edits `proposal` and applies it */
     mode?: 'edit' | 'propose' | 'adjust'; proposal?: Proposal | null
   }
   let { rec, kind, presetCompany = null, onclose, mode = 'edit', proposal = null }: Props = $props()
@@ -143,7 +144,26 @@
         const core = kind === 'person'
           ? { first_name: draft.first_name, last_name: draft.last_name, company: draft.company }
           : { name: draft.name }
-        saved = await post<Rec>('/api/records', { kind, ...core, data: Object.fromEntries(Object.entries(data).filter(([, v]) => !isEmpty(v))) })
+        const body = { kind, ...core, data: Object.fromEntries(Object.entries(data).filter(([, v]) => !isEmpty(v))) }
+        if (mode === 'propose') {
+          const payload = { ...body, comment }
+          const r = proposal ? await patch<{ proposal: Proposal }>(`/api/proposals/${proposal.id}`, payload)
+                             : await post<{ proposal: Proposal }>('/api/proposals', payload)
+          toast(t('proposal.sent'))
+          await store.sync()
+          onclose(undefined, r.proposal.id)
+          return
+        }
+        if (mode === 'adjust') {
+          const { kind: _, ...override } = body
+          const r = await post<{ record: Rec }>(`/api/proposals/${proposal!.id}/accept`, { override, note: comment })
+          store.upsert(r.record)
+          toast(t('proposal.accepted'))
+          store.sync()
+          onclose(r.record)
+          return
+        }
+        saved = await post<Rec>('/api/records', body)
         if (pendingImage) saved = await api<Rec>('PUT', `/api/img/${saved.uid}`, pendingImage)
         toast(t('form.created', { name: store.name(saved) }))
       } else {
@@ -284,7 +304,7 @@
   {/if}
 
   {#if propose}
-    <div class="banner">{mode === 'adjust' ? t('proposal.adjust_hint', { user: proposal?.proposer ?? '' }) : t('proposal.form_hint')}</div>
+    <div class="banner">{mode === 'adjust' ? t('proposal.adjust_hint', { user: proposal?.proposer ?? '' }) : rec ? t('proposal.form_hint') : t('proposal.form_hint_new')}</div>
   {/if}
 
   <section class="core">
@@ -374,7 +394,7 @@
   <div class="footer">
     <span class="hint"><kbd>Ctrl</kbd> + <kbd>S</kbd> {t('form.save_hint')} · <kbd>Esc</kbd> {t('form.cancel_hint')}</span>
     <button type="button" class="btn" onclick={cancel}>{t('common.cancel')}</button>
-    <button type="submit" class="btn primary" disabled={saving}>{mode === 'adjust' ? t('proposal.accept') : propose ? t('proposal.send') : rec ? t('common.save') : t('common.create')}</button>
+    <button type="submit" class="btn primary" disabled={saving}>{mode === 'adjust' ? (rec ? t('proposal.accept') : t('proposal.accept_create')) : propose ? t('proposal.send') : rec ? t('common.save') : t('common.create')}</button>
   </div>
 </form>
 

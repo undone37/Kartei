@@ -179,11 +179,20 @@ def user_label(u):
     return f"{u.first_name} {u.last_name}".strip() or u.username
 
 
+def assignable(u):
+    """Users that can be picked in user fields (e.g. internal contacts): active, and not administrators."""
+    role = getattr(getattr(u, "profile", None), "role", None)
+    return u.is_active and not u.is_superuser and role != Role.ADMIN
+
+
 def user_options():
-    """All users as select options for user fields; inactive ones stay listed so old values still display."""
-    users = sorted(User.objects.only("username", "first_name", "last_name", "is_active"), key=lambda u: user_label(u).lower())
+    """All users as select options for user fields. Inactive users and admins stay listed so existing values still
+    display, but carry "pick": false: the forms don't offer them and validation refuses them as new values."""
+    users = sorted(User.objects.select_related("profile").only(
+        "username", "first_name", "last_name", "is_active", "is_superuser", "profile__role"), key=lambda u: user_label(u).lower())
     return [{"value": u.username, "de": user_label(u) + ("" if u.is_active else " (inaktiv)"),
-             "en": user_label(u) + ("" if u.is_active else " (inactive)")} for u in users]
+             "en": user_label(u) + ("" if u.is_active else " (inactive)")} | ({} if assignable(u) else {"pick": False})
+            for u in users]
 
 
 class FieldSection(models.Model):
@@ -333,9 +342,11 @@ class Review(models.Model):
 
 
 class Proposal(models.Model):
-    """A change or deletion suggested by a user who may not edit (e.g. the read-only responsible)."""
-    record = models.ForeignKey(Record, on_delete=models.CASCADE, related_name="proposals")
-    kind = models.CharField(max_length=6)  # change / delete
+    """A change, deletion or new contact suggested by a user who may not edit (e.g. the read-only responsible)."""
+    # create: no record until a maintainer accepts it, then the new record
+    record = models.ForeignKey(Record, null=True, blank=True, on_delete=models.CASCADE, related_name="proposals")
+    kind = models.CharField(max_length=6)  # change / delete / create
+    record_kind = models.CharField(max_length=7, blank=True)  # create: person / company
     changes = models.JSONField(default=dict, blank=True)  # {"core": {...}, "data": {...}} new values
     base = models.JSONField(default=dict, blank=True)  # same shape, values at proposal time
     comment = models.TextField(blank=True)
@@ -350,6 +361,16 @@ class Proposal(models.Model):
     decision_note = models.TextField(blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     notified_at = models.DateTimeField(null=True, blank=True)  # mailed to maintainers; again if updated_at is newer
+
+
+    @property
+    def label(self):
+        """Name of the contact concerned; for a new contact the proposed name."""
+        if self.record_id:
+            return self.record.display_name
+        core = self.changes.get("core", {})
+        return Record(kind=self.record_kind, first_name=core.get("first_name") or "", last_name=core.get("last_name") or "",
+                      name=core.get("name") or "").display_name
 
 
 class NotDuplicate(models.Model):

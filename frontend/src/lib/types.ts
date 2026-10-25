@@ -11,7 +11,8 @@ export type FieldType =
 export const isSingle = (f: Field) => f.type === 'select' || f.type === 'user'
 export const isMulti = (f: Field) => f.type === 'multiselect' || f.type === 'users'
 
-export interface Option { value: string; de: string; en: string }
+/** pick: false = user fields: an admin or inactive user, shown for existing values but not offered */
+export interface Option { value: string; de: string; en: string; pick?: false }
 
 export interface Field {
   id: number
@@ -69,8 +70,12 @@ export interface Review { id: number; record: string; created_at: string; reason
 /** a pending change/deletion proposal (maintainers see all, others their own) */
 export interface Proposal {
   id: number
-  record: string
-  kind: 'change' | 'delete'
+  /** null for a proposed new contact (kind 'create') until it is accepted */
+  record: string | null
+  record_kind: Kind
+  /** name of the contact, for a new contact the proposed name */
+  label: string
+  kind: 'change' | 'delete' | 'create'
   changes: { core?: Record<string, any>; data?: Record<string, any> }
   base: { core?: Record<string, any>; data?: Record<string, any> }
   comment: string

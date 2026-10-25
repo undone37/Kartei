@@ -25,8 +25,10 @@
   const live = $derived(touched || paused ? validate(field, value) : null)
   const shownError = $derived(error || live)
   const options = $derived.by(() => {
+    // user fields: admins and inactive users ("pick": false) are not offered, but a value already set stays shown
+    const set = Array.isArray(value) ? value : [value]
     if (field.type !== 'contact')
-      return field.options.map((o) => ({
+      return field.options.filter((o) => o.pick !== false || set.includes(o.value)).map((o) => ({
         value: o.value, label: o[i18n.lang] || o.de || o.value,
         hint: field.type === 'user' || field.type === 'users' ? o.value : undefined, // username: shown and searchable
       }))
