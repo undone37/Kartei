@@ -351,7 +351,7 @@ Local users remain available as a fallback when the directory is unavailable. A 
 - **Create:** *Local user* → enter *Username*, *Password* (at least 10 characters), optionally first and last name, *Email* and *Role* → *Create*. Users need an email address to receive review emails.
 - **Change role:** select it in the *Role* column; it takes effect at once.
 - **Reset password:** key icon (*Set password*) → enter the new password → *Save*.
-- **Deactivate:** clear *Active*. The user can no longer sign in, but stays in the list and in user fields of contacts (marked as inactive). Prefer this to deleting.
+- **Deactivate:** clear *Active*. The user can no longer sign in, but stays in the list and in user fields of contacts (marked as inactive) until you [hand them over](#leavers). Prefer this to deleting.
 - **Delete:** trash icon, then confirm in the dialog. The account can no longer sign in, and its own saved filters (shared ones too) are deleted; contacts keep the user name in responsible fields. AD users come back with the next user import while they are in a role group. You cannot delete yourself.
 
 > Note: The last active admin cannot be demoted, deactivated or deleted (*The last admin cannot be removed*). The initial admin from `.env` is a superuser (tooltip *Main administrator (superuser) – always admin*); its role cannot be changed in the list.
@@ -365,6 +365,17 @@ For LDAP users (*Source* `LDAP`), *Role*, *Active* and the password are greyed o
 - disable or enable the AD account.
 
 The change takes effect at the next sign-in or at the next user import (daily, or *Save & import users now*). Users who are no longer in any role group are **deactivated, not deleted**, so their name still appears in the contacts they are responsible for. If they are added to a group again, they are reactivated.
+
+### When someone leaves {#leavers}
+
+Deactivate them (local users) or remove them from the role groups (LDAP users; the next user import deactivates them). They can't sign in any more; an open session ends with their next request.
+
+- **History stays complete.** Every audit and history entry keeps the name of who made the change, even after the account is deleted.
+- **Hand over their contacts.** The user list marks people who left but are still named in contacts (*N contacts to hand over*). *Hand over …* (arrows icon) shows how many contacts and open reviews are affected; pick a successor and confirm. The successor takes their place in every user field (person responsible, internal contacts); open reviews follow the new responsible. Each change is in the contact's history, marked as a handover. This also works for active users, e.g. after a change of jobs.
+- **Open reviews** of someone who left stay open until the handover; Kartei no longer mails them.
+- **Proposals** they made stay open; maintainers decide as usual.
+- **API tokens and webhooks** belong to Kartei, not to the admin who created them, and keep working.
+- **Deleting** an account is only possible once no contact names it any more (*hand them over first*).
 
 ## LDAP / AD sign-in
 

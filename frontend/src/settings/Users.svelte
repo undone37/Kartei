@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { KeyRound, Plus, Trash2 } from '@lucide/svelte'
+  import { ArrowRightLeft, KeyRound, Plus, Trash2 } from '@lucide/svelte'
+  import Combobox from '../components/Combobox.svelte'
   import { ApiError, del, get, patch, post } from '../lib/api'
   import { store } from '../lib/store.svelte'
   import { relTime } from '../lib/format'
@@ -54,6 +55,31 @@
     }
   }
 
+  // handover: someone left (or changed jobs), a successor takes their place in all contacts
+  let handFor = $state<User | null>(null)
+  let handPlan = $state<{ records: number; reviews: number } | null>(null)
+  let successor = $state<string | null>(null)
+  const label = (u: User) => [u.first_name, u.last_name].join(' ').trim() || u.username
+  const successors = $derived(users.filter((x) => x.is_active && x.role !== 'admin' && !x.is_superuser && x.id !== handFor?.id)
+    .map((x) => ({ value: x.username, label: label(x), hint: x.username })))
+
+  async function openHandover(u: User) {
+    handFor = u
+    successor = null
+    handPlan = await get(`/api/admin/users/${u.id}/handover`)
+  }
+
+  async function handOver() {
+    try {
+      const r = await post<{ records: number }>(`/api/admin/users/${handFor!.id}/handover`, { to: successor })
+      toast(t('handover.done', { n: r.records, name: successors.find((s) => s.value === successor)?.label ?? '' }))
+      handFor = null
+      load()
+    } catch (err) {
+      fail(err)
+    }
+  }
+
   async function remove(u: User) {
     const name = [u.first_name, u.last_name].join(' ').trim() || u.username
     const ok = await confirmDialog({ title: t('users.delete_title', { name }), message: t('users.delete_text'),
@@ -95,7 +121,8 @@
   <tbody>
     {#each users as u (u.id)}
       <tr>
-        <td><strong>{u.username}</strong>{#if u.id === store.user?.id} <span class="badge">{t('users.you')}</span>{/if}</td>
+        <td><strong>{u.username}</strong>{#if u.id === store.user?.id} <span class="badge">{t('users.you')}</span>{/if}
+          {#if !u.is_active && u.refs} <span class="badge warn" title={t('handover.pending_hint')}>{t('handover.pending', { n: u.refs })}</span>{/if}</td>
         <td>{[u.first_name, u.last_name].join(' ')}</td>
         <td><span class="badge">{u.source === 'ldap' ? 'LDAP' : t('users.local')}</span></td>
         <td>
@@ -115,11 +142,24 @@
             <button class="btn sm primary" onclick={() => setPassword(u)}>{t('common.save')}</button>
             <button class="btn sm" onclick={() => (pwFor = null)}>{t('common.cancel')}</button>
           {:else}
+            {#if u.refs}<button class="btn sm icon ghost" title={t('handover.button')} aria-label={`${t('handover.button')}: ${u.username}`} onclick={() => openHandover(u)}><ArrowRightLeft size={14} /></button>{/if}
             {#if u.source === 'local'}<button class="btn sm icon ghost" title={t('users.set_pw')} onclick={() => { pwFor = u.id; newPw = '' }}><KeyRound size={14} /></button>{/if}
             {#if u.id !== store.user?.id}<button class="btn sm icon ghost danger" title={t('common.delete')} aria-label={t('common.delete')} onclick={() => remove(u)}><Trash2 size={14} /></button>{/if}
           {/if}
         </td>
       </tr>
+      {#if handFor?.id === u.id && handPlan}
+        <tr class="handover">
+          <td colspan="7">
+            <p>{t('handover.text', { name: label(u), n: handPlan.records, r: handPlan.reviews })}</p>
+            <div class="row">
+              <div class="pick"><Combobox options={successors} value={successor} label={t('handover.to')} placeholder={t('handover.to')} onchange={(v) => (successor = v)} /></div>
+              <button class="btn" onclick={() => (handFor = null)}>{t('common.cancel')}</button>
+              <button class="btn primary" disabled={!successor} onclick={handOver}><ArrowRightLeft size={15} />{t('handover.button')}</button>
+            </div>
+          </td>
+        </tr>
+      {/if}
     {/each}
   </tbody>
 </table>
@@ -132,4 +172,7 @@
   .act { text-align: right; white-space: nowrap; }
   .act > :global(* + *) { margin-left: 4px; }
   .pw { height: 28px; width: 180px; }
+  .handover td { background: var(--panel-2); }
+  .handover .row { display: flex; gap: 8px; align-items: center; }
+  .handover .pick { width: 280px; }
 </style>

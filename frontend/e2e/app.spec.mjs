@@ -149,6 +149,33 @@ test.describe('phone list', () => {
   })
 })
 
+test.describe('leavers', () => {
+  test('an admin hands the contacts of someone who left over to a successor', async ({ as }) => {
+    const admin = await as('admin')
+    const leaver = await admin.api('post', '/api/admin/users', { username: 'leaver', first_name: 'Lea', last_name: 'Ver', password: 'x'.repeat(12), role: 'maintainer' })
+    const p = (await admin.records()).find((r) => r.kind === 'person' && r.data.internal_contact)
+    const before = p.data.internal_contact
+    let r = await admin.api('patch', `/api/records/${p.uid}`, { version: p.version, data: { internal_contact: 'leaver' } })
+    try {
+      await admin.api('patch', `/api/admin/users/${leaver.id}`, { is_active: false })
+      await admin.goto('/settings/users')
+      const row = admin.getByRole('row').filter({ hasText: 'leaver' })
+      await expect(row.getByText('1 contacts to hand over')).toBeVisible()
+      await row.getByRole('button', { name: 'Hand over …: leaver' }).click()
+      await expect(admin.getByText('Lea Ver is named in 1 contacts')).toBeVisible()
+      await choose(admin, admin.getByRole('combobox', { name: 'Successor' }))
+      await admin.getByRole('button', { name: 'Hand over …', exact: true }).click()
+      await expect(admin.getByText(/1 contacts handed over to/)).toBeVisible()
+      r = (await admin.records()).find((x) => x.uid === p.uid)
+      expect(r.data.internal_contact).not.toBe('leaver')
+      expect(r.data.internal_contact).toBeTruthy()
+    } finally {
+      if (r.data.internal_contact !== before) await admin.api('patch', `/api/records/${p.uid}`, { version: r.version, data: { internal_contact: before } })
+      await admin.api('delete', `/api/admin/users/${leaver.id}`)
+    }
+  })
+})
+
 test.describe('roles', () => {
   test('read only: no edit, new contacts only as proposals, no settings', async ({ as }) => {
     const page = await as('kkramer')
