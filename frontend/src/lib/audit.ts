@@ -12,7 +12,7 @@ const role = (v: string) => (has(`role.${v}`) ? t(`role.${v}`) : v)
 export const visibleChanges = (e: AuditEntry) => Object.entries(e.changes).filter(([k]) => k !== 'id')
 
 /** keys written by workflows (reviews, proposals, batch changes), any target type */
-const SPECIAL = ['proposed_by', 'note', 'comment', 'delete', 'reviewed', 'batch_from', 'started', 'adjusted', 'kind', 'reason',
+const SPECIAL = ['anonymized', 'proposed_by', 'note', 'comment', 'delete', 'reviewed', 'batch_from', 'started', 'adjusted', 'kind', 'reason',
   'bulk', 'normalized', 'merged_from', 'merged_into', 'not_duplicate', 'with_company']
 
 /** labels of settings/user/export/field attributes, reusing the labels of their forms */
@@ -133,7 +133,7 @@ export function auditValue(e: Pick<AuditEntry, 'target_type'>, key: string, v: a
 export function auditObject(e: AuditEntry, fields: Field[] = store.fields): { name: string; type: string; href?: string } {
   if (e.target_type === 'record') {
     const kind = e.kind ?? 'person'
-    return { name: e.target_label || '—', type: t(`kind.${kind}`), href: e.action === 'purge' || !e.kind ? undefined : `/${kind}/${e.target_id}` }
+    return { name: e.target_label || t('audit.anonymized_name'), type: t(`kind.${kind}`), href: e.action === 'purge' || !e.kind ? undefined : `/${kind}/${e.target_id}` }
   }
   if (e.target_type === 'field') {
     const f = fields.find((f) => String(f.id) === e.target_id)

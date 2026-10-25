@@ -37,6 +37,17 @@ const SHOTS = [
   { name: 'person', user: 'mmuster', path: (h) => `/person/${h.person}` },
   { name: 'history', user: 'mmuster', path: (h) => `/person/${h.person}`, steps: open('nav.tabs button:nth-child(2)') },
   { name: 'company', user: 'mmuster', path: (h) => `/company/${h.company}` },
+  { name: 'history-restore', user: 'mmuster', path: (h) => `/person/${h.person}`, before: async (ctx, h) => {
+      const r = await (await api(ctx, 'get', `/api/records/${h.person}`)).json()
+      h.restoreBack = { job_title: r.data.job_title ?? null }
+      await api(ctx, 'patch', `/api/records/${h.person}`, { version: r.version, data: { job_title: 'Assistenz' } })
+    }, steps: async (p) => {
+      await p.locator('nav.tabs button:nth-child(2)').click(); await wait(500)
+      await p.locator('.restore').first().click(); await wait(400)
+    }, after: async (ctx, h) => {
+      const r = await (await api(ctx, 'get', `/api/records/${h.person}`)).json()
+      await api(ctx, 'patch', `/api/records/${h.person}`, { version: r.version, data: h.restoreBack })
+    } },
   { name: 'company-persons', user: 'mmuster', path: (h) => `/company/${h.company}`, steps: open('nav.tabs button:nth-child(2)') },
   { name: 'edit', user: 'mmuster', path: (h) => `/person/${h.person}`, steps: async (p) => { await p.keyboard.press('e'); await wait(400) } },
   { name: 'new-person', user: 'mmuster', path: (h) => `/new/person?company=${h.company}` },
@@ -59,6 +70,7 @@ const SHOTS = [
   { name: 'duplicates', user: 'admin', path: '/duplicates' },
   { name: 'merge', user: 'admin', path: '/duplicates', steps: open('a[href^="/duplicates/"]') },
   { name: 'trash', user: 'mmuster', path: '/trash' },
+  { name: 'report', user: 'admin', path: (h) => `/report/${h.person}` },
   { name: 'phonelist', user: 'mmuster', path: '/phonelist' },
   { name: 'vcard-import', user: 'mmuster', path: '/import/vcard', steps: async (p) => {
       const vcf = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lehmann;Jonas;;;', 'ORG:Musterfirma Energie AG;Vertrieb', 'TITLE:Vertrieb',

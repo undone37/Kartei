@@ -228,6 +228,33 @@ test.describe('phone list', () => {
   })
 })
 
+test.describe('leavers', () => {
+  test('an admin hands the contacts of someone who left over to a successor', async ({ as }) => {
+    const admin = await as('admin')
+    const leaver = await admin.api('post', '/api/admin/users', { username: 'leaver', first_name: 'Lea', last_name: 'Ver', password: 'x'.repeat(12), role: 'maintainer' })
+    const p = (await admin.records()).find((r) => r.kind === 'person' && r.data.internal_contact)
+    const before = p.data.internal_contact
+    let r = await admin.api('patch', `/api/records/${p.uid}`, { version: p.version, data: { internal_contact: 'leaver' } })
+    try {
+      await admin.api('patch', `/api/admin/users/${leaver.id}`, { is_active: false })
+      await admin.goto('/settings/users')
+      const row = admin.getByRole('row').filter({ hasText: 'leaver' })
+      await expect(row.getByText('1 contacts to hand over')).toBeVisible()
+      await row.getByRole('button', { name: 'Hand over …: leaver' }).click()
+      await expect(admin.getByText('Lea Ver is named in 1 contacts')).toBeVisible()
+      await choose(admin, admin.getByRole('combobox', { name: 'Successor' }))
+      await admin.getByRole('button', { name: 'Hand over …', exact: true }).click()
+      await expect(admin.getByText(/1 contacts handed over to/)).toBeVisible()
+      r = (await admin.records()).find((x) => x.uid === p.uid)
+      expect(r.data.internal_contact).not.toBe('leaver')
+      expect(r.data.internal_contact).toBeTruthy()
+    } finally {
+      if (r.data.internal_contact !== before) await admin.api('patch', `/api/records/${p.uid}`, { version: r.version, data: { internal_contact: before } })
+      await admin.api('delete', `/api/admin/users/${leaver.id}`)
+    }
+  })
+})
+
 test.describe('roles', () => {
   test('read only: no edit, new contacts only as proposals, no settings', async ({ as }) => {
     const page = await as('kkramer')
@@ -247,6 +274,22 @@ test.describe('roles', () => {
       await page.goto(`/settings/${tab}`)
       await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
     }
+  })
+})
+
+test.describe('data protection', () => {
+  test('an admin opens the access report of a contact; others have no button', async ({ as }) => {
+    const admin = await as('admin')
+    const p = (await admin.free()).find((r) => r.kind === 'person' && r.data.email)
+    await admin.goto(`/person/${p.uid}`)
+    await actions(admin).getByRole('link', { name: 'Access report' }).click()
+    await expect(admin.getByText(`Data access report: ${p.first_name} ${p.last_name}`)).toBeVisible()
+    await expect(admin.getByRole('cell', { name: p.data.email })).toBeVisible()
+    await expect(admin.getByRole('cell', { name: 'Access report created' }).first()).toBeVisible()
+    const editor = await as('mmuster')
+    await editor.goto(`/person/${p.uid}`)
+    await expect(actions(editor).getByRole('button', { name: 'Edit', exact: true })).toBeVisible()
+    await expect(actions(editor).getByRole('link', { name: 'Access report' })).toHaveCount(0)
   })
 })
 
@@ -291,6 +334,25 @@ test.describe('editing', () => {
     } finally {
       const r = (await page.records()).find((x) => x.uid === p.uid)
       await page.api('patch', `/api/records/${p.uid}`, { version: r.version, data: { job_title: p.data.job_title } })
+    }
+  })
+
+  test('a change is undone from the history', async ({ as }) => {
+    const page = await as('mmuster')
+    const p = (await page.free()).find((r) => r.kind === 'person' && r.data.job_title && r.data.department)
+    try {
+      await page.api('patch', `/api/records/${p.uid}`, { version: p.version, data: { job_title: 'E2E Irrtum', department: 'E2E Abt' } })
+      await page.goto(`/person/${p.uid}`)
+      await page.getByRole('button', { name: 'History' }).click()
+      await page.getByRole('button', { name: 'Restore' }).first().click()
+      await expect(dialog(page)).toContainText(`E2E Irrtum → ${p.data.job_title}`)
+      await dialog(page).getByRole('button', { name: 'Restore' }).click()
+      await expect(page.getByText('Values restored')).toBeVisible()
+      const now = (await page.records()).find((r) => r.uid === p.uid)
+      expect([now.data.job_title, now.data.department]).toEqual([p.data.job_title, p.data.department])
+    } finally {
+      const now = (await page.records()).find((r) => r.uid === p.uid)
+      await page.api('patch', `/api/records/${p.uid}`, { version: now.version, data: { job_title: p.data.job_title, department: p.data.department } })
     }
   })
 

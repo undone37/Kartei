@@ -21,11 +21,11 @@ from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from . import adsync, audit, batch, exports, graph, importer, ldapusers, relaypush, reviews, totp
+from . import adsync, audit, batch, exports, gdpr, graph, handover, importer, ldapusers, relaypush, reviews, totp
 from .msg import msg
 from .net import client_ip
 from .models import (ROLE_RANK, USER_TYPES, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind, Profile,
-                     Proposal, Record, Review, Role, Settings, user_options)
+                     Proposal, Record, Review, Role, Settings, assignable, user_options)
 from .validation import REGEX_TYPES, clean_core, merge_data
 from .vcard import TARGETS as VCARD_TARGETS
 
@@ -559,9 +559,18 @@ def purge_record(request, uid):
     r = Record.objects.filter(uid=uid, deleted_at__isnull=False).first()
     if not r:
         return err("not_found", 404)
-    audit.log(request.user, "purge", "record", r.uid, r.display_name, audit.diff(snapshot(r), {}))
-    r.delete()
+    gdpr.purge(request.user, r)
     return JsonResponse({"ok": True})
+
+
+@needs(ADMIN)
+def record_report(request, uid):
+    """Data subject access report (GDPR Art. 15): all data, history and recipients of one contact."""
+    r = records_qs().filter(uid=uid).first()
+    if not r:
+        return err("not_found", 404)
+    audit.log(request.user, "report", "record", r.uid, r.display_name)
+    return JsonResponse(gdpr.report(r, request.user))
 
 
 @needs(READ)
@@ -1392,7 +1401,22 @@ def _admins_left(excluding):
 
 @needs(ADMIN)
 def users_list(request):
-    return JsonResponse({"users": [ser_user(u) for u in User.objects.order_by("username")]})
+    refs = handover.refs()  # contacts naming each user: left people still named there need a handover
+    return JsonResponse({"users": [ser_user(u) | {"refs": refs[u.username]} for u in User.objects.order_by("username")]})
+
+
+@needs(ADMIN)
+def user_handover(request, pk):
+    """GET: what a handover would change. POST {to}: the successor takes the user's place in all contacts."""
+    u = User.objects.filter(pk=pk).first()
+    if not u:
+        return err("not_found", 404)
+    if request.method == "GET":
+        return JsonResponse(handover.plan(u))
+    to = User.objects.filter(username=str(request.json.get("to", ""))).select_related("profile").first()
+    if not to or to == u or not assignable(to):
+        return err("validation", fields={"to": "invalid_user"})
+    return JsonResponse({"records": handover.apply(u, to, request.user)})
 
 
 @needs(ADMIN)
@@ -1468,6 +1492,8 @@ def user_delete(request, pk):
         return err("cannot_delete_self", 409)
     if rank_of(u) == ADMIN and not _admins_left(u):
         return err("last_admin", 409)
+    if handover.refs()[u.username]:  # contacts would keep pointing at a user that no longer exists
+        return err("handover_first", 409)
     audit.log(request.user, "delete", "user", u.id, u.username, audit.diff(_user_snapshot(u), {}))
     u.delete()
     return JsonResponse({"ok": True})
@@ -1475,7 +1501,7 @@ def user_delete(request, pk):
 
 # ---------------------------------------------------------------- admin: settings
 
-SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days", "export_interval_minutes", "ldap_uri",
+SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days", "purge_anonymize", "export_interval_minutes", "ldap_uri",
                   "ldap_start_tls", "ldap_ca_cert", "ldap_bind_dn", "ldap_user_base", "ldap_user_filter",
                   "ldap_group_admin", "ldap_group_maintainer", "ldap_group_read", "carddav_enabled",
                   "carddav_username", "graph_enabled", "graph_tenant_id", "graph_client_id", "graph_group_id",
