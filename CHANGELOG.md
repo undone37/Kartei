@@ -7,7 +7,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 ### Added
 
 - vCard import (*New → Import from vCard*): each card of a `.vcf` file (vCard 2.1, 3.0, 4.0) opens as a pre-filled new-contact form, mapped through the fields' vCard targets incl. photo and company link; read-only users propose instead.
-- Sign in with Microsoft (Entra ID, OpenID Connect with PKCE) using the Outlook app registration; only active LDAP users (no local users, superusers or guests): matched once by sign-in name = directory email, then bound to the account's object id; needs the tenant id as a GUID; switch under *LDAP / AD*.
+- Single sign-on (*Settings → Single sign-on*): SCIM 2.0 provisioning creates, updates and deactivates users and groups from the identity provider (Entra ID, Okta, Authentik, …) before anyone signs in, with roles from mapped groups; users then sign in with any OpenID Connect provider (discovery, authorization code with PKCE). Only active SCIM or LDAP users can sign in this way, matched once by a chosen claim and then bound to the account's issuer and subject.
 - CardDAV `sync-collection` (RFC 6578), in Kartei and the DMZ relay: phones fetch only what changed since their last sync.
 - Webhooks: contact changes are POSTed to other systems within seconds, signed with HMAC-SHA256, retried for about a day (*Settings → API*).
 - Phone list: the current list (with search and filters) as a printable phone list, by company or by name, with selectable phone and email columns; the browser saves it as PDF.

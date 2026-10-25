@@ -342,6 +342,8 @@ In addition, each field can be restricted to *Maintainer & Admin* or *Admin only
 
 Local users remain available as a fallback when the directory is unavailable. A local user always takes precedence: an AD account with the same username cannot sign in.
 
+A third kind, *SCIM users*, is created and managed by an identity provider; see [Single sign-on](#sso).
+
 ![Users tab](../img/en/settings-users.png)
 
 ### Manage local users
@@ -415,19 +417,52 @@ The result shows whether the connection and the bind of the service account work
 
 The box below the button shows the last run: *new · updated · deactivated · local skipped*, or the error.
 
-### Sign in with Microsoft (Entra ID)
+## Single sign-on (SCIM and OpenID Connect) {#sso}
 
-With Microsoft 365, users can sign in with their Microsoft account instead of typing their AD password into Kartei. Entra ID's multi-factor authentication and conditional access then apply, and the password never reaches Kartei.
+*Settings → Single sign-on* connects Kartei to an identity provider such as Entra ID, Okta, Authentik or Keycloak (with a SCIM plugin). The provider **creates the users in advance via SCIM** (with their groups) and they **sign in with OpenID Connect**, so the provider's multi-factor authentication and policies apply and no password reaches Kartei. Local users and LDAP keep working alongside.
 
-![Sign in with Microsoft on the login page](../img/en/login-sso.png)
+### Provisioning (SCIM 2.0)
 
-1. Set up the app registration on the [Outlook / Exchange](#outlook-sync) tab (tenant ID, client ID, client secret) and the *Public URL* under *General*.
-2. In the Entra admin center, open the app registration → *Authentication* → *Add a platform* → *Web*, and enter the redirect URI shown in Kartei: `https://kartei.example.de/api/oidc/callback`. No extra API permission is needed (the sign-in uses `openid profile email`).
-3. Under *LDAP / AD*, tick *Offer sign-in with Microsoft (Entra ID)* and save.
+1. Under *Provisioning (SCIM 2.0)*, copy the *SCIM base URL* (`https://kartei.example.com/scim/v2`) and click *Generate token*. The token is shown **once**; a new token replaces the old one.
+2. In the identity provider, set up provisioning for the app with this URL and the token as bearer token (Entra ID: *Enterprise application → Provisioning → Automatic*, *Tenant URL* and *Secret Token*). Assign the users and groups that should get Kartei.
+3. Once the first groups have arrived, map them under *Roles from groups* to *Admin*, *Maintainer* and *Read only*, and save.
 
-- Only **existing** Kartei users can sign in this way: the Microsoft account's email address or user name (also the part before the `@`) must match exactly one active Kartei user. Nobody is created automatically; roles stay as they are (LDAP groups via the daily user import, or the user list).
-- Kartei's own two-factor sign-in is not asked for this way; Entra ID's sign-in policies apply instead.
-- The sign-in uses the authorization code flow with PKCE; Kartei checks issuer, audience, tenant, expiry and nonce of the ID token. Each Microsoft sign-in is recorded in the audit log.
+- A SCIM user is **active** when the provider says so and one of its groups has a role; the highest role wins. Users in no mapped group are inactive.
+- Name, email, role and *Active* of SCIM users (*Source* `SCIM`) are greyed out in the user list; the provider decides. They have no Kartei password.
+- Leavers: when the provider deactivates or deletes a user, Kartei **deactivates** it and never deletes it, so the history and the contacts it is responsible for keep its name.
+- SCIM only sees users it created itself: local and LDAP users are never changed, and a SCIM user cannot take a name that already exists.
+- The last active admin is never deactivated or demoted by SCIM.
+- Every change by the provider is in the audit log as *SCIM*.
+
+Endpoints: `/Users` and `/Groups` with `GET` (filter `userName eq`, `externalId eq`, `displayName eq`), `POST`, `PUT`, `PATCH` and `DELETE`, plus `/ServiceProviderConfig`, `/ResourceTypes` and `/Schemas`.
+
+### Sign-in (OpenID Connect)
+
+| Setting | Notes |
+|---|---|
+| *Issuer URL* | Kartei reads the endpoints from `<issuer>/.well-known/openid-configuration`; the issuer there must be exactly this URL. |
+| *Client ID*, *Client secret* | From the app (client) registered in the provider, as a confidential web client. The secret is stored encrypted. |
+| *Scopes* | Default `openid profile email`. |
+| *Claim for the first sign-in* | `preferred_username` (default), `upn` or `email`. |
+| *Button text on the login page* | Empty = *Sign in with single sign-on*. |
+| *Redirect URI* | Register it in the provider: `https://kartei.example.com/api/oidc/callback` (needs the *Public URL* under *General*). |
+
+Issuer URLs of common providers:
+
+| Provider | Issuer URL |
+|---|---|
+| Entra ID | `https://login.microsoftonline.com/<tenant id>/v2.0` (the tenant ID, not `common` or `organizations`) |
+| Keycloak | `https://id.example.com/realms/<realm>` |
+| Authentik | `https://id.example.com/application/o/<application slug>/` |
+| Okta | `https://<org>.okta.com` (or a custom authorization server) |
+
+Who can sign in:
+
+- Only **active SCIM or LDAP users**, never local users or superusers. Nobody is created at sign-in.
+- The first time, the chosen claim must equal the user name of exactly one SCIM user (or the directory email of an LDAP user). There is no partial matching.
+- Kartei then stores the account's issuer and subject (`sub`); from then on only these count, so a renamed account still gets in and another account with the same name does not.
+- With Entra ID, guests from other directories are refused.
+- The sign-in uses the authorization code flow with PKCE; Kartei checks issuer, audience, expiry and nonce of the ID token. Each sign-in is in the audit log.
 
 ## Fields
 

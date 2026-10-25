@@ -30,7 +30,7 @@ Abschnitte, die nur für die Rolle *Bearbeiter* gelten, sind mit **Bearbeiter** 
 
 Öffne die Kartei-Adresse, die du von der IT bekommen hast, und melde dich mit **Benutzername** und **Passwort** an. Je nach Einrichtung deiner Organisation sind das deine üblichen Netzwerk-Zugangsdaten (z. B. von Windows) oder ein eigenes Kartei-Konto. Mit den Knöpfen unter dem Formular wechselst du zwischen *Deutsch* und *English*.
 
-Nutzt deine Organisation Microsoft 365, bietet die Seite eventuell auch **Mit Microsoft anmelden** an: Dann meldest du dich mit deinem Microsoft-Konto (und dessen üblicher Sicherheitsabfrage) an, statt in Kartei ein Passwort einzugeben.
+Hat deine Organisation Single Sign-on eingerichtet, bietet die Seite dafür eine eigene Schaltfläche an (z. B. **Mit Single Sign-on anmelden**): Dann meldest du dich mit deinem Konto der Organisation (und dessen üblicher Sicherheitsabfrage) an, statt in Kartei ein Passwort einzugeben.
 
 ![Anmeldeseite](../img/de/login.png)
 

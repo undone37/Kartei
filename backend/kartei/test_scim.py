@@ -109,6 +109,8 @@ class ScimTests(ApiTestBase):
         self.scim("delete", f"Groups/{admins}", status=204)
         self.assertEqual(self.alice().profile.role, Role.READ)
         self.assertFalse(ScimGroup.objects.filter(pk=admins).exists())
+        for e in AuditEntry.objects.filter(target_type="group"):  # {key: [old, new]} like every audit entry
+            self.assertTrue(all(isinstance(v, list) and len(v) == 2 for v in e.changes.values()), e.changes)
         self.scim("put", f"Groups/{read}", {"displayName": "Staff", "members": []})
         self.assertFalse(self.alice().is_active)
 

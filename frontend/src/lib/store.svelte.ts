@@ -32,6 +32,7 @@ class Store {
   defaultLang = $state<Lang>('de')
   /** "Sign in with Microsoft" is offered (from the session) */
   sso = $state(false)
+  ssoLabel = $state('') // login button text set by the admin; '' = default
   fields = $state.raw<Field[]>([])
   /** field sections in their order */
   sections = $state.raw<Section[]>([])
@@ -101,7 +102,7 @@ class Store {
     // 1) render from cache immediately, 2) check session, 3) fetch deltas
     const cached = (await idbGet(CACHE_KEY).catch(() => undefined)) as Snapshot | undefined
     if (cached) this.apply(cached)
-    let session: { authenticated: boolean; default_language: Lang; sso?: boolean; user?: User; version?: string; source?: string }
+    let session: { authenticated: boolean; default_language: Lang; sso?: boolean; sso_label?: string; user?: User; version?: string; source?: string }
     try {
       session = await get('/api/session')
     } catch {
@@ -111,6 +112,7 @@ class Store {
     }
     this.defaultLang = session.default_language
     this.sso = !!session.sso
+    this.ssoLabel = session.sso_label ?? ''
     if (!session.authenticated) return this.toLogin(session.default_language)
     if (cached && cached.username !== session.user!.username) {
       this.records = []

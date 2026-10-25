@@ -26,6 +26,7 @@ The machine-readable description is [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1)
 - [Examples](#examples)
 - [Recommended sync pattern](#recommended-sync-pattern)
 - [Webhooks](#webhooks)
+- [User provisioning (SCIM 2.0)](#user-provisioning-scim-20)
 
 ## Authentication
 
@@ -533,4 +534,37 @@ def verify(secret: str, headers, body: bytes, max_age=300) -> bool:
 - Any `2xx` answer counts as delivered; answer quickly (within 5 seconds) and do the work afterwards. Redirects are not followed and count as failures, so give the final URL.
 - Anything else (error status, timeout, no connection) is retried after 1, 5, 30, 120, 360 and 720 minutes; after the 7th failed attempt the delivery is given up. *Settings → API* shows the last result and the number of waiting and given-up deliveries.
 - Deliveries are kept for 30 days. If a receiver was down for longer than the retries, reconcile with the [delta sync](#changes-since-the-last-call-delta-sync).
+
+## User provisioning (SCIM 2.0)
+
+Identity providers (Entra ID, Okta, Authentik, …) create, change and deactivate Kartei users and push groups through SCIM 2.0 ([RFC 7643](https://www.rfc-editor.org/rfc/rfc7643), [RFC 7644](https://www.rfc-editor.org/rfc/rfc7644)). This is separate from the contact API: it has its own token, which never reads contacts, and API tokens never reach SCIM.
+
+- **Base URL:** `https://kartei.example.com/scim/v2`
+- **Authentication:** `Authorization: Bearer <SCIM token>`. An admin generates the token under *Settings → Single sign-on*; it is shown once, and Kartei stores only its SHA-256. 20 failed attempts from one address block it for 15 minutes.
+- **Content type:** `application/scim+json` both ways. Errors use the SCIM error format (`schemas`, `status`, `detail`, `scimType`).
+
+| Endpoint | Methods |
+|---|---|
+| `/Users` | `GET` (filter `userName eq "…"` or `externalId eq "…"`, `startIndex`, `count` up to 200), `POST` |
+| `/Users/{id}` | `GET`, `PUT`, `PATCH`, `DELETE` |
+| `/Groups` | `GET` (filter `displayName eq "…"` or `externalId eq "…"`, `excludedAttributes=members`), `POST` |
+| `/Groups/{id}` | `GET`, `PUT`, `PATCH`, `DELETE` |
+| `/ServiceProviderConfig`, `/ResourceTypes`, `/Schemas` | `GET` |
+
+User attributes: `userName`, `externalId`, `name.givenName`, `name.familyName`, `emails` (the primary or first value), `active`; anything else is ignored. Group attributes: `displayName`, `externalId`, `members` (user ids).
+
+Notes:
+
+- `PATCH` takes `add`, `replace` and `remove`, in any case, with or without `path`. This includes paths like `emails[type eq "work"].value`, `active` as `"False"` and `members[value eq "<id>"]`.
+- `DELETE /Users/{id}` and `"active": false` both **deactivate** the user. Users are never deleted, so the history keeps their names.
+- `DELETE /Groups/{id}` deletes the group.
+- A user is active in Kartei when `active` is true and one of its groups is mapped to a role; the highest role wins.
+- SCIM sees only users it created. A `userName` that already exists in Kartei answers `409` with `scimType: uniqueness`.
+
+```sh
+curl -H "Authorization: Bearer $SCIM_TOKEN" -H "Content-Type: application/scim+json" \
+  -d '{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],"userName":"alice@example.com",
+       "name":{"givenName":"Alice","familyName":"Example"},"emails":[{"value":"alice@example.com","primary":true}],"active":true}' \
+  https://kartei.example.com/scim/v2/Users
+```
 

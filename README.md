@@ -17,7 +17,7 @@ Kartei is a contact directory for persons and companies. It suits organizations 
   - AD contact objects
   - configurable CSV/XLSX exports
   - a REST API with tokens (read only, or read and write)
-- **Sign-in:** LDAP/Active Directory with role groups, plus local accounts.
+- **Sign-in:** single sign-on with any OpenID Connect provider and SCIM provisioning (Entra ID, Okta, Authentik, …), LDAP/Active Directory with role groups, plus local accounts.
 - **Email:** via SMTP or Microsoft 365 (OAuth2), with editable texts.
 - **Interface:** German and English, light and dark theme, and it can be installed as an app (PWA).
 

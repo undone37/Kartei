@@ -93,7 +93,7 @@ export interface User {
   email: string
   role: Role
   language: '' | Lang
-  source: 'local' | 'ldap'
+  source: 'local' | 'ldap' | 'scim'
   is_active: boolean
   is_superuser: boolean
   last_login: string | null

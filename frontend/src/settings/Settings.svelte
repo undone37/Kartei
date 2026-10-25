@@ -12,7 +12,7 @@
   import { t } from '../lib/i18n.svelte'
 
   let { tab }: { tab: string } = $props()
-  const tabs = ['fields', 'users', 'ldap', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'audit']
+  const tabs = ['fields', 'users', 'ldap', 'sso', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'audit']
 </script>
 
 {#if !store.isAdmin}
@@ -27,7 +27,7 @@
     </nav>
     {#if tab === 'fields'}<Fields />
     {:else if tab === 'users'}<Users />
-    {:else if tab === 'ldap' || ['carddav', 'outlook', 'review', 'mail', 'general'].includes(tab)}{#key tab}<System section={tab as any} />{/key}
+    {:else if ['ldap', 'sso', 'carddav', 'outlook', 'review', 'mail', 'general'].includes(tab)}{#key tab}<System section={tab as any} />{/key}
     {:else if tab === 'exports'}<Exports />
     {:else if tab === 'import'}<Import />
     {:else if tab === 'audit'}<Audit />

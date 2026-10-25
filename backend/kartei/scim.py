@@ -303,7 +303,7 @@ def write_group(request, g, body, method):
     before = {"display_name": g.display_name, "members": sorted(before_members)} if g else {}
     if method == "DELETE":
         affected = before_members
-        audit.log(None, "delete", "group", g.id, g.display_name, before, username="SCIM")
+        audit.log(None, "delete", "group", g.id, g.display_name, audit.diff(before, {}), username="SCIM")
         g.delete()
         for u in users_qs().filter(pk__in=affected):
             _resync(u, s)

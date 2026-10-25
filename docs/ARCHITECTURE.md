@@ -45,6 +45,7 @@ The Django project is `config`; the main app is `kartei`. The DMZ relay is the a
 | `quality.py`, `batch.py`, `dashboard.py` | data quality and duplicates, company-to-person batch changes, dashboard/saved filters/list export/bulk edit |
 | `api_v1.py` | REST API with bearer tokens (read, or read and write per token); admin endpoints for tokens and webhooks |
 | `webhooks.py` | webhooks: every contact change in the audit log queues an event per webhook (same transaction); the `exporter` sends them every 10 s, HMAC-signed, with retries |
+| `scim.py`, `oidc.py` | SCIM 2.0 server for user and group provisioning (roles from mapped groups, never deletes users); OpenID Connect sign-in with discovery and PKCE, bound to issuer + subject |
 | `relay/` (separate app) | DMZ relay: `Card` (uid, etag, iOS and Android vCard), `Book` (ctag, CardDAV username and password hash); `GET/POST /push` with a bearer token checked against `RELAY_PUSH_TOKEN_SHA256` in constant time; CardDAV via `kartei.dav` |
 
 Text stored for the UI, such as export status or import warnings, is an encoded message code (`msg.py`) that the frontend translates.

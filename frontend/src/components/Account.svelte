@@ -49,7 +49,7 @@
       <button class="btn primary" disabled={!oldPw || !newPw}>{t('common.save')}</button>
     </form>
   {:else}
-    <p class="muted">{t('account.ldap_hint')}</p>
+    <p class="muted">{t(store.user?.source === 'scim' ? 'account.scim_hint' : 'account.ldap_hint')}</p>
   {/if}
 </div>
 
