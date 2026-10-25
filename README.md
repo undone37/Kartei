@@ -92,7 +92,7 @@ GitHub Actions runs the backend tests on SQLite and PostgreSQL 18, the frontend 
 
 ### Releases
 
-Push a tag such as `v1.2.0`. The *Release* workflow publishes `ghcr.io/undone37/kartei` and `ghcr.io/undone37/kartei-relay` (tags `1.2.0`, `1.2`, `1`, with SBOM and provenance attestations; a tag like `v1.2.0-beta` becomes a pre-release with only the `1.2.0-beta` image tag) and creates the GitHub release with the manuals as PDF, the OpenAPI description (`openapi.yaml`) and the SBOM files.
+Move the *Unreleased* entries in `CHANGELOG.md` under a new version heading (`## [1.2.0] – date`), then push a tag such as `v1.2.0`. The *Release* workflow publishes `ghcr.io/undone37/kartei` and `ghcr.io/undone37/kartei-relay` (tags `1.2.0`, `1.2`, `1`, with SBOM and provenance attestations; a tag like `v1.2.0-beta` becomes a pre-release with only the `1.2.0-beta` image tag) and creates the GitHub release – its text is that version's changelog section plus GitHub's generated notes – with the manuals as PDF, the OpenAPI description (`openapi.yaml`) and the SBOM files.
 
 ### Screenshots for the manuals
 
@@ -112,4 +112,4 @@ With a development server on port 8000 on a fresh, seeded database (`seed_demo -
 
 ## Contributing and license
 
-Contributions are welcome – see [CONTRIBUTING.md](CONTRIBUTING.md). Kartei is free software under the [GNU Affero General Public License v3.0](LICENSE): if you run a modified version for others over a network, you must offer them its source code.
+Contributions are welcome – see [CONTRIBUTING.md](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md); changes are listed in the [changelog](CHANGELOG.md). Kartei is free software under the [GNU Affero General Public License v3.0](LICENSE): if you run a modified version for others over a network, you must offer them its source code.
