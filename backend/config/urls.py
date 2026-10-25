@@ -13,6 +13,8 @@ urlpatterns = [
     path("api/changes", api.changes),
     path("api/me", M(PATCH=api.update_me)),
     path("api/me/totp", M(POST=api.my_totp)),
+    path("api/oidc/start", api.oidc_start),
+    path("api/oidc/callback", api.oidc_callback),
     path("api/records", M(POST=api.create_record)),
     path("api/records/<uuid:uid>", M(GET=api.get_record, PATCH=api.update_record, DELETE=api.delete_record)),
     path("api/records/<uuid:uid>/restore", M(POST=api.restore_record)),

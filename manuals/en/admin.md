@@ -416,6 +416,20 @@ The result shows whether the connection and the bind of the service account work
 
 The box below the button shows the last run: *new · updated · deactivated · local skipped*, or the error.
 
+### Sign in with Microsoft (Entra ID)
+
+With Microsoft 365, users can sign in with their Microsoft account instead of typing their AD password into Kartei. Entra ID's multi-factor authentication and conditional access then apply, and the password never reaches Kartei.
+
+![Sign in with Microsoft on the login page](../img/en/login-sso.png)
+
+1. Set up the app registration on the [Outlook / Exchange](#outlook-sync) tab (tenant ID, client ID, client secret) and the *Public URL* under *General*.
+2. In the Entra admin center, open the app registration → *Authentication* → *Add a platform* → *Web*, and enter the redirect URI shown in Kartei: `https://kartei.example.de/api/oidc/callback`. No extra API permission is needed (the sign-in uses `openid profile email`).
+3. Under *LDAP / AD*, tick *Offer sign-in with Microsoft (Entra ID)* and save.
+
+- Only **existing** Kartei users can sign in this way: the Microsoft account's email address or user name (also the part before the `@`) must match exactly one active Kartei user. Nobody is created automatically; roles stay as they are (LDAP groups via the daily user import, or the user list).
+- Kartei's own two-factor sign-in is not asked for this way; Entra ID's sign-in policies apply instead.
+- The sign-in uses the authorization code flow with PKCE; Kartei checks issuer, audience, tenant, expiry and nonce of the ID token. Each Microsoft sign-in is recorded in the audit log.
+
 ## Fields
 
 Apart from the core fields (first and last name, company name, company link and image), all contact fields are defined by admins under *Settings → Fields*.

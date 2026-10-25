@@ -15,7 +15,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
@@ -23,6 +23,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from . import adsync, audit, batch, exports, gdpr, graph, importer, ldapusers, relaypush, reviews
 from . import adsync, audit, batch, exports, graph, importer, ldapusers, relaypush, reviews, totp
+from . import adsync, audit, batch, exports, graph, importer, ldapusers, oidc, relaypush, reviews
 from .msg import msg
 from .net import client_ip
 from .models import (ROLE_RANK, USER_TYPES, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind, Profile,
@@ -168,7 +169,7 @@ def snapshot(r):
 @ensure_csrf_cookie
 def session(request):
     s = Settings.get()
-    out = {"default_language": s.default_language, "authenticated": request.user.is_authenticated}
+    out = {"default_language": s.default_language, "authenticated": request.user.is_authenticated, "sso": oidc.configured(s)}
     if request.user.is_authenticated:
         out |= {"user": ser_user(request.user), "version": dj.KARTEI_VERSION, "source": dj.KARTEI_SOURCE_URL}
     return JsonResponse(out)
@@ -268,6 +269,29 @@ def user_totp_reset(request, pk):
         p.save()
         audit.log(request.user, "update", "user", u.id, u.username, {"totp": [True, False]})
     return JsonResponse(ser_user(u))
+def oidc_start(request):
+    """Top-level navigation from the login page to Microsoft."""
+    s = Settings.get()
+    if not oidc.configured(s):
+        return err("not_found", 404)
+    return HttpResponseRedirect(oidc.start(request.session, s))
+
+
+def oidc_callback(request):
+    """Microsoft sends the browser back here; on success the user is signed in, else the login page shows why."""
+    s = Settings.get()
+    if not oidc.configured(s):
+        return err("not_found", 404)
+    if request.GET.get("error"):  # cancelled or refused at Microsoft
+        return HttpResponseRedirect("/?login_error=sso_cancelled")
+    try:
+        user = oidc.finish(request.session, s, request.GET.get("code", ""), request.GET.get("state", ""))
+    except oidc.SignInError as e:
+        return HttpResponseRedirect(f"/?login_error={e}")
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    profile_of(user)
+    audit.log(user, "login", "user", user.id, user.username, {"sso": [None, "microsoft"]})
+    return HttpResponseRedirect("/")
 
 
 def logout_view(request):
@@ -1448,6 +1472,7 @@ def user_delete(request, pk):
 # ---------------------------------------------------------------- admin: settings
 
 SETTINGS_ATTRS = ["default_language", "base_url", "trash_days", "purge_anonymize", "export_interval_minutes", "ldap_uri",
+SETTINGS_ATTRS = ["default_language", "base_url", "trash_days", "export_interval_minutes", "oidc_enabled", "ldap_uri",
                   "ldap_start_tls", "ldap_ca_cert", "ldap_bind_dn", "ldap_user_base", "ldap_user_filter",
                   "ldap_group_admin", "ldap_group_maintainer", "ldap_group_read", "carddav_enabled",
                   "carddav_username", "graph_enabled", "graph_tenant_id", "graph_client_id", "graph_group_id",
@@ -1534,6 +1559,8 @@ def settings_put(request):
     if s.graph_enabled and not (s.graph_tenant_id and s.graph_client_id and s.graph_group_id
                                 and s.graph_client_secret_enc):
         errors["graph_enabled"] = "graph_incomplete"
+    if s.oidc_enabled and not (s.graph_tenant_id and s.graph_client_id and s.graph_client_secret_enc and s.base_url):
+        errors["oidc_enabled"] = "oidc_incomplete"  # app registration (Outlook tab) and public URL are needed
     if errors:
         return err("validation", fields=errors)
     s.save()

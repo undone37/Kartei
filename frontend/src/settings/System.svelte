@@ -236,6 +236,11 @@
       {/if}
     {:else if section === 'ldap'}
       <p class="hint">{t('ldap.hint')}</p>
+      <div class="result info">
+        <label class="check"><input type="checkbox" bind:checked={s.oidc_enabled} /> {t('sso.enabled')}</label>
+        <div class="hint">{t('sso.hint', { uri: `${(s.base_url || location.origin).replace(/\/$/, '')}/api/oidc/callback` })}</div>
+        {#if errors.oidc_enabled}<div class="error-text">{terr(errors.oidc_enabled)}</div>{/if}
+      </div>
       <div>
         <label class="label" for="uri">{t('ldap.uri')}</label>
         <input id="uri" class="input" bind:value={s.ldap_uri} placeholder="ldaps://dc01.example.local" />
