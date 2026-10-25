@@ -126,6 +126,28 @@ test.describe('roles', () => {
   })
 })
 
+test.describe('webhooks', () => {
+  test('an admin adds a webhook, sees the secret once, tests and deletes it', async ({ as }) => {
+    const page = await as('admin')
+    await page.goto('/settings/api')
+    await page.getByPlaceholder('Name').last().fill('E2E hook')
+    await page.getByLabel('Address (URL)').fill('http://127.0.0.1:9/unreachable')
+    await page.getByRole('button', { name: 'Add webhook' }).click()
+    await expect(page.getByText(/^whsec_/)).toBeVisible()
+    const row = page.getByRole('row').filter({ hasText: 'E2E hook' })
+    try {
+      await row.getByRole('button', { name: 'Send test event' }).click()
+      await expect(page.getByText(/Test event not delivered/)).toBeVisible()
+      await page.reload()
+      await expect(page.getByText(/^whsec_/)).toHaveCount(0) // shown only once
+    } finally {
+      await row.getByRole('button', { name: 'Delete' }).click()
+      await dialog(page).getByRole('button', { name: 'Delete' }).click()
+      await expect(row).toHaveCount(0)
+    }
+  })
+})
+
 test.describe('editing', () => {
   test('a maintainer edits a person; the change is saved and in the history', async ({ as }) => {
     const page = await as('mmuster')

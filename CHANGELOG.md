@@ -7,6 +7,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 ### Added
 
 - CardDAV `sync-collection` (RFC 6578), in Kartei and the DMZ relay: phones fetch only what changed since their last sync.
+- Webhooks: contact changes are POSTed to other systems within seconds, signed with HMAC-SHA256, retried for about a day (*Settings → API*).
 
 ## [0.2.0-beta] – 2026-10-25
 

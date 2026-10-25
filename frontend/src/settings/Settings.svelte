@@ -6,6 +6,7 @@
   import Import from './Import.svelte'
   import Audit from './Audit.svelte'
   import Tokens from './Tokens.svelte'
+  import Webhooks from './Webhooks.svelte'
   import ActiveDirectory from './ActiveDirectory.svelte'
   import { store } from '../lib/store.svelte'
   import { t } from '../lib/i18n.svelte'
@@ -30,7 +31,7 @@
     {:else if tab === 'exports'}<Exports />
     {:else if tab === 'import'}<Import />
     {:else if tab === 'audit'}<Audit />
-    {:else if tab === 'api'}<Tokens />
+    {:else if tab === 'api'}<Tokens /><Webhooks />
     {:else if tab === 'ad'}<ActiveDirectory />
     {/if}
   </div>

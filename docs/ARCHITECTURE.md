@@ -21,6 +21,7 @@ phones (CardDAV) ─────────────Basic auth──▶ card
   - Outlook and AD syncs
   - daily AD user import
   - review scheduling and notification emails
+  - webhook deliveries (every 10 s)
 - **`carddav-relay`** (optional, separate host in the DMZ, `compose.relay.yaml`) serves the same read-only CardDAV from cards Kartei pushes to it. It runs `config.relay_settings`: only the `relay` app, no Kartei app, admin, sessions or static files, its own SQLite file. It never opens a connection; the `exporter` pushes at the export interval or on "sync now".
 - **Configuration:** everything except bootstrap values (database URL, secret key, hosts, initial admin) lives in the database and is edited in the UI. Secrets such as bind passwords and client secrets are stored encrypted with a key derived from `SECRET_KEY`.
 
@@ -42,7 +43,8 @@ The Django project is `config`; the main app is `kartei`. The DMZ relay is the a
 | `importer.py` | CSV import with a column mapping (JSON) and kind rules |
 | `reviews.py` | review scheduling, digests, reminders, proposal emails and email templates |
 | `quality.py`, `batch.py`, `dashboard.py` | data quality and duplicates, company-to-person batch changes, dashboard/saved filters/list export/bulk edit |
-| `api_v1.py` | REST API with bearer tokens (read, or read and write per token) |
+| `api_v1.py` | REST API with bearer tokens (read, or read and write per token); admin endpoints for tokens and webhooks |
+| `webhooks.py` | webhooks: every contact change in the audit log queues an event per webhook (same transaction); the `exporter` sends them every 10 s, HMAC-signed, with retries |
 | `relay/` (separate app) | DMZ relay: `Card` (uid, etag, iOS and Android vCard), `Book` (ctag, CardDAV username and password hash); `GET/POST /push` with a bearer token checked against `RELAY_PUSH_TOKEN_SHA256` in constant time; CardDAV via `kartei.dav` |
 
 Text stored for the UI, such as export status or import warnings, is an encoded message code (`msg.py`) that the frontend translates.

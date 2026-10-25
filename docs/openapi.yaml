@@ -148,6 +148,29 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+webhooks:
+  contactEvent:
+    post:
+      summary: A contact was created, changed, deleted or restored
+      description: |
+        Sent by Kartei to each webhook an administrator added under Settings → API, usually within 10 seconds of the
+        change. Verify `X-Kartei-Signature` = `sha256=` + hex HMAC-SHA256 of `"<X-Kartei-Timestamp>.<raw body>"` with
+        the webhook's secret. Any 2xx answer counts as delivered; otherwise Kartei retries after 1, 5, 30, 120, 360 and
+        720 minutes. `contact` is the contact's state when the event is sent (null once it is no longer live).
+      parameters:
+        - {name: X-Kartei-Event, in: header, required: true, schema: {type: string, enum: [contact.created, contact.updated, contact.deleted, contact.restored, ping]}}
+        - {name: X-Kartei-Delivery, in: header, required: true, schema: {type: integer}, description: Same value on retries.}
+        - {name: X-Kartei-Timestamp, in: header, required: true, schema: {type: integer}, description: Unix time of sending.}
+        - {name: X-Kartei-Signature, in: header, required: true, schema: {type: string, example: "sha256=5d41402abc4b2a76b9719d911017c592"}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/WebhookEvent"}
+      responses:
+        "2XX": {description: Delivered.}
+        default: {description: Not delivered; retried later.}
+
 components:
   securitySchemes:
     bearer:
@@ -205,6 +228,18 @@ components:
           type: array
           description: UIDs to remove
           items: { type: string, format: uuid }
+    WebhookEvent:
+      type: object
+      required: [id, event, occurred_at, uid, contact]
+      properties:
+        id: {type: integer, description: "Delivery id (0 for ping); the same on retries."}
+        event: {type: string, enum: [contact.created, contact.updated, contact.deleted, contact.restored, ping]}
+        occurred_at: {type: string, format: date-time}
+        uid: {type: [string, "null"], format: uuid}
+        contact:
+          oneOf:
+            - {$ref: "#/components/schemas/Contact"}
+            - {type: "null"}
     Contact:
       type: object
       required: [uid, kind, legacy_id, first_name, last_name, name, company, company_name, display_name, data, version,

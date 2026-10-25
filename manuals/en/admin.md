@@ -1028,6 +1028,22 @@ A *Read and write* token works like a **Maintainer who only sees the fields visi
 
 Only give a write token to systems that really need to change data, and keep it as safe as a password.
 
+### Webhooks
+
+Instead of asking Kartei every few minutes, other systems can be notified right away: a **webhook** sends each change to a contact as an HTTPS request to the system's address, signed with a secret.
+
+![Webhooks on the API tab](../img/en/settings-webhooks.png)
+
+1. Under *Webhooks* enter a *Name* and the *Address (URL)* the receiving system gives you.
+2. Optionally select the *Events* (created, updated, deleted, restored); none selected means all.
+3. *Add webhook* shows the **secret** once. Enter it in the receiving system; it uses it to check that requests really come from Kartei.
+4. *Send test event* (paper plane) sends a test request right away and shows the result.
+
+- The content is the contact with the fields visible to *Everyone*, as in the REST API. The developer documentation (`docs/API.md`, *Webhooks*) describes the request and how to verify the signature.
+- Kartei delivers within about 10 seconds. Failed deliveries are retried for about a day; the table shows the last result and how many deliveries are waiting or were given up.
+- *Active* switches a webhook off without losing it; the key symbol creates a new secret (the old one stops working at once).
+- Creating, changing and deleting webhooks is recorded in the audit log.
+
 ## Audit log
 
 *Settings → Audit log* lists every change with time, user, action, object and the changed values (old value struck through → new value).

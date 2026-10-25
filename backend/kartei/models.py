@@ -420,6 +420,35 @@ class ApiToken(models.Model):
         return hashlib.sha256(token.encode()).hexdigest()
 
 
+class Webhook(models.Model):
+    """POSTs contact changes to another system. The HMAC secret is stored encrypted and shown once when created."""
+    EVENTS = ("contact.created", "contact.updated", "contact.deleted", "contact.restored")
+    name = models.CharField(max_length=100)
+    url = models.URLField(max_length=500)
+    events = models.JSONField(default=list, blank=True)  # subset of EVENTS; empty = all
+    enabled = models.BooleanField(default=True)
+    secret_enc = models.TextField(blank=True)
+    secret = _secret("secret_enc")
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    last_status = models.JSONField(default=dict, blank=True)  # {"at", "ok", "code", "error"} of the last attempt
+
+    def wants(self, event):
+        return self.enabled and (not self.events or event in self.events)
+
+
+class WebhookDelivery(models.Model):
+    """One event for one webhook; sent by the exporter, retried with growing pauses, then given up."""
+    webhook = models.ForeignKey(Webhook, on_delete=models.CASCADE, related_name="deliveries")
+    event = models.CharField(max_length=20)
+    record_uid = models.UUIDField(null=True, blank=True)
+    occurred_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, default="pending", db_index=True)  # pending / delivered / failed
+    attempts = models.PositiveSmallIntegerField(default=0)
+    next_at = models.DateTimeField(db_index=True)
+    last_error = models.CharField(max_length=300, blank=True)
+
+
 class SavedFilter(models.Model):
     """A named list state (search, scope, kind, field filters); private or shared with everyone."""
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="saved_filters")
