@@ -1,5 +1,5 @@
-# --- frontend build (Node 26)
-FROM node:26-alpine AS frontend
+# --- frontend build (Node 26); the JS output is the same on every platform, so it is built natively
+FROM --platform=$BUILDPLATFORM node:26-alpine AS frontend
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
