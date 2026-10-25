@@ -1,11 +1,12 @@
-"""Sign in with Microsoft (Entra ID, OpenID Connect authorization code flow with PKCE).
+"""Single sign-on with any OpenID Connect provider (Entra ID, Keycloak, Authentik, Okta, …): authorization code flow
+with PKCE, endpoints from the provider's discovery document.
 
-Uses the app registration of the Outlook sync (tenant, client id, client secret). The ID token comes straight from the
-token endpoint over TLS, which OpenID Connect Core 3.1.3.7 accepts in place of a signature check; issuer, audience,
-tenant, expiry and nonce are still checked. Nobody is created here, and only directory users can sign in this way:
-the first time, the account's sign-in name (UPN) must equal the email of exactly one active LDAP user; from then on
-only the account's immutable object id (oid) counts. Guests of the tenant, local users and superusers never match.
-The role stays as it is (LDAP groups).
+The ID token comes straight from the token endpoint over TLS, which OpenID Connect Core 3.1.3.7 accepts in place of
+a signature check; issuer (exactly the discovery issuer), audience, expiry and nonce are still checked. Nobody is
+created here: users come from SCIM (scim.py) or LDAP beforehand. Only active SCIM or LDAP users can sign in this
+way, never local users or superusers. The first time, the configured claim must equal the SCIM user name (or the
+directory email of an LDAP user) of exactly one of them; then the account's issuer + subject are stored, and from
+then on only they count. The role stays as SCIM groups or LDAP groups set it.
 """
 import base64
 import hashlib
@@ -13,35 +14,45 @@ import hmac
 import json
 import secrets
 import time
-import uuid
-from urllib.parse import quote, urlencode
+from urllib.parse import urlencode
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.db.models import Q
 
 from .graph import GraphError, http
 from .models import Profile, Settings
 
-LOGIN = "https://login.microsoftonline.com"
+CLAIMS = ("preferred_username", "email", "upn")
 
 
 class SignInError(Exception):
     """code: shown on the login page as err.<code>"""
 
 
-def tenant_ok(tenant):
-    """Only a tenant id: 'common', 'organizations' or a domain would let other tenants' accounts in or be ambiguous."""
-    try:
-        return str(uuid.UUID(tenant)) == tenant.lower()
-    except ValueError:
-        return False
-
-
 def configured(s):
-    return bool(s.oidc_enabled and tenant_ok(s.graph_tenant_id) and s.graph_client_id and s.graph_client_secret and s.base_url)
+    return bool(s.oidc_enabled and s.oidc_issuer.startswith("https://") and s.oidc_client_id and s.oidc_client_secret
+                and s.base_url)
 
 
 def redirect_uri(s):
     return s.base_url.rstrip("/") + "/api/oidc/callback"
+
+
+def discovery(s):
+    """The provider's metadata, cached for 10 minutes. Its issuer must be the configured one (OIDC Discovery 4.3)."""
+    issuer = s.oidc_issuer.rstrip("/")
+    key = "oidc-discovery:" + hashlib.sha256(issuer.encode()).hexdigest()
+    if (meta := cache.get(key)) is None:
+        try:
+            meta = http("GET", issuer + "/.well-known/openid-configuration")
+        except GraphError:
+            raise SignInError("sso_failed")
+        if (str(meta.get("issuer", "")).rstrip("/") != issuer
+                or not all(str(meta.get(k, "")).startswith("https://") for k in ("authorization_endpoint", "token_endpoint"))):
+            raise SignInError("sso_invalid")
+        cache.set(key, meta, 600)
+    return meta
 
 
 def _b64url(raw):
@@ -49,12 +60,13 @@ def _b64url(raw):
 
 
 def start(session, s):
-    """The Microsoft sign-in URL; state, nonce and PKCE verifier wait in the session for the callback."""
+    """The provider's sign-in URL; state, nonce and PKCE verifier wait in the session for the callback."""
+    meta = discovery(s)
     state, nonce, verifier = secrets.token_urlsafe(24), secrets.token_urlsafe(24), secrets.token_urlsafe(48)
     session["oidc"] = {"state": state, "nonce": nonce, "verifier": verifier, "at": int(time.time())}
-    return f"{LOGIN}/{quote(s.graph_tenant_id)}/oauth2/v2.0/authorize?" + urlencode({
-        "client_id": s.graph_client_id, "response_type": "code", "response_mode": "query",
-        "redirect_uri": redirect_uri(s), "scope": "openid profile email", "state": state, "nonce": nonce,
+    return meta["authorization_endpoint"] + "?" + urlencode({
+        "client_id": s.oidc_client_id, "response_type": "code", "response_mode": "query",
+        "redirect_uri": redirect_uri(s), "scope": s.oidc_scopes, "state": state, "nonce": nonce,
         "code_challenge": _b64url(hashlib.sha256(verifier.encode()).digest()), "code_challenge_method": "S256",
         "prompt": "select_account"})
 
@@ -72,29 +84,36 @@ def finish(session, s, code, state):
     pending = session.pop("oidc", None)
     if not pending or not state or not hmac.compare_digest(pending["state"], state) or time.time() - pending["at"] > 600:
         raise SignInError("sso_expired")
+    meta = discovery(s)
     try:
-        tok = http("POST", f"{LOGIN}/{quote(s.graph_tenant_id)}/oauth2/v2.0/token", form={
-            "client_id": s.graph_client_id, "client_secret": s.graph_client_secret, "grant_type": "authorization_code",
-            "code": code, "redirect_uri": redirect_uri(s), "code_verifier": pending["verifier"], "scope": "openid profile email"})
+        tok = http("POST", meta["token_endpoint"], form={
+            "client_id": s.oidc_client_id, "client_secret": s.oidc_client_secret, "grant_type": "authorization_code",
+            "code": code, "redirect_uri": redirect_uri(s), "code_verifier": pending["verifier"]})
     except GraphError:
         raise SignInError("sso_failed")
     c = _claims(tok.get("id_token", ""))
-    tid, oid = c.get("tid", ""), str(c.get("oid") or "")
-    if (c.get("aud") != s.graph_client_id or c.get("iss") != f"{LOGIN}/{tid}/v2.0" or tid.lower() != s.graph_tenant_id.lower()
+    aud = c.get("aud")
+    sub = str(c.get("sub") or "")
+    if (c.get("iss") != meta["issuer"] or s.oidc_client_id not in (aud if isinstance(aud, list) else [aud])
             or float(c.get("exp", 0)) < time.time() or not hmac.compare_digest(str(c.get("nonce", "")), pending["nonce"])
-            or not oid):
+            or not sub):
         raise SignInError("sso_invalid")
-    if c.get("idp") and c["idp"] not in (c["iss"], f"https://sts.windows.net/{tid}/"):  # a guest from another directory
+    # Entra ID: a guest from another directory signs in with its own name; refused even if it was provisioned
+    if c["iss"].startswith("https://login.microsoftonline.com/") and c.get("idp") and c["idp"] not in (
+            c["iss"], f"https://sts.windows.net/{c.get('tid')}/"):
         raise SignInError("sso_unknown_user")
-    directory = User.objects.filter(is_active=True, is_superuser=False, profile__source="ldap")
-    if bound := Profile.objects.filter(sso_oid=oid).first():
-        if not directory.filter(pk=bound.user_id).exists():
+    subject = f"{c['iss']} {sub}"
+    eligible = User.objects.filter(is_active=True, is_superuser=False, profile__source__in=("scim", "ldap"))
+    if bound := Profile.objects.filter(sso_subject=subject).first():
+        if not eligible.filter(pk=bound.user_id).exists():
             raise SignInError("sso_unknown_user")
         return bound.user
-    # first sign-in: the UPN (not the 'email' claim, which users may be able to change) against the email from LDAP
-    name = str(c.get("upn") or c.get("preferred_username") or "").strip()
-    users = list(directory.filter(email__iexact=name, profile__sso_oid="")[:2]) if "@" in name else []
+    name = str(c.get(s.oidc_claim if s.oidc_claim in CLAIMS else "preferred_username") or "").strip()
+    match = Q(profile__source="scim", username__iexact=name)
+    if "@" in name:
+        match |= Q(profile__source="ldap", email__iexact=name)
+    users = list(eligible.filter(match, profile__sso_subject="")[:2]) if name else []
     if len(users) != 1:
         raise SignInError("sso_unknown_user" if not users else "sso_ambiguous")
-    Profile.objects.filter(user=users[0]).update(sso_oid=oid)
+    Profile.objects.filter(user=users[0]).update(sso_subject=subject)
     return users[0]

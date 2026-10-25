@@ -14,7 +14,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -24,8 +24,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from . import adsync, audit, batch, exports, graph, importer, ldapusers, oidc, relaypush, reviews
 from .msg import msg
 from .net import client_ip
-from .models import (ROLE_RANK, USER_TYPES, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind, Profile,
-                     Proposal, Record, Review, Role, Settings, user_options)
+from .models import (ROLE_RANK, USER_TYPES, ApiToken, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind,
+                     Profile, Proposal, Record, Review, Role, ScimGroup, Settings, user_options)
 from .validation import REGEX_TYPES, clean_core, merge_data
 from .vcard import TARGETS as VCARD_TARGETS
 
@@ -167,7 +167,8 @@ def snapshot(r):
 @ensure_csrf_cookie
 def session(request):
     s = Settings.get()
-    out = {"default_language": s.default_language, "authenticated": request.user.is_authenticated, "sso": oidc.configured(s)}
+    out = {"default_language": s.default_language, "authenticated": request.user.is_authenticated,
+           "sso": oidc.configured(s), "sso_label": s.oidc_label}
     if request.user.is_authenticated:
         out |= {"user": ser_user(request.user), "version": dj.KARTEI_VERSION, "source": dj.KARTEI_SOURCE_URL}
     return JsonResponse(out)
@@ -196,19 +197,22 @@ def login_view(request):
 
 
 def oidc_start(request):
-    """Top-level navigation from the login page to Microsoft."""
+    """Top-level navigation from the login page to the identity provider."""
     s = Settings.get()
     if not oidc.configured(s):
         return err("not_found", 404)
-    return HttpResponseRedirect(oidc.start(request.session, s))
+    try:
+        return HttpResponseRedirect(oidc.start(request.session, s))
+    except oidc.SignInError as e:
+        return HttpResponseRedirect(f"/?login_error={e}")
 
 
 def oidc_callback(request):
-    """Microsoft sends the browser back here; on success the user is signed in, else the login page shows why."""
+    """The provider sends the browser back here; on success the user is signed in, else the login page shows why."""
     s = Settings.get()
     if not oidc.configured(s):
         return err("not_found", 404)
-    if request.GET.get("error"):  # cancelled or refused at Microsoft
+    if request.GET.get("error"):  # cancelled or refused at the provider
         return HttpResponseRedirect("/?login_error=sso_cancelled")
     try:
         user = oidc.finish(request.session, s, request.GET.get("code", ""), request.GET.get("state", ""))
@@ -216,7 +220,7 @@ def oidc_callback(request):
         return HttpResponseRedirect(f"/?login_error={e}")
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     profile_of(user)
-    audit.log(user, "login", "user", user.id, user.username, {"sso": [None, "microsoft"]})
+    audit.log(user, "login", "user", user.id, user.username, {"sso": [None, "oidc"]})
     return HttpResponseRedirect("/")
 
 
@@ -1344,7 +1348,7 @@ def user_update(request, pk):
     if "role" in b:
         if b["role"] not in Role.values:
             return err("validation", fields={"role": "invalid"})
-        if p.source == "ldap":
+        if p.source != "local":  # LDAP or SCIM groups decide
             return err("validation", fields={"role": "ldap_managed"})
         p.role = b["role"]
     if "language" in b and b["language"] in ("", "de", "en"):
@@ -1353,7 +1357,7 @@ def user_update(request, pk):
         if a in b and p.source == "local":
             setattr(u, a, str(b[a]))
     if "is_active" in b and bool(b["is_active"]) != u.is_active:
-        if p.source == "ldap":  # AD role groups decide, see ldapusers
+        if p.source != "local":  # the directory decides, see ldapusers and scim
             return err("validation", fields={"is_active": "ldap_managed"})
         u.is_active = bool(b["is_active"])
     if b.get("password"):
@@ -1398,6 +1402,8 @@ SETTINGS_ATTRS = ["default_language", "base_url", "trash_days", "export_interval
                   "ad_enabled", "ad_ou", "ad_bind_dn", "ad_kinds", "ad_columns", "ad_max_shrink_percent"]
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
 SETTINGS_ATTRS += ["mail_templates", "mail_transport", "mail_graph_sender"]
+SETTINGS_ATTRS += ["oidc_issuer", "oidc_client_id", "oidc_scopes", "oidc_claim", "oidc_label",
+                   "scim_group_admin", "scim_group_maintainer", "scim_group_read"]
 SETTINGS_ATTRS += ["carddav_relay_enabled", "carddav_relay_url", "carddav_relay_tls_verify", "carddav_relay_ca_cert",
                    "carddav_relay_max_delete_percent"]
 
@@ -1410,13 +1416,16 @@ def ser_settings(s):
             "smtp_password_set": bool(s.smtp_password_enc), "mail_template_defaults": reviews.DEFAULT_TEMPLATES,
             "graph_sync_requested": s.graph_sync_requested, "ldap_users_status": s.ldap_users_status,
             "ad_bind_password_set": bool(s.ad_bind_password_enc), "ad_status": s.ad_status,
-            "ad_sync_requested": s.ad_sync_requested, **relaypush.ser(s)}
+            "ad_sync_requested": s.ad_sync_requested, **relaypush.ser(s),
+            "oidc_client_secret_set": bool(s.oidc_client_secret_enc), "scim_token_set": bool(s.scim_token_hash),
+            "scim_groups": [{"id": str(g.id), "name": g.display_name, "members": g.n}
+                            for g in ScimGroup.objects.annotate(n=Count("members"))]}
 
 
 def _settings_snapshot(s):
     return {**{a: getattr(s, a) for a in SETTINGS_ATTRS}, "ldap_bind_password_enc": s.ldap_bind_password_enc,
             "graph_client_secret_enc": s.graph_client_secret_enc, "smtp_password_enc": s.smtp_password_enc,
-            "ad_bind_password_enc": s.ad_bind_password_enc}
+            "ad_bind_password_enc": s.ad_bind_password_enc, "oidc_client_secret_enc": s.oidc_client_secret_enc}
 
 
 @needs(ADMIN)
@@ -1440,6 +1449,8 @@ def settings_put(request):
         s.smtp_password = str(b["smtp_password"] or "")
     if "ad_bind_password" in b:
         s.ad_bind_password = str(b["ad_bind_password"] or "")
+    if "oidc_client_secret" in b:
+        s.oidc_client_secret = str(b["oidc_client_secret"] or "")
     errors |= adsync.validate(s) | relaypush.validate(s)
     if s.review_mode not in ("off", "rolling", "campaign"):
         errors["review_mode"] = "invalid"
@@ -1475,16 +1486,39 @@ def settings_put(request):
     if s.graph_enabled and not (s.graph_tenant_id and s.graph_client_id and s.graph_group_id
                                 and s.graph_client_secret_enc):
         errors["graph_enabled"] = "graph_incomplete"
-    if s.oidc_enabled and not (s.graph_tenant_id and s.graph_client_id and s.graph_client_secret_enc and s.base_url):
-        errors["oidc_enabled"] = "oidc_incomplete"  # app registration (Outlook tab) and public URL are needed
-    elif s.oidc_enabled and not oidc.tenant_ok(s.graph_tenant_id):
-        errors["oidc_enabled"] = "oidc_tenant_id"
+    s.oidc_issuer = str(s.oidc_issuer or "").strip()
+    if s.oidc_issuer and not re.fullmatch(r"https://[^\s?#]+", s.oidc_issuer):
+        errors["oidc_issuer"] = "https_required"
+    if s.oidc_claim not in oidc.CLAIMS:
+        errors["oidc_claim"] = "invalid"
+    if "openid" not in str(s.oidc_scopes).split():
+        errors["oidc_scopes"] = "openid_required"
+    if s.oidc_enabled and not (s.oidc_issuer and s.oidc_client_id and s.oidc_client_secret_enc and s.base_url):
+        errors["oidc_enabled"] = "oidc_incomplete"  # provider and the public URL (for the redirect URI) are needed
+    groups = {str(i) for i in ScimGroup.objects.values_list("id", flat=True)}
+    for a in ("scim_group_admin", "scim_group_maintainer", "scim_group_read"):
+        setattr(s, a, str(getattr(s, a) or ""))
+        if getattr(s, a) and getattr(s, a) not in groups:
+            errors[a] = "invalid"
     if errors:
         return err("validation", fields=errors)
     s.save()
     if change := audit.diff(before, _settings_snapshot(s)):
         audit.log(request.user, "update", "settings", 1, "settings", change)
+    if any(a.startswith("scim_group_") for a in change or {}):
+        from . import scim
+        scim.sync_all(s)  # roles and active of SCIM users follow the new mapping
     return JsonResponse(ser_settings(s))
+
+
+@needs(ADMIN)
+def scim_token(request):
+    """New bearer token for the identity provider's SCIM client; only its SHA-256 is stored, the token is shown once."""
+    s, token = Settings.get(), secrets.token_urlsafe(32)
+    s.scim_token_hash = ApiToken.digest(token)
+    s.save(update_fields=["scim_token_hash"])
+    audit.log(request.user, "update", "settings", 1, "settings", {"scim_token_hash": ["***", "***"]})
+    return JsonResponse({"token": token})
 
 
 @needs(ADMIN)

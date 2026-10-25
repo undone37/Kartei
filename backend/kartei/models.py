@@ -44,10 +44,13 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     role = models.CharField(max_length=12, choices=Role.choices, default=Role.READ)
     language = models.CharField(max_length=2, choices=LANGUAGES, blank=True)  # '' = admin default
-    source = models.CharField(max_length=5, choices=[("local", "local"), ("ldap", "ldap")], default="local")
+    source = models.CharField(max_length=5, choices=[("local", "local"), ("ldap", "ldap"), ("scim", "scim")], default="local")
     recent = models.JSONField(default=list, blank=True)  # record uids, last viewed first (dashboard)
     favorites = models.JSONField(default=list, blank=True)  # record uids, starred first
-    sso_oid = models.CharField(max_length=64, blank=True, db_index=True)  # Microsoft account bound at the first sign-in
+    sso_subject = models.CharField(max_length=300, blank=True, db_index=True)  # "<iss> <sub>", bound at the first sign-in
+    # SCIM (scim.py): the identity provider's id and its "active"; is_active also needs a role group
+    external_id = models.CharField(max_length=255, blank=True)
+    scim_active = models.BooleanField(default=True)
 
     @property
     def rank(self):
@@ -90,7 +93,6 @@ class Settings(models.Model):
     carddav_relay_requested = models.DateTimeField(null=True, blank=True)  # "sync now"; the exporter polls it
 
     graph_enabled = models.BooleanField(default=False)
-    oidc_enabled = models.BooleanField(default=False)  # "Sign in with Microsoft" with the same app registration
     graph_tenant_id = models.CharField(max_length=64, blank=True)
     graph_client_id = models.CharField(max_length=64, blank=True)
     graph_client_secret_enc = models.TextField(blank=True)
@@ -140,6 +142,19 @@ class Settings(models.Model):
     mail_transport = models.CharField(max_length=5, default="smtp", choices=[("smtp", "smtp"), ("graph", "graph")])
     mail_graph_sender = models.CharField(max_length=255, blank=True)  # mailbox that sends via Microsoft Graph
 
+    # single sign-on (oidc.py) and provisioning by the identity provider (scim.py)
+    oidc_enabled = models.BooleanField(default=False)
+    oidc_issuer = models.CharField(max_length=255, blank=True)  # e.g. https://login.microsoftonline.com/<tenant>/v2.0
+    oidc_client_id = models.CharField(max_length=255, blank=True)
+    oidc_client_secret_enc = models.TextField(blank=True)
+    oidc_scopes = models.CharField(max_length=255, default="openid profile email")
+    oidc_claim = models.CharField(max_length=20, default="preferred_username")  # matched at the first sign-in
+    oidc_label = models.CharField(max_length=60, blank=True)  # login button; empty = "Sign in with single sign-on"
+    scim_token_hash = models.CharField(max_length=64, blank=True)  # SHA-256 of the bearer token, shown once
+    scim_group_admin = models.CharField(max_length=20, blank=True)  # ScimGroup ids
+    scim_group_maintainer = models.CharField(max_length=20, blank=True)
+    scim_group_read = models.CharField(max_length=20, blank=True)
+
     @classmethod
     def get(cls):
         return cls.objects.get_or_create(pk=1)[0]
@@ -149,6 +164,7 @@ class Settings(models.Model):
     smtp_password = _secret("smtp_password_enc")
     ad_bind_password = _secret("ad_bind_password_enc")
     carddav_relay_token = _secret("carddav_relay_token_enc")
+    oidc_client_secret = _secret("oidc_client_secret_enc")
 
 
 class Kind(models.TextChoices):
@@ -461,3 +477,13 @@ class SavedFilter(models.Model):
 
     class Meta:
         ordering = ["name", "id"]
+
+
+class ScimGroup(models.Model):
+    """A group pushed by the identity provider (SCIM); the admin maps groups to roles (Settings.scim_group_*)."""
+    display_name = models.CharField(max_length=255)
+    external_id = models.CharField(max_length=255, blank=True)
+    members = models.ManyToManyField(User, blank=True, related_name="scim_groups")
+
+    class Meta:
+        ordering = ["display_name"]
