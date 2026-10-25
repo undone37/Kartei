@@ -29,6 +29,7 @@ Second beta: read-only users can propose new contacts, Kartei can use a dedicate
 
 ### Changed
 
+- Accessibility: grey text meets WCAG AA contrast (4.5:1) in the light and dark theme, form controls in the user list and account page have labels; a browser test checks the main screens with axe-core in both themes.
 - Administrators are no longer offered in user fields such as *Internal contact* (nor matched by the CSV import); values set earlier stay.
 - Faster for large directories: the initial data load takes about half the time (11,000 contacts: 0.8 s → 0.4 s), and CardDAV lists its cards about five times faster.
 - A successful CardDAV sign-in is remembered for five minutes instead of checking the password hash on every request of a phone sync.

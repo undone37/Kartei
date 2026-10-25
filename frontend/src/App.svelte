@@ -468,7 +468,7 @@
     font-size: 12.5px; white-space: nowrap; cursor: pointer; transition: color 0.12s, background-color 0.12s; }
   .scopes button:hover { color: var(--text); }
   .scopes button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
-  .scopes .todo .n { color: #fff; background: var(--accent); border-radius: 8px; padding: 0 5px; }
+  .scopes .todo .n { color: light-dark(#fff, #0f0f12); background: var(--accent); border-radius: 8px; padding: 0 5px; }  /* like .btn.primary */
   .scopes .n { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
   .filters { display: flex; gap: 6px; padding: 12px 12px 6px; flex-wrap: wrap; }
   .filters .n { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }

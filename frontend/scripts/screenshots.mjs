@@ -91,9 +91,10 @@ const SHOTS = [
   { name: 'settings-general-phones', user: 'admin', path: '/settings/general', steps: open('button:has(.lucide-phone)') },
   { name: 'settings-carddav-password', user: 'admin', path: '/settings/carddav', steps: open('button:has(.lucide-key-round)') },
   { name: 'settings-api-token', user: 'admin', path: '/settings/api', steps: async (p) => {
-      await p.locator('form.toolbar input:not([type=radio])').fill('Telefonanlage')
-      await p.locator('form.toolbar input[type=radio][value=write]').check().catch(() => {})
-      await p.locator('form.toolbar button').click(); await wait(600)
+      const form = p.locator('form.toolbar').first() // the token form; the webhook form follows
+      await form.locator('input:not([type=radio])').fill('Telefonanlage')
+      await form.locator('input[type=radio][value=write]').check().catch(() => {})
+      await form.locator('button').click(); await wait(600)
     }, after: async (ctx) => {
       const { tokens } = await (await api(ctx, 'get', '/api/admin/tokens')).json()
       for (const tk of tokens.filter((x) => x.name === 'Telefonanlage')) await api(ctx, 'delete', `/api/admin/tokens/${tk.id}`)
