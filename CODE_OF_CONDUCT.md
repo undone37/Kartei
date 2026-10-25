@@ -60,10 +60,9 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement privately via
-GitHub: use *Report content* in the menu (…) of the comment, issue or pull
-request concerned and choose to report it to the repository maintainers.
-For anything that doesn't fit there, see
-[GitHub's guide to reporting abuse](https://docs.github.com/en/communities/maintaining-your-safety-on-github/reporting-abuse-or-spam).
+[GitHub's private reporting form](https://github.com/undone37/Kartei/security/advisories/new).
+It is meant for security issues, but only the maintainers can read it, so it may
+also be used for conduct reports: start the title with "Code of conduct".
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
