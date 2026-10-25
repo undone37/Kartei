@@ -354,7 +354,7 @@ A third kind, *SCIM users*, is created and managed by an identity provider; see 
 - **Change role:** select it in the *Role* column; it takes effect at once.
 - **Reset password:** key icon (*Set password*) → enter the new password → *Save*.
 - **Deactivate:** clear *Active*. The user can no longer sign in, but stays in the list and in user fields of contacts (marked as inactive) until you [hand them over](#leavers). Prefer this to deleting.
-- **Two-factor sign-in:** users switch it on themselves under *My account*; the list marks them **2FA**. If someone lost phone and recovery codes, the shield symbol (*Reset two-factor sign-in*) switches it off after a confirmation, so the password alone works again (verify the request first). Works for local and LDAP users.
+- **Two-factor sign-in:** users switch it on themselves under *My account*; the list marks them **2FA**. If someone lost phone and recovery codes, the shield symbol (*Reset two-factor sign-in*) switches it off after a confirmation, so the password alone works again (verify the request first). Works for local and LDAP users. To make it mandatory, see *Two-factor sign-in required for* under [General settings](#general-settings).
 - **Delete:** trash icon, then confirm in the dialog. The account can no longer sign in, and its own saved filters (shared ones too) are deleted; only possible once no contact names the user any more ([hand them over](#leavers) first). AD users come back with the next user import while they are in a role group. You cannot delete yourself.
 
 > Note: The last active admin cannot be demoted, deactivated or deleted (*The last admin cannot be removed*). The initial admin from `.env` is a superuser (tooltip *Main administrator (superuser) – always admin*); its role cannot be changed in the list.
@@ -379,6 +379,8 @@ Deactivate them (local users) or remove them from the role groups (LDAP users; t
 - **Proposals** they made stay open; maintainers decide as usual.
 - **API tokens and webhooks** belong to Kartei, not to the admin who created them, and keep working.
 - **Deleting** an account is only possible once no contact names it any more (*hand them over first*).
+
+![Handing over the contacts of someone who left](../img/en/settings-handover.png)
 
 ## LDAP / AD sign-in
 
@@ -991,13 +993,14 @@ Each recipient gets the text in their own language (the default language if they
 > Tip: The links in the emails are built from the *Public URL* under *General*. Set it before the first emails go out.
 {: .tip}
 
-## General settings
+## General settings {#general-settings}
 
 ![General tab](../img/en/settings-general.png)
 
 | Setting | Meaning |
 |---|---|
 | *Default language* | Language for users who have not chosen one in *My account*, and for emails to fixed recipients. The sign-in page follows the browser language. |
+| *Two-factor sign-in required for* | *Nobody (voluntary)*, *Administrators* or *Everyone*. Affected users without it see only the setup right after signing in (authenticator app, password, recovery codes) and can't switch it off; it applies to you as well. Everyone else can still switch it on under *My account*. |
 | *Public URL* | e.g. `https://kartei.example.de`. Used for links in emails, in vCards (`SOURCE`) and for the CardDAV address. |
 | *Empty recycle bin automatically after (days)* | Contacts in the recycle bin are deleted permanently after this many days. *0* = never (default). |
 | *Anonymise the history when deleting permanently* | On (default): a contact deleted permanently also loses its name and values in its history and the audit log; see [Data protection](#data-protection). |
@@ -1150,7 +1153,7 @@ Kartei holds personal data. Two functions help with the rights of the people in 
 - **Shown once:** the CardDAV password and API tokens are stored only as hashes. They are shown once when created; afterwards they can only be replaced.
 - **Rate limits:** after 10 failed sign-ins for one username, after 20 failed CardDAV logins and after 20 failed API requests, the client address is blocked for 15 minutes. Behind the reverse proxy, the address is the last entry of `X-Forwarded-For`; make sure the proxy appends it and that port 8000 is not reachable directly (or set `PROXY_HEADERS=0` without a proxy).
 - **HTTPS only:** cookies are marked *Secure*. Keep `SECURE_COOKIES=1` in production.
-- **Two-factor sign-in:** switch it on for every admin account, especially the local one from `.env` (*My account*). It doesn't affect CardDAV, the REST API or webhooks.
+- **Two-factor sign-in:** switch it on for every admin account, especially the local one from `.env` (*My account*), or require it for administrators (*General settings*). It doesn't affect CardDAV, the REST API or webhooks.
 - **Least privilege:** the LDAP service account only needs read access. Give the AD writing account rights on the target OU only, limit the Outlook app to the group's mailboxes, and limit `Mail.Send` to the sending mailbox.
 - **Field visibility:** CardDAV, Outlook sync and the API only see fields visible to *Everyone*. Exports and the AD sync contain whatever you configure; protect the export share accordingly.
 - **Emergency access:** `/django-admin/` is a hidden fallback for superusers. Use it only in emergencies; changes made there bypass Kartei's checks and are not written to the audit log.
