@@ -30,6 +30,8 @@ Sections that only apply to maintainers are marked **Maintainers**. Administrato
 
 Open the Kartei address your IT department gave you and sign in with your **Username** and **Password**. Depending on your organization's setup, these are your usual network (e.g. Windows) credentials or a separate Kartei account. The buttons below the form switch the language between *Deutsch* and *English*.
 
+If your organization uses Microsoft 365, the page may also offer **Sign in with Microsoft**: you then sign in with your Microsoft account (and its usual security check) instead of typing a password into Kartei.
+
 ![Sign-in page](../img/en/login.png)
 
 If you enter a wrong password too many times, Kartei blocks further attempts for 15 minutes (*Too many attempts – please wait 15 minutes*). To leave Kartei, choose **Sign out** in the user menu.

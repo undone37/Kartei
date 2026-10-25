@@ -89,6 +89,7 @@ class Settings(models.Model):
     carddav_relay_requested = models.DateTimeField(null=True, blank=True)  # "sync now"; the exporter polls it
 
     graph_enabled = models.BooleanField(default=False)
+    oidc_enabled = models.BooleanField(default=False)  # "Sign in with Microsoft" with the same app registration
     graph_tenant_id = models.CharField(max_length=64, blank=True)
     graph_client_id = models.CharField(max_length=64, blank=True)
     graph_client_secret_enc = models.TextField(blank=True)

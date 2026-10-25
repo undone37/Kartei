@@ -415,6 +415,20 @@ Das Ergebnis zeigt, ob Verbindung und Anmeldung des Dienstkontos geklappt haben,
 
 Das Feld unter der Schaltfläche zeigt den letzten Lauf: *neu · aktualisiert · deaktiviert · lokale übersprungen* oder den Fehler.
 
+### Anmeldung mit Microsoft (Entra ID)
+
+Mit Microsoft 365 können sich die Benutzer mit ihrem Microsoft-Konto anmelden, statt ihr AD-Passwort in Kartei einzugeben. Dann greifen die Mehrfaktor-Authentifizierung und der bedingte Zugriff von Entra ID, und das Passwort erreicht Kartei nie.
+
+![Mit Microsoft anmelden auf der Anmeldeseite](../img/de/login-sso.png)
+
+1. Richte im Reiter [Outlook / Exchange](#outlook-sync) die App-Registrierung ein (Mandanten-ID, Anwendungs-ID, Clientschlüssel) und unter *Allgemein* die *Öffentliche Adresse*.
+2. Öffne im Entra Admin Center die App-Registrierung → *Authentifizierung* → *Plattform hinzufügen* → *Web* und trag die in Kartei angezeigte Umleitungs-URI ein: `https://kartei.example.de/api/oidc/callback`. Eine zusätzliche API-Berechtigung ist nicht nötig (die Anmeldung nutzt `openid profile email`).
+3. Hake unter *LDAP / AD* *Anmeldung mit Microsoft (Entra ID) anbieten* an und speichere.
+
+- Anmelden kann sich so nur, wer **bereits** Kartei-Benutzer ist: E-Mail-Adresse oder Benutzername des Microsoft-Kontos (auch der Teil vor dem `@`) muss zu genau einem aktiven Kartei-Benutzer passen. Es wird niemand automatisch angelegt; die Rollen bleiben, wie sie sind (LDAP-Gruppen über den täglichen Benutzerimport oder die Benutzerliste).
+- Die Zwei-Faktor-Anmeldung von Kartei wird dabei nicht abgefragt; stattdessen gelten die Anmelderichtlinien von Entra ID.
+- Die Anmeldung nutzt den Autorisierungscode-Fluss mit PKCE; Kartei prüft Aussteller, Empfänger, Mandant, Ablauf und Nonce des ID-Tokens. Jede Anmeldung mit Microsoft steht im Protokoll.
+
 ## Felder
 
 Bis auf die Stammfelder (Vor- und Nachname, Firmenname, Firmenzuordnung und Bild) legen Admins alle Kontaktfelder unter *Einstellungen → Felder* fest.
