@@ -1034,4 +1034,9 @@ export default {
   'vcardimport.done': "Done: {created} created, {proposed} proposed, {skipped} skipped.",
   'vcardimport.more': "Another file",
   'vcardimport.finish': "To the start page",
+  'history.restore': "Restore",
+  'history.restore_hint': "Set the fields of this change back to their previous values",
+  'history.restore_title': "Restore these values?",
+  'history.restored': "Values restored",
+  'history.conflict': "The contact was changed in the meantime – please try again",
 } as Record<string, string>

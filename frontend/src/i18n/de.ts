@@ -1034,4 +1034,9 @@ export default {
   'vcardimport.done': "Fertig: {created} angelegt, {proposed} vorgeschlagen, {skipped} übersprungen.",
   'vcardimport.more': "Weitere Datei",
   'vcardimport.finish': "Zur Startseite",
+  'history.restore': "Zurücksetzen",
+  'history.restore_hint': "Die Felder dieser Änderung auf ihre vorherigen Werte zurücksetzen",
+  'history.restore_title': "Diese Werte wiederherstellen?",
+  'history.restored': "Werte wiederhergestellt",
+  'history.conflict': "Der Kontakt wurde inzwischen geändert – bitte noch einmal versuchen",
 } as Record<string, string>

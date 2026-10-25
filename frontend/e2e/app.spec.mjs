@@ -215,6 +215,25 @@ test.describe('editing', () => {
     }
   })
 
+  test('a change is undone from the history', async ({ as }) => {
+    const page = await as('mmuster')
+    const p = (await page.free()).find((r) => r.kind === 'person' && r.data.job_title && r.data.department)
+    try {
+      await page.api('patch', `/api/records/${p.uid}`, { version: p.version, data: { job_title: 'E2E Irrtum', department: 'E2E Abt' } })
+      await page.goto(`/person/${p.uid}`)
+      await page.getByRole('button', { name: 'History' }).click()
+      await page.getByRole('button', { name: 'Restore' }).first().click()
+      await expect(dialog(page)).toContainText(`E2E Irrtum → ${p.data.job_title}`)
+      await dialog(page).getByRole('button', { name: 'Restore' }).click()
+      await expect(page.getByText('Values restored')).toBeVisible()
+      const now = (await page.records()).find((r) => r.uid === p.uid)
+      expect([now.data.job_title, now.data.department]).toEqual([p.data.job_title, p.data.department])
+    } finally {
+      const now = (await page.records()).find((r) => r.uid === p.uid)
+      await page.api('patch', `/api/records/${p.uid}`, { version: now.version, data: { job_title: p.data.job_title, department: p.data.department } })
+    }
+  })
+
   test('invalid input is flagged while typing and blocks saving', async ({ as }) => {
     const page = await as('mmuster')
     const p = (await page.free()).find((r) => r.kind === 'person' && r.data.email)
