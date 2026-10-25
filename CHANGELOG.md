@@ -6,10 +6,15 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- vCard import (*New → Import from vCard*): each card of a `.vcf` file (vCard 2.1, 3.0, 4.0) opens as a pre-filled new-contact form, mapped through the fields' vCard targets incl. photo and company link; read-only users propose instead.
 - Undo from the history: maintainers set the fields of a change back to their previous values (*History → Restore*), with a preview and the usual validation and conflict check.
 - CardDAV `sync-collection` (RFC 6578), in Kartei and the DMZ relay: phones fetch only what changed since their last sync.
 - Webhooks: contact changes are POSTed to other systems within seconds, signed with HMAC-SHA256, retried for about a day (*Settings → API*).
 - Phone list: the current list (with search and filters) as a printable phone list, by company or by name, with selectable phone and email columns; the browser saves it as PDF.
+
+### Changed
+
+- Accessibility: grey text meets WCAG AA contrast (4.5:1) in the light and dark theme, form controls in the user list and account page have labels; a browser test checks the main screens with axe-core in both themes.
 
 ## [0.2.0-beta] – 2026-10-25
 

@@ -22,8 +22,11 @@
     /** propose: the change (or, without `rec`, the new contact) goes to a maintainer (with `proposal`: edit that
         pending proposal); adjust: a maintainer edits `proposal` and applies it */
     mode?: 'edit' | 'propose' | 'adjust'; proposal?: Proposal | null
+    /** a new contact's starting values and photo, e.g. from a vCard */
+    prefill?: { first_name?: string; last_name?: string; name?: string; company?: string | null; data?: Record<string, any> } | null
+    photo?: Blob | null
   }
-  let { rec, kind, presetCompany = null, onclose, mode = 'edit', proposal = null }: Props = $props()
+  let { rec, kind, presetCompany = null, onclose, mode = 'edit', proposal = null, prefill = null, photo = null }: Props = $props()
   const propose = untrack(() => mode !== 'edit')
   let comment = $state(untrack(() => (mode === 'propose' ? proposal?.comment ?? '' : '')))
 
@@ -43,6 +46,7 @@
   let saving = $state(false)
   let conflict = $state<Rec | null>(null)
   let confirmDiscard = $state(false)
+  for (const [k, v] of Object.entries(untrack(() => prefill) ?? {})) (draft as any)[k] = k === 'data' ? { ...draft.data, ...(v as object) } : v
   let pendingImage = $state<Blob | null>(null)
   let pendingPreview = $state<string | null>(null)
   let firstInput: HTMLInputElement | undefined = $state()
@@ -243,16 +247,24 @@
   }
 
   // --- image: downscale in the browser so uploads stay small and fast
+  async function downscale(file: Blob) {
+    const bmp = await createImageBitmap(file)
+    const scale = Math.min(1, 512 / Math.max(bmp.width, bmp.height))
+    const canvas = new OffscreenCanvas(Math.round(bmp.width * scale), Math.round(bmp.height * scale))
+    canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height)
+    const png = kind === 'company' && file.type === 'image/png'
+    return canvas.convertToBlob({ type: png ? 'image/png' : 'image/jpeg', quality: 0.85 })
+  }
+  // a photo from a vCard (not for proposals, which carry no image); one that isn't a usable image is left out
+  onMount(() => {
+    if (photo && mode === 'edit') downscale(photo).then((blob) => { pendingImage = blob; pendingPreview = URL.createObjectURL(blob) }, () => {})
+  })
+
   async function pickImage(e: Event) {
     const file = (e.currentTarget as HTMLInputElement).files?.[0]
     if (!file) return
     try {
-      const bmp = await createImageBitmap(file)
-      const scale = Math.min(1, 512 / Math.max(bmp.width, bmp.height))
-      const canvas = new OffscreenCanvas(Math.round(bmp.width * scale), Math.round(bmp.height * scale))
-      canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height)
-      const png = kind === 'company' && file.type === 'image/png'
-      const blob = await canvas.convertToBlob({ type: png ? 'image/png' : 'image/jpeg', quality: 0.85 })
+      const blob = await downscale(file)
       if (rec) {
         const saved = await api<Rec>('PUT', `/api/img/${rec.uid}`, blob)
         store.upsert(saved)
