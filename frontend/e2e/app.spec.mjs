@@ -147,6 +147,22 @@ test.describe('roles', () => {
   })
 })
 
+test.describe('data protection', () => {
+  test('an admin opens the access report of a contact; others have no button', async ({ as }) => {
+    const admin = await as('admin')
+    const p = (await admin.free()).find((r) => r.kind === 'person' && r.data.email)
+    await admin.goto(`/person/${p.uid}`)
+    await actions(admin).getByRole('link', { name: 'Access report' }).click()
+    await expect(admin.getByText(`Data access report: ${p.first_name} ${p.last_name}`)).toBeVisible()
+    await expect(admin.getByRole('cell', { name: p.data.email })).toBeVisible()
+    await expect(admin.getByRole('cell', { name: 'Access report created' }).first()).toBeVisible()
+    const editor = await as('mmuster')
+    await editor.goto(`/person/${p.uid}`)
+    await expect(actions(editor).getByRole('button', { name: 'Edit', exact: true })).toBeVisible()
+    await expect(actions(editor).getByRole('link', { name: 'Access report' })).toHaveCount(0)
+  })
+})
+
 test.describe('webhooks', () => {
   test('an admin adds a webhook, sees the secret once, tests and deletes it', async ({ as }) => {
     const page = await as('admin')

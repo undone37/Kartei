@@ -939,6 +939,7 @@ Each recipient gets the text in their own language (the default language if they
 | *Default language* | Language for users who have not chosen one in *My account*, and for emails to fixed recipients. The sign-in page follows the browser language. |
 | *Public URL* | e.g. `https://kartei.example.de`. Used for links in emails, in vCards (`SOURCE`) and for the CardDAV address. |
 | *Empty recycle bin automatically after (days)* | Contacts in the recycle bin are deleted permanently after this many days. *0* = never (default). |
+| *Anonymise the history when deleting permanently* | On (default): a contact deleted permanently also loses its name and values in its history and the audit log; see [Data protection](#data-protection). |
 | *Export interval (minutes)* | Interval of all background jobs (see [Background jobs](#background-jobs)). Default 15, minimum 1. |
 
 ### Phone numbers
@@ -1068,6 +1069,19 @@ What is logged:
 Not logged: sign-ins, and the individual runs of exports and syncs (their result is shown in the respective tab and in the `exporter` log). Automatic actions appear as user *system*, changes through a write token as `api:<token name>`.
 
 Each contact also has its own history tab, see the [user manual](user.html).
+
+## Data protection {#data-protection}
+
+Kartei holds personal data. Two functions help with the rights of the people in it (GDPR):
+
+**Access report (Art. 15).** On a contact, the document symbol (*Access report*, admins only) opens a report of everything Kartei holds about the contact, including fields only admins see, the full history, proposals and reviews, and **where the data goes**: phones (CardDAV, relay), Outlook / Exchange, Active Directory, the exports that contain the contact, API tokens and webhooks, each with the fields or columns concerned. *Print / PDF* prints it or saves it as PDF for the person. Creating a report is recorded in the contact's history.
+
+![Access report](../img/en/report.png)
+
+**Erasure (Art. 17).** Deleting a contact first moves it to the recycle bin. *Delete permanently* (or the automatic emptying under *General*) removes it for good. With *Anonymise the history when deleting permanently* (on by default), its entries in the history and the audit log then keep only who did what and when: the name and all values are removed (shown as *(anonymised)*). Turn it off only if you need the values for a documented reason.
+
+> Data that has already been passed on (export files, other systems via the API or webhooks) is not erased by Kartei: the next export run no longer contains the contact, phones and Outlook remove it at the next sync; other systems must delete it themselves (the webhook event `contact.deleted` tells them).
+{: .tip}
 
 ## Security
 
