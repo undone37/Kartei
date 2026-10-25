@@ -225,6 +225,10 @@ A company has an extra tab **People** listing everyone who works there. Maintain
 
 The **History** tab shows every change to the contact: who changed what and when, with old and new values. Proposals, reviews, decisions and deletions are listed there too.
 
+**Maintainers** can undo a change: **Restore** next to a change sets its fields back to the values before it. Kartei first shows what will change (*Job title: Assistant → Accounting*) and asks for confirmation. Fields that already have the old value again are left alone, and fields only admins may edit are skipped. The restore itself appears as a new change in the history, so it can be undone too.
+
+![Restoring a value from the history](../img/en/history-restore.png)
+
 ![History of a contact](../img/en/history.png)
 
 ## Reviews

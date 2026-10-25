@@ -1019,4 +1019,9 @@ export default {
   'phonelist.print': "Drucken / PDF",
   'phonelist.no_company': "Ohne Firma",
   'phonelist.empty': "Keine Kontakte mit Nummer in der aktuellen Liste.",
+  'history.restore': "Zurücksetzen",
+  'history.restore_hint': "Die Felder dieser Änderung auf ihre vorherigen Werte zurücksetzen",
+  'history.restore_title': "Diese Werte wiederherstellen?",
+  'history.restored': "Werte wiederhergestellt",
+  'history.conflict': "Der Kontakt wurde inzwischen geändert – bitte noch einmal versuchen",
 } as Record<string, string>

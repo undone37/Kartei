@@ -225,6 +225,10 @@ Firmen haben zusätzlich den Reiter **Personen** mit allen, die dort arbeiten. A
 
 Der Reiter **Verlauf** zeigt jede Änderung am Kontakt: wer wann was geändert hat, mit altem und neuem Wert. Auch Vorschläge, Prüfungen, Entscheidungen und Löschungen stehen dort.
 
+**Bearbeiter** können eine Änderung rückgängig machen: **Zurücksetzen** neben einer Änderung setzt deren Felder auf die Werte davor zurück. Kartei zeigt vorher, was sich ändert (*Funktion: Assistenz → Buchhaltung*), und fragt nach. Felder, die schon wieder den alten Wert haben, bleiben unberührt; Felder, die nur Admins ändern dürfen, werden übersprungen. Das Zurücksetzen erscheint selbst als neue Änderung im Verlauf – lässt sich also ebenfalls rückgängig machen.
+
+![Einen Wert aus dem Verlauf wiederherstellen](../img/de/history-restore.png)
+
 ![Verlauf eines Kontakts](../img/de/history.png)
 
 ## Prüfungen
