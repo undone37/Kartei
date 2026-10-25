@@ -151,9 +151,10 @@ test.describe('webhooks', () => {
   test('an admin adds a webhook, sees the secret once, tests and deletes it', async ({ as }) => {
     const page = await as('admin')
     await page.goto('/settings/api')
-    await page.getByPlaceholder('Name').last().fill('E2E hook')
-    await page.getByLabel('Address (URL)').fill('http://127.0.0.1:9/unreachable')
-    await page.getByRole('button', { name: 'Add webhook' }).click()
+    const form = page.locator('form').filter({ has: page.getByLabel('Address (URL)') }) // waits for the webhooks section
+    await form.getByLabel('Name').fill('E2E hook')
+    await form.getByLabel('Address (URL)').fill('http://127.0.0.1:9/unreachable')
+    await form.getByRole('button', { name: 'Add webhook' }).click()
     await expect(page.getByText(/^whsec_/)).toBeVisible()
     const row = page.getByRole('row').filter({ hasText: 'E2E hook' })
     try {
