@@ -153,6 +153,7 @@ test.describe('two-factor policy', () => {
       await page.getByLabel('Code from the app').fill(totpCode(secret))
       await page.locator('#totp-pw').fill(PW.other)
       await page.getByRole('button', { name: 'Switch on' }).click()
+      await expect(page.getByText('Keep these recovery codes safe')).toBeVisible()
       recovery = (await page.locator('.codes code').allTextContents()).map((c) => c.trim())
       await page.getByRole('button', { name: 'Saved them' }).click()
       await expect(page.getByRole('listbox')).toBeVisible()
