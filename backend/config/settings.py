@@ -92,6 +92,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # CSV imports
 
 LOGGING = {
     "version": 1,
+    "disable_existing_loggers": False,  # else django.request is off and server errors leave no traceback in the log
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": os.environ.get("LOG_LEVEL", "INFO")},
 }

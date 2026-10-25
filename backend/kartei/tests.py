@@ -1377,3 +1377,30 @@ class SeedDemoTests(TestCase):
         self.assertIn("Kunde", [o["value"] for o in kw.options])
         with self.assertRaises(CommandError):  # never on top of real data
             call_command("seed_demo", stdout=io.StringIO())
+
+
+class CsvReadTests(ApiTestBase):
+    """Files as real exports produce them: none of these may end in a server error."""
+    def preview(self, data, status=200):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.as_("admin")
+        r = self.client.post("/api/admin/import/preview", {"file": SimpleUploadedFile("k.csv", data, content_type="text/csv")})
+        self.assertEqual(r.status_code, status, r.content[:300])
+        return r.json()
+
+    def test_line_endings_encodings_and_long_fields(self):
+        base = "Vorname;Nachname;Firma\nJürgen;Groß;Müller GmbH\nAnna;Bär;\n"
+        for data in (base.replace("\n", "\r").encode("cp1252"),  # "CSV (Macintosh)"
+                     base.replace("\n", "\r\n").encode("utf-8-sig"), base.encode("utf-16"), base.encode("cp1252")):
+            p = self.preview(data)
+            self.assertEqual(p["headers"], ["Vorname", "Nachname", "Firma"])
+            self.assertEqual(p["samples"][0][:2], ["Jürgen", "Groß"])
+        self.assertEqual(self.preview(("A;B\nx;" + "y" * 200000 + "\n").encode())["headers"], ["A", "B"])
+
+    def test_excel_and_broken_files_get_a_message(self):
+        self.assertIn("import_excel", self.preview(b"PK\x03\x04rest", status=400)["detail"])
+        self.assertIn("import_unreadable", self.preview(b'A;B\n"x;y\n' + b"z" * 20 * 1024 * 1024, status=400)["detail"])
+
+    def test_large_upload(self):
+        rows = "".join(f"Max{i};Muster{i};m{i}@example.com;{'x' * 120}\n" for i in range(80000))  # ~12 MB
+        self.assertEqual(len(self.preview(("Vorname;Nachname;E-Mail;Notiz\n" + rows).encode())["headers"]), 4)

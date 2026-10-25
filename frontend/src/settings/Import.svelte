@@ -24,6 +24,7 @@
   let result = $state<any>(null)
   let busy = $state(false)
   let error = $state('')
+  let dragging = $state(false)
 
   const fail = (e: unknown) =>
     (error = e instanceof ApiError ? (e.body?.detail ? tmsg(e.body.detail) : terr(e.code)) : t('err.generic'))
@@ -84,7 +85,9 @@
 
 <div class="card box">
   <p>{t('import.hint')}</p>
-  <label class="drop">
+  <label class="drop" class:on={dragging}
+         ondragover={(e) => { e.preventDefault(); dragging = true }} ondragleave={() => (dragging = false)}
+         ondrop={(e) => { e.preventDefault(); dragging = false; pick(e.dataTransfer?.files?.[0] ?? null) }}>
     <Upload size={18} />
     <span>{file ? file.name : t('import.pick')}</span>
     <input type="file" accept=".csv,text/csv" hidden onchange={(e) => pick(e.currentTarget.files?.[0] ?? null)} />
@@ -165,7 +168,7 @@
   .grid td:nth-child(n + 3) { min-width: 220px; }
   .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
   .drop { display: flex; align-items: center; gap: 10px; padding: 24px; border: 2px dashed var(--border-strong); border-radius: 10px; cursor: pointer; color: var(--muted); justify-content: center; }
-  .drop:hover { border-color: var(--accent); color: var(--text); }
+  .drop:hover, .drop.on { border-color: var(--accent); color: var(--text); }
   .actions { display: flex; gap: 8px; }
   .result { padding: 12px; border-radius: 8px; background: var(--ok-soft); display: grid; gap: 4px; }
   .result.dry { background: var(--panel-2); }

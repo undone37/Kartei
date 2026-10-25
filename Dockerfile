@@ -28,7 +28,7 @@ ENV DJANGO_SETTINGS_MODULE=config.relay_settings RELAY_DB=/data/relay.sqlite3 HO
 RUN mkdir /data && chown kartei /data
 USER kartei
 EXPOSE 8000
-CMD ["sh", "-c", "python manage.py migrate --noinput -v0 && exec gunicorn config.wsgi -b 0.0.0.0:8000 -k gthread -w 1 --threads 8 --access-logfile - --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "python manage.py migrate --noinput -v0 && exec gunicorn config.wsgi --no-control-socket -b 0.0.0.0:8000 -k gthread -w 1 --threads 8 --access-logfile - --forwarded-allow-ips='*'"]
 
 # --- Kartei (default target)
 FROM backend
@@ -39,4 +39,4 @@ RUN SECRET_KEY=build python manage.py collectstatic --noinput -v0 \
  && mkdir -p /export && chown kartei /export
 USER kartei
 EXPOSE 8000
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py init_app && exec gunicorn config.wsgi -b 0.0.0.0:8000 -k gthread -w 3 --threads 4 --access-logfile - --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py init_app && exec gunicorn config.wsgi --no-control-socket -b 0.0.0.0:8000 -k gthread -w 3 --threads 4 --access-logfile - --forwarded-allow-ips='*'"]

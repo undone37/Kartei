@@ -255,6 +255,23 @@ test.describe('leavers', () => {
   })
 })
 
+test.describe('CSV import', () => {
+  test('a CSV dropped on the dashed area is read (also with old Mac line endings)', async ({ as }) => {
+    const admin = await as('admin')
+    await admin.goto('/settings/import')
+    const csv = 'Vorname;Nachname;Firma\rJürgen;Groß;Muster GmbH\r'
+    const dt = await admin.evaluateHandle((text) => {
+      const d = new DataTransfer()
+      d.items.add(new File([text], 'kontakte.csv', { type: 'text/csv' }))
+      return d
+    }, csv)
+    await admin.locator('label.drop').dispatchEvent('dragover', { dataTransfer: dt })
+    await admin.locator('label.drop').dispatchEvent('drop', { dataTransfer: dt })
+    await expect(admin.locator('label.drop')).toContainText('kontakte.csv')
+    await expect(admin.getByText('Jürgen').first()).toBeVisible()
+  })
+})
+
 test.describe('roles', () => {
   test('read only: no edit, new contacts only as proposals, no settings', async ({ as }) => {
     const page = await as('kkramer')
