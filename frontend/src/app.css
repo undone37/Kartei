@@ -5,8 +5,8 @@
   --border: light-dark(#e4e4e7, #2a2a31);
   --border-strong: light-dark(#d4d4d8, #3a3a42);
   --text: light-dark(#18181b, #ededf0);
-  --muted: light-dark(#71717a, #a1a1aa);
-  --faint: light-dark(#a1a1aa, #6b6b74);
+  --muted: light-dark(#5f5f67, #a1a1aa);  /* text contrast >= 4.5:1 on every panel (WCAG AA) */
+  --faint: light-dark(#6b6b73, #8a8a93);  /* also used for small text (counts, keys): >= 4.5:1 too */
   --accent: light-dark(#4f46e5, #818cf8);
   --accent-hover: light-dark(#4338ca, #a5b4fc);
   --accent-soft: light-dark(#eef2ff, #1e1b4b);

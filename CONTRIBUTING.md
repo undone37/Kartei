@@ -34,6 +34,7 @@ The [README](README.md#development) has the full setup. In short: Python 3.14 wi
 
 ## Project conventions
 
+- **Accessibility:** the browser tests check the main screens against WCAG 2.1 AA (axe-core, light and dark). Use the colour variables (`--muted`, `--faint`, …) for text instead of new greys, and give every form control a label or `aria-label`.
 - **Two languages:** every UI string exists in German and English (`frontend/src/i18n/de.ts` and `en.ts`); a test checks that both have the same keys. The API returns error codes, the frontend translates them.
 - **Configurable in the UI:** settings belong in the database and the *Settings* area, not in environment variables or code. Environment variables are only for bootstrap values (database, secret key, hosts, first admin).
 - **No customer specifics:** no company names, host names, paths or field sets of a particular installation in code, examples or documentation. Field sets are JSON files in `examples/`.

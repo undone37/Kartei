@@ -227,6 +227,10 @@ The **History** tab shows every change to the contact: who changed what and when
 
 ![History of a contact](../img/en/history.png)
 
+**Maintainers** can undo a change: **Restore** next to a change sets its fields back to the values before it. Kartei first shows what will change (*Job title: Assistant → Accounting*) and asks for confirmation. Fields that already have the old value again are left alone, and fields only admins may edit are skipped. The restore itself appears as a new change in the history, so it can be undone too.
+
+![Restoring a value from the history](../img/en/history-restore.png)
+
 ## Reviews
 
 Contact details go out of date: people change jobs, companies move or close down. That is why Kartei regularly asks the colleague responsible for a contact (its *Internal contact*) to check it.
@@ -325,6 +329,19 @@ Once a maintainer has decided, the proposal disappears from the list; the decisi
 ![New menu](../img/en/new-menu.png)
 
 For a person, choose the **Company** by typing part of its name (*Search company …*). To create a new employee of a company directly, open the company, go to the **People** tab and click **Add person to this company**; the company is then filled in already.
+
+### Importing from a vCard {#importing-from-a-vcard}
+
+Contacts that arrive as a vCard (`.vcf`), e.g. attached to an email, exported from a phone or from Outlook, don't have to be typed in:
+
+1. Click **New** at the top right and choose **Import from vCard …**.
+2. Drop the `.vcf` file onto the box or click it to choose one (several files or a file with several cards are fine). Alternatively, paste the vCard text.
+3. Each card opens as a **filled-in new-contact form** (*Contact 1 of 3*): names, company, job title, phone numbers, email addresses, address, birthday and photo go into the fields that have the matching vCard assignment. The company is linked if Kartei already knows it, and the usual duplicate hint and *Copy details from …* panel appear.
+4. Check and complete the details and click **Create**, or **Skip** the card.
+
+![Importing a contact from a vCard](../img/en/vcard-import.png)
+
+Values without a matching field (e.g. a pager number) are listed above the form so you can copy them by hand. With the role *Read only*, the cards become [proposals](#proposing-a-new-contact) instead.
 
 ### Copying details from the company
 

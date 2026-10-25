@@ -31,7 +31,7 @@
   <h1>{t('top.account')}</h1>
   <section class="card">
     <h2>{t('account.language')}</h2>
-    <select class="select" value={store.user?.language ?? ''} onchange={(e) => setLanguage(e.currentTarget.value)}>
+    <select class="select" aria-label={t('account.language')} value={store.user?.language ?? ''} onchange={(e) => setLanguage(e.currentTarget.value)}>
       <option value="">{t('account.lang_default', { lang: store.defaultLang === 'de' ? 'Deutsch' : 'English' })}</option>
       <option value="de">Deutsch</option>
       <option value="en">English</option>
