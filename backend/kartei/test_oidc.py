@@ -113,3 +113,16 @@ class OidcTests(ApiTestBase):
         Settings.objects.update(base_url="https://kartei.example", graph_tenant_id="common")
         bad = self.j("put", "/api/admin/settings", {"oidc_enabled": True}, status=400)
         self.assertEqual(bad["fields"]["oidc_enabled"], "oidc_tenant_id")
+
+    def test_two_factor_still_asked_after_microsoft(self):
+        from . import totp
+        p = Profile.objects.get(user__username="maintainer")
+        p.totp_secret = secret = totp.new_secret()
+        p.save()
+        self.assertEqual(self.sso(), "/?login_step=totp")
+        self.assertFalse(self.client.get("/api/session").json()["authenticated"])
+        self.assertEqual(self.j("post", "/api/login", {"code": "000000"}, status=401)["error"], "invalid_code")
+        self.j("post", "/api/login", {"username": "", "code": totp.code_at(secret, int(time.time() // totp.STEP))})
+        self.assertEqual(self.client.get("/api/session").json()["user"]["username"], "maintainer")
+        self.client.logout()
+        self.assertEqual(self.j("post", "/api/login", {"code": "123456"}, status=401)["error"], "invalid_credentials")

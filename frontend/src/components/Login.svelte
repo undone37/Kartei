@@ -9,10 +9,12 @@
   // a failed "Sign in with Microsoft" comes back as /?login_error=<code>
   const ssoError = new URLSearchParams(location.search).get('login_error')
   let error = $state(ssoError ? terr(ssoError) : '')
-  if (ssoError) history.replaceState(null, '', '/')
+  // after Microsoft, an account with two-factor sign-in still needs its code (/?login_step=totp)
+  const ssoCode = new URLSearchParams(location.search).get('login_step') === 'totp'
+  if (ssoError || ssoCode) history.replaceState(null, '', '/')
   let busy = $state(false)
-  /** second step: the password was right, the account has two-factor sign-in */
-  let needCode = $state(false)
+  /** second step: the password (or Microsoft) was right, the account has two-factor sign-in */
+  let needCode = $state(ssoCode)
   let code = $state('')
 
   async function submit(e: SubmitEvent) {

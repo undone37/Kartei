@@ -2,6 +2,7 @@
 import json
 import re
 import secrets
+import time
 import uuid
 from datetime import timedelta
 from functools import wraps
@@ -181,11 +182,20 @@ def login_view(request):
     except ValueError:
         return err("invalid_json")
     username, password = str(body.get("username", "")).strip(), str(body.get("password", ""))
+    # after "Sign in with Microsoft" a user with two-factor sign-in only sends the code (see oidc_callback)
+    sso = request.session.get("sso_pending") if not username else None
+    if sso:
+        if time.time() - sso["at"] > 300:
+            request.session.pop("sso_pending")
+            return err("sso_expired", 401)
+        user = User.objects.filter(pk=sso["user"], is_active=True).first()
+        username = user.username if user else ""
     # ponytail: per-process cache counter; use a shared cache (DB/redis) if brute force across workers matters
     key = f"login-fail:{client_ip(request)}:{username.lower()}"
     if cache.get(key, 0) >= 10:
         return err("too_many_attempts", 429)
-    user = authenticate(request, username=username, password=password)
+    if not sso:
+        user = authenticate(request, username=username, password=password)
     if user is None or not user.is_active:
         cache.set(key, cache.get(key, 0) + 1, 15 * 60)
         return err("invalid_credentials", 401)
@@ -199,8 +209,12 @@ def login_view(request):
             cache.set(key, cache.get(key, 0) + 1, 15 * 60)
             return err("invalid_code", 401)
     cache.delete(key)
-    login(request, user)
-    profile_of(user)
+    if sso:
+        request.session.pop("sso_pending")
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+        audit.log(user, "login", "user", user.id, user.username, {"sso": [None, "microsoft"]})
+    else:
+        login(request, user)
     return JsonResponse({"user": ser_user(user)})
 
 
@@ -309,8 +323,10 @@ def oidc_callback(request):
         user = oidc.finish(request.session, s, request.GET.get("code", ""), request.GET.get("state", ""))
     except oidc.SignInError as e:
         return HttpResponseRedirect(f"/?login_error={e}")
+    if profile_of(user).totp_secret_enc:  # Microsoft doesn't replace Kartei's second factor: the login page asks for the code
+        request.session["sso_pending"] = {"user": user.id, "at": int(time.time())}
+        return HttpResponseRedirect("/?login_step=totp")
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-    profile_of(user)
     audit.log(user, "login", "user", user.id, user.username, {"sso": [None, "microsoft"]})
     return HttpResponseRedirect("/")
 
