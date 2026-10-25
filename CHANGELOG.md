@@ -4,6 +4,12 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.3.1-beta] – 2026-10-25
+
+Bug-fix release: the CSV import works with real-world files and accepts drag and drop, and server errors are logged again.
+
+**Upgrading:** pull the new image or rebuild. There are no database migrations and nothing to configure.
+
 ### Fixed
 
 - **CSV import, failures on real-world files:**
@@ -85,7 +91,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.3.0-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.3.1-beta...HEAD
+[0.3.1-beta]: https://github.com/undone37/Kartei/compare/v0.3.0-beta...v0.3.1-beta
 [0.3.0-beta]: https://github.com/undone37/Kartei/compare/v0.2.0-beta...v0.3.0-beta
 [0.2.0-beta]: https://github.com/undone37/Kartei/compare/v0.1.0-beta...v0.2.0-beta
 [0.1.0-beta]: https://github.com/undone37/Kartei/releases/tag/v0.1.0-beta
