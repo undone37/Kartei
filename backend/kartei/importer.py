@@ -48,7 +48,14 @@ def norm(s):
     return re.sub(r"[^a-z0-9]", "", s)
 
 
+csv.field_size_limit(16 * 1024 * 1024)  # long descriptions; the default (128 KB) aborted the whole import
+
+
 def _decode(raw):
+    if raw[:4] == b"PK\x03\x04" or raw[:4] == b"\xd0\xcf\x11\xe0":  # .xlsx (zip) / .xls (OLE)
+        raise ImportError_(msg("import_excel"))
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff"):  # Excel's "Unicode text" and other UTF-16 exports
+        return raw.decode("utf-16")
     for enc in ("utf-8-sig", "cp1252"):
         try:
             return raw.decode(enc)
@@ -58,13 +65,17 @@ def _decode(raw):
 
 
 def read_csv(raw):
-    text = _decode(raw)
+    # CR-only line endings (old Mac, Excel's "CSV (Macintosh)") read like LF and CRLF
+    text = _decode(raw).replace("\r\n", "\n").replace("\r", "\n")
     try:
         dialect = csv.Sniffer().sniff(text[:5000], delimiters=",;\t")
     except csv.Error:
         dialect = csv.excel
     reader = csv.DictReader(io.StringIO(text), dialect=dialect)
-    rows = list(reader)
+    try:
+        rows = list(reader)
+    except csv.Error as e:
+        raise ImportError_(msg("import_unreadable", line=reader.line_num, error=str(e)))
     if not rows:
         raise ImportError_(msg("import_empty"))
     return list(reader.fieldnames), rows

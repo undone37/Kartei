@@ -4,6 +4,19 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Fixed
+
+- **CSV import, failures on real-world files:**
+  - Mac line endings (CR only, Excel's "CSV (Macintosh)") and fields over 128 KB no longer end in an error.
+  - UTF-16 files (Excel's "Unicode text") are read correctly.
+  - An Excel file gets a clear message.
+  - Uploads over 10 MB work, up to the reverse proxy's limit.
+- **CSV import, drag and drop:** dropping a file on the dashed area now works.
+- **Error messages:** server errors (500) and uploads rejected by the reverse proxy (413) say where to look instead of "Something went wrong".
+- **Logging:**
+  - Server errors now appear with a traceback in `docker compose logs web`; Django's request logger was switched off.
+  - gunicorn no longer logs `Control server error: Permission denied: '/home/kartei'`, because its control socket is unused and now off.
+
 ## [0.3.0-beta] – 2026-10-25
 
 Third beta, focused on sign-in and people:

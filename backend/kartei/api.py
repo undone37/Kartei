@@ -61,7 +61,7 @@ def needs(min_rank):
             if fn.__name__ not in ("my_totp", "update_me") and totp_due(request.user, request):  # set up the required 2FA first
                 return err("totp_setup_required", 403)
             request.json = {}
-            if request.body and request.content_type == "application/json":
+            if request.content_type == "application/json" and request.body:  # not for uploads: no body size limit there
                 try:
                     request.json = json.loads(request.body)
                 except ValueError:
