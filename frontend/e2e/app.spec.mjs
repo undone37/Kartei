@@ -297,6 +297,36 @@ test.describe('new contact proposals', () => {
   })
 })
 
+test.describe('vCard import', () => {
+  test('a maintainer imports a .vcf: pre-filled form, linked company, skip, summary', async ({ as }) => {
+    const page = await as('mmuster')
+    const c = (await page.records()).find((r) => r.kind === 'company')
+    const vcf = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Vogelsang;Vera;;;', `ORG:${c.name};Einkauf`, 'TITLE:Einkauf',
+      'EMAIL;TYPE=WORK:vera.vogelsang@beispiel.example', 'TEL;TYPE=CELL:+49 170 5550101', 'END:VCARD',
+      'BEGIN:VCARD', 'VERSION:3.0', 'KIND:org', 'FN:Zweite Testfirma', 'ORG:Zweite Testfirma', 'END:VCARD'].join('\r\n')
+    await page.goto('/')
+    await page.getByRole('button', { name: 'New' }).click()
+    await page.getByRole('link', { name: 'Import from vCard …' }).click()
+    await page.locator('input[type=file]').setInputFiles({ name: 'contacts.vcf', mimeType: 'text/vcard', buffer: Buffer.from(vcf) })
+    await expect(page.getByText('Contact 1 of 2')).toBeVisible()
+    await expect(page.locator('#last_name')).toHaveValue('Vogelsang')
+    await expect(page.locator('#f-email')).toHaveValue('vera.vogelsang@beispiel.example')
+    await expect(page.locator('#f-mobile')).toHaveValue('+49 170 5550101')
+    await choose(page, page.locator('#f-internal_contact'))
+    await page.keyboard.press('Control+s')
+    await expect(page.getByText('Contact 2 of 2')).toBeVisible()
+    await page.getByRole('button', { name: 'Skip' }).click()
+    await expect(page.getByText('Done: 1 created, 0 proposed, 1 skipped.')).toBeVisible()
+    const r = (await page.records()).find((x) => x.last_name === 'Vogelsang')
+    try {
+      expect(r.company).toBe(c.uid)
+    } finally {
+      await page.api('delete', `/api/records/${r.uid}`)
+      await (await as('admin')).api('delete', `/api/trash/${r.uid}`)
+    }
+  })
+})
+
 test.describe('deleting', () => {
   test('delete asks first; the contact goes to the recycle bin and comes back', async ({ as }) => {
     const page = await as('mmuster')
