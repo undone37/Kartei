@@ -54,7 +54,9 @@ class ScimTests(ApiTestBase):
         new = self.j("post", "/api/admin/scim/token")["token"]
         self.assertNotIn(new, json.dumps(list(AuditEntry.objects.values_list("changes", flat=True))))
         self.scim("get", "Users", status=401)  # the old token is gone
+        self.assertIsNone(self.j("get", "/api/admin/settings")["scim_seen_at"])  # failed attempts don't count
         self.scim("get", "Users", token=new)
+        self.assertTrue(self.j("get", "/api/admin/settings")["scim_seen_at"])
         for path in ("ServiceProviderConfig", "ResourceTypes", "Schemas"):
             self.scim("get", path, token=new)
 

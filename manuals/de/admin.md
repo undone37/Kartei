@@ -435,7 +435,7 @@ Das Feld unter der Schaltfläche zeigt den letzten Lauf: *neu · aktualisiert ·
 
 ### Bereitstellung (SCIM 2.0)
 
-1. Unter *Bereitstellung (SCIM 2.0)* die *SCIM-Basis-URL* (`https://kartei.example.com/scim/v2`) kopieren und *Token erzeugen* klicken. Das Token wird **einmal** angezeigt; ein neues Token ersetzt das alte.
+1. Unter *Bereitstellung (SCIM 2.0)* die *SCIM-Basis-URL* (`https://kartei.example.com/scim/v2`) kopieren und *Token erzeugen* klicken. Das Token wird **einmal** angezeigt; ein neues Token ersetzt das alte. Neben der Schaltfläche zeigt *Letzter Kontakt vom Identitätsanbieter*, wann er Kartei zuletzt aufgerufen hat – ein schneller Check, ob die Bereitstellung läuft.
 2. Im Identity-Provider für die App die Bereitstellung mit dieser URL und dem Token als Bearer-Token einrichten (Entra ID: *Unternehmensanwendung → Bereitstellung → Automatisch*, *Mandanten-URL* und *Geheimes Token*). Die Benutzer und Gruppen zuweisen, die Kartei bekommen sollen.
 3. Sobald die ersten Gruppen angekommen sind, sie unter *Rollen aus Gruppen* den Rollen *Admin*, *Bearbeiter* und *Nur Lesen* zuordnen und speichern.
 

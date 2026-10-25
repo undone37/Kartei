@@ -8,11 +8,13 @@ wins). Users are never deleted, only deactivated, so the history keeps its names
 import hmac
 import json
 import re
+from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from . import audit
@@ -97,6 +99,8 @@ def scim(request, path):
         resp = error(401, "Invalid or missing bearer token")
         resp["WWW-Authenticate"] = 'Bearer realm="Kartei SCIM"'
         return resp
+    # at most one write a minute; update(), so it can't overwrite settings saved in the meantime
+    Settings.objects.filter(pk=1).exclude(scim_seen_at__gt=timezone.now() - timedelta(minutes=1)).update(scim_seen_at=timezone.now())
     parts = path.strip("/").split("/")
     try:
         body = json.loads(request.body) if request.body else {}

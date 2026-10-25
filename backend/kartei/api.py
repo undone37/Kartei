@@ -1580,6 +1580,7 @@ def ser_settings(s):
             "ad_bind_password_set": bool(s.ad_bind_password_enc), "ad_status": s.ad_status,
             "ad_sync_requested": s.ad_sync_requested, **relaypush.ser(s),
             "oidc_client_secret_set": bool(s.oidc_client_secret_enc), "scim_token_set": bool(s.scim_token_hash),
+            "scim_seen_at": s.scim_seen_at.isoformat() if s.scim_seen_at else None,
             "scim_groups": [{"id": str(g.id), "name": g.display_name, "members": g.n}
                             for g in ScimGroup.objects.annotate(n=Count("members"))]}
 

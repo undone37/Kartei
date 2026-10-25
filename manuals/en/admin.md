@@ -435,7 +435,7 @@ The box below the button shows the last run: *new · updated · deactivated · l
 
 ### Provisioning (SCIM 2.0)
 
-1. Under *Provisioning (SCIM 2.0)*, copy the *SCIM base URL* (`https://kartei.example.com/scim/v2`) and click *Generate token*. The token is shown **once**; a new token replaces the old one.
+1. Under *Provisioning (SCIM 2.0)*, copy the *SCIM base URL* (`https://kartei.example.com/scim/v2`) and click *Generate token*. The token is shown **once**; a new token replaces the old one. Next to the button, *Last contact from the identity provider* shows when it last called Kartei — a quick check that provisioning runs.
 2. In the identity provider, set up provisioning for the app with this URL and the token as bearer token (Entra ID: *Enterprise application → Provisioning → Automatic*, *Tenant URL* and *Secret Token*). Assign the users and groups that should get Kartei.
 3. Once the first groups have arrived, map them under *Roles from groups* to *Admin*, *Maintainer* and *Read only*, and save.
 

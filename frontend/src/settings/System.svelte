@@ -268,6 +268,7 @@
       </div>
       <div class="test">
         <button type="button" class="btn" onclick={genScimToken}><KeyRound size={15} />{t(s.scim_token_set ? 'sso.scim_regen' : 'sso.scim_gen')}</button>
+        {#if s.scim_token_set}<span class="hint" title={s.scim_seen_at ? dateTime(s.scim_seen_at) : ''}>{t('sso.scim_seen')}: {s.scim_seen_at ? relTime(s.scim_seen_at) : t('sso.scim_never')}</span>{/if}
       </div>
       {#if scimToken}
         <div class="result">

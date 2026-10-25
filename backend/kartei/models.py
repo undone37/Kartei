@@ -161,6 +161,7 @@ class Settings(models.Model):
     oidc_claim = models.CharField(max_length=20, default="preferred_username")  # matched at the first sign-in
     oidc_label = models.CharField(max_length=60, blank=True)  # login button; empty = "Sign in with single sign-on"
     scim_token_hash = models.CharField(max_length=64, blank=True)  # SHA-256 of the bearer token, shown once
+    scim_seen_at = models.DateTimeField(null=True, blank=True)  # last authenticated SCIM request (shown in the UI)
     scim_group_admin = models.CharField(max_length=20, blank=True)  # ScimGroup ids
     scim_group_maintainer = models.CharField(max_length=20, blank=True)
     scim_group_read = models.CharField(max_length=20, blank=True)

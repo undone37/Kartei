@@ -1122,6 +1122,8 @@ export default {
   'sso.scim': "Provisioning (SCIM 2.0)",
   'sso.scim_hint': "In the identity provider, set up provisioning with this URL and a token from here. It creates, changes and deactivates users and pushes groups. SCIM users are never deleted, only deactivated, so the history keeps their names.",
   'sso.scim_url': "SCIM base URL (tenant URL)",
+  'sso.scim_seen': "Last contact from the identity provider",
+  'sso.scim_never': "never yet",
   'sso.scim_gen': "Generate token",
   'sso.scim_regen': "Generate new token",
   'sso.scim_token_once': "Copy the token into the identity provider now – it is shown only once. The previous token no longer works.",

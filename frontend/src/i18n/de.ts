@@ -1122,6 +1122,8 @@ export default {
   'sso.scim': "Bereitstellung (SCIM 2.0)",
   'sso.scim_hint': "Im Identity-Provider die Bereitstellung mit dieser URL und einem Token von hier einrichten. Er legt Benutzer an, ändert und deaktiviert sie und überträgt Gruppen. SCIM-Benutzer werden nie gelöscht, nur deaktiviert – so behält die Historie ihre Namen.",
   'sso.scim_url': "SCIM-Basis-URL (Mandanten-URL)",
+  'sso.scim_seen': "Letzter Kontakt vom Identitätsanbieter",
+  'sso.scim_never': "noch nie",
   'sso.scim_gen': "Token erzeugen",
   'sso.scim_regen': "Neues Token erzeugen",
   'sso.scim_token_once': "Das Token jetzt in den Identity-Provider kopieren – es wird nur einmal angezeigt. Das bisherige Token gilt nicht mehr.",
