@@ -519,6 +519,15 @@
         <p class="hint">{t('graph.folder_hint')}</p>
         {#if errors.graph_folder}<div class="error-text">{terr(errors.graph_folder)}</div>{/if}
       </div>
+      <div class="row2">
+        <div><label class="label" for="gfr">{t('graph.folder_responsible')}</label>
+          <input id="gfr" class="input" bind:value={s.graph_folder_responsible} placeholder={t('graph.folder_off')} />
+          {#if errors.graph_folder_responsible}<div class="error-text">{terr(errors.graph_folder_responsible)}</div>{/if}</div>
+        <div><label class="label" for="gfi">{t('graph.folder_internal')}</label>
+          <input id="gfi" class="input" bind:value={s.graph_folder_internal} placeholder={t('graph.folder_off')} />
+          {#if errors.graph_folder_internal}<div class="error-text">{terr(errors.graph_folder_internal)}</div>{/if}</div>
+      </div>
+      <p class="hint">{t('graph.personal_hint')}</p>
       <div class="test">
         <button type="button" class="btn" onclick={testGraph} disabled={testing}><PlugZap size={15} />{t('graph.test')}</button>
         <button type="button" class="btn" class:spin={syncSince} onclick={syncNow} disabled={!!syncSince || !s.graph_enabled}><RefreshCw size={15} />{t('graph.sync_now')}</button>

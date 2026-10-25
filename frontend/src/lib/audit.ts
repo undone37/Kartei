@@ -40,7 +40,7 @@ const ATTR: Record<string, Record<string, string>> = {
     carddav_relay_tls_verify: 'carddav.relay_tls_verify', carddav_relay_ca_cert: 'carddav.relay_ca',
     carddav_relay_max_delete_percent: 'ad.guard',
     graph_enabled: 'graph.enabled', graph_tenant_id: 'graph.tenant', graph_client_id: 'graph.client',
-    graph_client_secret_enc: 'graph.secret', graph_group_id: 'graph.group', graph_folder: 'graph.folder',
+    graph_client_secret_enc: 'graph.secret', graph_group_id: 'graph.group', graph_folder: 'graph.folder', graph_folder_responsible: 'graph.folder_responsible', graph_folder_internal: 'graph.folder_internal',
     review_mode: 'audit.attr.review_mode', review_interval_months: 'review.interval',
     review_campaign_month: 'review.month', review_campaign_day: 'review.day', smtp_host: 'mail.host',
     smtp_port: 'mail.port', smtp_security: 'mail.security', smtp_username: 'mail.username',

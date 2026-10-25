@@ -570,7 +570,7 @@ Während du in einem Feld tippst, sind die Kürzel aus – außer <kbd>Strg</kbd
 
 Nutzt deine Organisation das, können die Kontakte aus Kartei auch im Adressbuch deines Handys erscheinen – dann siehst du bei Anrufen, wer anruft. Eingerichtet wird das von der IT bzw. der Administration:
 
-- **Outlook-App (iPhone und Android):** Nutzt deine Organisation Microsoft 365, legt Kartei die Kontakte in einem Ordner in deinem Postfach ab. Schalte in der Outlook-App für dein Konto *Kontakte speichern* ein (*Einstellungen* → Konto → *Kontakte speichern*), damit sie auf dem Handy gespeichert werden.
+- **Outlook-App (iPhone und Android):** Nutzt deine Organisation Microsoft 365, legt Kartei die Kontakte in einem Ordner in deinem Postfach ab. Hat dein Admin sie eingeschaltet, enthalten zwei weitere Ordner nur deine eigenen Kontakte: die, für die du zuständig bist, und die, bei denen du als interner Kontakt eingetragen bist. Schalte in der Outlook-App für dein Konto *Kontakte speichern* ein (*Einstellungen* → Konto → *Kontakte speichern*), damit sie auf dem Handy gespeichert werden.
 - **CardDAV-Konto (iPhone):** die Alternative, z. B. für Telefone ohne eigenes Postfach. Serveradresse und Zugangsdaten bekommst du von der Administration. Die Kontakte erscheinen als eigenes Adressbuch und lassen sich auf dem Handy nicht ändern.
 
 Synchronisiert werden nur Felder, die für alle sichtbar sind. Geändert wird in Kartei, nicht auf dem Handy; beim nächsten Abgleich kommt die Änderung aufs Handy.
