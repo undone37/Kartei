@@ -209,6 +209,8 @@
           <input id="trash" class="input" type="number" min="0" bind:value={s.trash_days} />
           <p class="hint">{t('general.trash_hint')}</p>
           {#if errors.trash_days}<div class="error-text">{terr(errors.trash_days)}</div>{/if}
+          <label class="check"><input type="checkbox" bind:checked={s.purge_anonymize} /> {t('general.purge_anonymize')}</label>
+          <p class="hint">{t('general.purge_anonymize_hint')}</p>
         </div>
         <div>
           <label class="label" for="iv">{t('general.export_interval')}</label>

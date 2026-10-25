@@ -62,6 +62,7 @@ class Settings(models.Model):
     default_language = models.CharField(max_length=2, choices=LANGUAGES, default="de")
     base_url = models.URLField(blank=True)
     trash_days = models.PositiveIntegerField(default=0)  # 0 = recycle bin is never purged
+    purge_anonymize = models.BooleanField(default=True)  # purging also removes values and name from the history (GDPR)
     export_interval_minutes = models.PositiveIntegerField(default=15)
 
     ldap_uri = models.CharField(max_length=255, blank=True)  # empty = LDAP disabled

@@ -86,18 +86,22 @@ def validate_profile(p, check_path=True):
     return errors
 
 
+def included(p, r):
+    """Does export profile p contain record r (kind and filter field)?"""
+    if p.kinds != "both" and r.kind != p.kinds:
+        return False
+    if p.filter_field_id and p.filter_values:
+        v = r.data.get(p.filter_field.key)
+        vals = v if isinstance(v, list) else [v]
+        return bool(set(map(str, vals)) & set(map(str, p.filter_values)))
+    return True
+
+
 def _records(p):
     qs = Record.objects.filter(deleted_at__isnull=True).select_related("company").defer("image")
     if p.kinds != "both":
         qs = qs.filter(kind=p.kinds)
-    out = []
-    for r in qs:
-        if p.filter_field_id and p.filter_values:
-            v = r.data.get(p.filter_field.key)
-            vals = v if isinstance(v, list) else [v]
-            if not set(map(str, vals)) & set(map(str, p.filter_values)):
-                continue
-        out.append(r)
+    out = [r for r in qs if included(p, r)]
     out.sort(key=lambda r: (r.kind != "company", r.display_name.lower()))
     return out
 

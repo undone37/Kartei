@@ -70,6 +70,7 @@ const SHOTS = [
   { name: 'duplicates', user: 'admin', path: '/duplicates' },
   { name: 'merge', user: 'admin', path: '/duplicates', steps: open('a[href^="/duplicates/"]') },
   { name: 'trash', user: 'mmuster', path: '/trash' },
+  { name: 'report', user: 'admin', path: (h) => `/report/${h.person}` },
   { name: 'phonelist', user: 'mmuster', path: '/phonelist' },
   { name: 'vcard-import', user: 'mmuster', path: '/import/vcard', steps: async (p) => {
       const vcf = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lehmann;Jonas;;;', 'ORG:Musterfirma Energie AG;Vertrieb', 'TITLE:Vertrieb',
