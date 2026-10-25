@@ -201,8 +201,8 @@
   .panel { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; padding: 12px 14px; margin-bottom: 14px;
     border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
   .review { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--accent-text); align-items: center; }
-  .proposal { border-left: 3px solid var(--accent); }
-  .proposal.del { border-left-color: var(--danger); }
+  .proposal { border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .proposal.del { border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
   .text { flex: 1 1 260px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .text.wide { flex-basis: 100%; }
   .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }

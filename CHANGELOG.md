@@ -17,6 +17,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 - A successful CardDAV sign-in is remembered for five minutes instead of checking the password hash on every request of a phone sync.
 - Database connections are checked before reuse, so Kartei recovers cleanly after a database failover.
 - CI runs on Ubuntu 26.04.
+- Proposal boxes have a full tinted border instead of a coloured stripe on the left.
 
 ## [0.1.0-beta] – 2026-10-24
 
