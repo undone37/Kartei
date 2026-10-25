@@ -1,8 +1,10 @@
-# Publishes manuals/ as the documentation site. Started by hand (Actions → Documentation → Run workflow)
-# once GitHub Pages is enabled with "Source: GitHub Actions"; add `push` to `on` to publish automatically.
+# Publishes manuals/ as the documentation site (https://undone37.github.io/Kartei/) for every release tag, so the
+# site matches the latest release; documentation fixes in between: Actions → Documentation → Run workflow.
 name: Documentation
 
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
