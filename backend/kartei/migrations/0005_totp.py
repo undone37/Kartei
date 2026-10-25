@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('kartei', '0003_webhooks'),
+        ('kartei', '0004_purge_anonymize'),
     ]
 
     operations = [

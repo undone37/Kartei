@@ -54,14 +54,8 @@
       <input id="p" class="input" type="password" bind:value={password} autocomplete="current-password" required />
       {#if error}<div class="error-text" role="alert">{error}</div>{/if}
       <button class="btn primary" disabled={busy || !username || !password}>{t('login.submit')}</button>
-    <label class="label" for="u">{t('login.username')}</label>
-    <!-- svelte-ignore a11y_autofocus -->
-    <input id="u" class="input" bind:value={username} autocomplete="username" autofocus required />
-    <label class="label" for="p">{t('login.password')}</label>
-    <input id="p" class="input" type="password" bind:value={password} autocomplete="current-password" required />
-    {#if error}<div class="error-text" role="alert">{error}</div>{/if}
-    <button class="btn primary" disabled={busy || !username || !password}>{t('login.submit')}</button>
-    {#if store.sso}
+    {/if}
+    {#if store.sso && !needCode}
       <div class="or"><span>{t('sso.or')}</span></div>
       <a class="btn ms" href="/api/oidc/start"><svg viewBox="0 0 21 21" width="16" height="16" aria-hidden="true"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>{t('sso.button')}</a>
     {/if}

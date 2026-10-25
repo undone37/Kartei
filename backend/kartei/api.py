@@ -21,9 +21,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from . import adsync, audit, batch, exports, gdpr, graph, importer, ldapusers, relaypush, reviews
-from . import adsync, audit, batch, exports, graph, importer, ldapusers, relaypush, reviews, totp
-from . import adsync, audit, batch, exports, graph, importer, ldapusers, oidc, relaypush, reviews
+from . import adsync, audit, batch, exports, gdpr, graph, importer, ldapusers, oidc, relaypush, reviews, totp
 from .msg import msg
 from .net import client_ip
 from .models import (ROLE_RANK, USER_TYPES, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind, Profile,
@@ -1471,8 +1469,8 @@ def user_delete(request, pk):
 
 # ---------------------------------------------------------------- admin: settings
 
-SETTINGS_ATTRS = ["default_language", "base_url", "trash_days", "purge_anonymize", "export_interval_minutes", "ldap_uri",
-SETTINGS_ATTRS = ["default_language", "base_url", "trash_days", "export_interval_minutes", "oidc_enabled", "ldap_uri",
+SETTINGS_ATTRS = ["default_language", "base_url", "trash_days", "purge_anonymize", "export_interval_minutes", "oidc_enabled",
+                  "ldap_uri",
                   "ldap_start_tls", "ldap_ca_cert", "ldap_bind_dn", "ldap_user_base", "ldap_user_filter",
                   "ldap_group_admin", "ldap_group_maintainer", "ldap_group_read", "carddav_enabled",
                   "carddav_username", "graph_enabled", "graph_tenant_id", "graph_client_id", "graph_group_id",
