@@ -54,6 +54,7 @@ class Profile(models.Model):
     totp_recovery = models.JSONField(default=list, blank=True)  # SHA-256 of unused recovery codes
     totp_failures = models.PositiveSmallIntegerField(default=0)  # wrong codes in a row, shared by all workers
     totp_failed_at = models.DateTimeField(null=True, blank=True)
+    sso_oid = models.CharField(max_length=64, blank=True, db_index=True)  # Microsoft account bound at the first sign-in
 
     @property
     def rank(self):
