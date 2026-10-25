@@ -8,6 +8,8 @@ A book is created per request (after authentication) by `book(flavour)` and offe
   ctag() -> str
   etags(uid=None) -> [(uid, etag)]           all cards, or the one card
   cards(uids=None) -> [(uid, etag, vcard)]   all cards, or those with these uids
+  sync_token() -> str                        current position for sync-collection (RFC 6578)
+  changes(token) -> ([changed], [removed]) | None   uids since that token; None: unusable, the client starts over
 """
 import base64
 import uuid
@@ -111,14 +113,14 @@ def _root_props():
     }
 
 
-def _book_props(ctag):
+def _book_props(ctag, token):
     def resourcetype(e):
         ET.SubElement(e, q(D, "collection"))
         ET.SubElement(e, q(CARD, "addressbook"))
 
     def reports(e):
-        for name in ("addressbook-multiget", "addressbook-query"):
-            ET.SubElement(ET.SubElement(ET.SubElement(e, q(D, "supported-report")), q(D, "report")), q(CARD, name))
+        for ns, name in ((CARD, "addressbook-multiget"), (CARD, "addressbook-query"), (D, "sync-collection")):
+            ET.SubElement(ET.SubElement(ET.SubElement(e, q(D, "supported-report")), q(D, "report")), q(ns, name))
 
     def privileges(e):
         ET.SubElement(ET.SubElement(e, q(D, "privilege")), q(D, "read"))
@@ -130,6 +132,7 @@ def _book_props(ctag):
         q(D, "resourcetype"): resourcetype,
         q(D, "displayname"): _text("Kartei Kontakte"),
         q(CS, "getctag"): _text(ctag),
+        q(D, "sync-token"): _text(token),
         q(D, "current-user-principal"): lambda e: _href(e, ROOT),
         q(D, "supported-report-set"): reports,
         q(D, "current-user-privilege-set"): privileges,
@@ -146,6 +149,32 @@ def _card_props(etag, vcf=None):
     if vcf is not None:
         props[q(CARD, "address-data")] = _text(vcf)
     return props
+
+
+def _sync_collection(b, root, requested):
+    """RFC 6578: what changed since the client's token (empty token: everything), plus the new token."""
+    token = (root.findtext(q(D, "sync-token")) or "").strip()
+    new_token = b.sync_token()  # taken first: changes while answering are reported again next time
+    if token:
+        found = b.changes(token)
+        if found is None:  # e.g. the field mapping changed or contacts were purged since: start over
+            err = ET.Element(q(D, "error"))
+            ET.SubElement(err, q(D, "valid-sync-token"))
+            body = b'<?xml version="1.0" encoding="utf-8"?>\n' + ET.tostring(err)
+            return HttpResponse(body, status=403, content_type="application/xml; charset=utf-8")
+        changed, removed = found
+        cards = b.cards(changed) if changed else []
+    else:
+        cards, removed = b.cards(), []
+    ms = ET.Element(q(D, "multistatus"))
+    for u, etag, vcf in cards:
+        _response(ms, f"{BOOK}{u}.vcf", _card_props(etag, vcf), requested)
+    for u in removed:
+        resp = ET.SubElement(ms, q(D, "response"))
+        ET.SubElement(resp, q(D, "href")).text = f"{BOOK}{u}.vcf"
+        ET.SubElement(resp, q(D, "status")).text = "HTTP/1.1 404 Not Found"
+    ET.SubElement(ms, q(D, "sync-token")).text = new_token
+    return _multistatus(ms)
 
 
 def well_known(request):
@@ -192,9 +221,9 @@ def serve(request, uid, username, password_hash, book):
         if path == ROOT:
             _response(ms, ROOT, _root_props(), requested)
             if depth != "0":
-                _response(ms, BOOK, _book_props(b.ctag()), requested)
+                _response(ms, BOOK, _book_props(b.ctag(), b.sync_token()), requested)
         elif path == BOOK:
-            _response(ms, BOOK, _book_props(b.ctag()), requested)
+            _response(ms, BOOK, _book_props(b.ctag(), b.sync_token()), requested)
             if depth != "0":
                 for u, etag in b.etags():
                     _response(ms, f"{BOOK}{u}.vcf", _card_props(etag), requested)
@@ -207,6 +236,8 @@ def serve(request, uid, username, password_hash, book):
             root = ET.fromstring(request.body or b"<x/>")
         except ET.ParseError:
             return HttpResponse(status=400)
+        if root.tag == q(D, "sync-collection"):
+            return _sync_collection(b, root, _requested(request.body))
         uids = None
         if root.tag == q(CARD, "addressbook-multiget"):
             uids = []

@@ -34,7 +34,7 @@ The Django project is `config`; the main app is `kartei`. The DMZ relay is the a
 | `api.py` | JSON API for the SPA: session auth with CSRF, role checks (`needs`), error codes instead of texts |
 | `validation.py` | per-type validation and normalization of field values (incl. phone numbers) |
 | `audit.py` | append-only audit log with `{key: [old, new]}` diffs, secrets masked |
-| `vcard.py`, `dav.py`, `carddav.py` | vCard 3.0 rendering (iOS and Android flavours); the storage-independent read-only CardDAV protocol (`dav.py`, also used by the relay) and the built-in server on the Kartei database (`carddav.py`) |
+| `vcard.py`, `dav.py`, `carddav.py` | vCard 3.0 rendering (iOS and Android flavours); the storage-independent read-only CardDAV protocol incl. `sync-collection` (`dav.py`, also used by the relay) and the built-in server on the Kartei database (`carddav.py`) |
 | `relaypush.py` | push to the DMZ relay: fetch the relay's `{uid: etag}`, send changed cards (both flavours), deletions and the CardDAV login; guards for 0 contacts and too many deletions |
 | `graph.py` | Microsoft Graph client: Outlook contact-folder sync and the Microsoft 365 mail backend |
 | `adsync.py`, `ldapusers.py`, `auth.py` | AD contact objects in one OU, importing role-group members, LDAP sign-in configured from the database |

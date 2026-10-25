@@ -3,13 +3,16 @@
 With the DMZ relay (relaypush.py) phones use the relay instead; this endpoint then usually stays off (404).
 """
 import hashlib
+import re
+from datetime import datetime, timedelta, timezone as tz
 
-from django.db.models import Count, Max
+from django.db.models import Count, Max, Q
+from django.utils import timezone
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from . import dav as proto
-from .models import FieldDef, Record, Settings, ref_names
+from .models import AuditEntry, FieldDef, Record, Settings, ref_names
 from .vcard import render
 
 
@@ -55,6 +58,23 @@ class Book:
 
     def etags(self, uid=None):
         return _etags(self.schema, uid)
+
+    def sync_token(self):
+        # the schema is part of it: a new field mapping (or renamed user) changes every card, so old tokens fail
+        return f"urn:kartei:sync:{int(timezone.now().timestamp() * 1e6)}:{self.schema}"
+
+    def changes(self, token):
+        m = re.fullmatch(r"urn:kartei:sync:(\d+):(\w+)", token)
+        if not m or m[2] != self.schema:
+            return None
+        # ponytail: 5 s overlap like /api/changes, for transactions committing with an older timestamp
+        since = datetime.fromtimestamp(int(m[1]) / 1e6, tz=tz.utc) - timedelta(seconds=5)
+        if AuditEntry.objects.filter(target_type="record", action="purge", at__gte=since).exists():
+            return None  # purged contacts left no trace to report as removed
+        live = Record.objects.filter(deleted_at__isnull=True)
+        changed = live.filter(Q(updated_at__gte=since) | Q(company__updated_at__gte=since))  # etag has the company's version
+        removed = Record.objects.filter(deleted_at__gte=since)
+        return [str(u) for u in changed.values_list("uid", flat=True)], [str(u) for u in removed.values_list("uid", flat=True)]
 
     def cards(self, uids=None):
         qs = _records() if uids is None else _records().filter(uid__in=uids)

@@ -742,6 +742,7 @@ Die Kontakte erscheinen als eigener Account in der Kontakte-App und werden autom
 - Fotos der Personen und Logos der Firmen.
 - Namen von Benutzern und verknüpften Personen (z. B. *Ansprechpartner intern*) als Text.
 - Gelöschte Kontakte verschwinden von den Telefonen.
+- Telefone, die es unterstützen (iPhone, DAVx⁵ und die meisten anderen), holen nur, was sich seit ihrem letzten Abgleich geändert hat (`sync-collection`) – das hält den Abgleich auch bei vielen Kontakten schnell. Nach einer Änderung der vCard-Zuordnung, der *Öffentlichen Adresse* oder nach endgültigem Löschen aus dem Papierkorb gleicht jedes Telefon einmal von selbst vollständig ab.
 
 Ist CardDAV deaktiviert, meldet die Adresse „nicht gefunden“, und die Telefone behalten ihren letzten Stand, bis der Account entfernt wird. Android hat kein eingebautes CardDAV – dafür gibt es den [Outlook-/Exchange-Sync](#outlook-sync) oder eine CardDAV-App.
 
@@ -753,7 +754,7 @@ Wenn Telefone das interne Netz nicht erreichen dürfen, betreibst du einen klein
 |---|---|---|
 | Telefone verbinden sich mit | Kartei (`https://kartei.example.de/carddav/`) | dem Relay (`https://carddav.example.de/carddav/`) |
 | Verbindung intern ↔ DMZ | keine | Kartei (`exporter`) → Relay, nur HTTPS; der Relay baut nie selbst eine Verbindung auf |
-| Daten auf dem DMZ-Host | keine | die fertigen vCards (iOS- und Android-Variante), der CardDAV-Benutzername und der **Hash** des Passworts – sonst nichts, kein Zugriff auf Datenbank oder LDAP |
+| Daten auf dem DMZ-Host | keine | die fertigen vCards (iOS- und Android-Variante), der CardDAV-Benutzername und der **Hash** des Passworts – sonst nichts, kein Zugriff auf Datenbank oder LDAP. Gelöschte Karten bleiben 30 Tage als leere Markierung stehen, damit die Telefone die Löschung mitbekommen; Telefone, die länger nicht abgeglichen haben, gleichen einmal vollständig ab. |
 
 Der Relay ist dasselbe Image mit anderen Einstellungen (`docker build --target relay`, ohne Frontend). Er speichert die Karten in einer eigenen SQLite-Datei, bietet dasselbe schreibgeschützte CardDAV wie Kartei (Adresse `/carddav/`, Erkennung über `/.well-known/carddav`, Sperre nach falschen Passwörtern) und hat keine weiteren Seiten: kein Admin, keine Anmeldung, keine Listen.
 

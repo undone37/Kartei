@@ -1,9 +1,10 @@
 import base64
-from datetime import timedelta
 import json
 import os
+import re
 import tempfile
 import uuid
+from datetime import timedelta
 from unittest import mock
 
 from django.contrib.auth.hashers import make_password
@@ -891,6 +892,37 @@ class CardDavTests(TestCase):
         self.assertEqual(self.client.generic("PROPFIND", "/carddav/").status_code, 401)
         self.assertEqual(self.dav("PUT", f"/carddav/kontakte/{PERSON_UID}.vcf", "x").status_code, 403)
         self.assertEqual(self.dav("DELETE", f"/carddav/kontakte/{PERSON_UID}.vcf").status_code, 403)
+
+    def sync(self, token=""):
+        body = ('<d:sync-collection xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:carddav"><d:sync-token>' + token +
+                '</d:sync-token><d:sync-level>1</d:sync-level><d:prop><d:getetag/></d:prop></d:sync-collection>')
+        return self.dav("REPORT", "/carddav/kontakte/", body)
+
+    def test_sync_collection(self):
+        r = self.dav("PROPFIND", "/carddav/kontakte/", HTTP_DEPTH="0")
+        self.assertIn(b"<d:sync-collection />", r.content.replace(b"<d:sync-collection/>", b"<d:sync-collection />"))
+        self.assertIn(b"<d:sync-token>urn:kartei:sync:", r.content)
+        r = self.sync()
+        self.assertEqual((r.status_code, r.content.count(b".vcf</d:href>")), (207, 3))
+        Record.objects.update(updated_at=timezone.now() - timedelta(hours=1))
+        token = re.findall(rb"<d:sync-token>([^<]+)</d:sync-token>", r.content)[-1].decode()
+        self.assertEqual(self.sync(token).content.count(b"<d:response>"), 0)
+        Record.objects.filter(uid=self.company.uid).update(version=2, updated_at=timezone.now())  # person's card changes too
+        Record.objects.filter(uid=PERSON_UID).update(deleted_at=timezone.now())
+        r = self.sync(token)
+        self.assertIn(f"{self.company.uid}.vcf</d:href><d:propstat>".encode(), r.content)
+        self.assertIn(f"{PERSON_UID}.vcf</d:href><d:status>HTTP/1.1 404 Not Found".encode(), r.content)
+        # a changed vCard mapping or purged contacts: the token is no longer usable, the phone starts over
+        s = Settings.get()
+        s.base_url = "https://kartei.example.org"
+        s.save()
+        self.assertEqual(self.sync(token).status_code, 403)
+        token = re.findall(rb"<d:sync-token>([^<]+)</d:sync-token>", self.sync().content)[-1].decode()
+        self.assertEqual(self.sync(token).status_code, 207)
+        AuditEntry.objects.create(action="purge", target_type="record", target_id=PERSON_UID)
+        r = self.sync(token)
+        self.assertEqual(r.status_code, 403)
+        self.assertIn(b"valid-sync-token", r.content)
 
     def test_new_password_ends_cached_login(self):
         depth0 = lambda: self.dav("PROPFIND", "/carddav/kontakte/", HTTP_DEPTH="0").status_code

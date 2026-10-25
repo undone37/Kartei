@@ -8,6 +8,7 @@ import hmac
 import json
 import re
 import uuid
+from datetime import datetime, timedelta, timezone as tz
 
 from django.conf import settings
 from django.contrib.auth.hashers import identify_hasher
@@ -23,22 +24,38 @@ from .models import Book, Card
 
 ETAG = re.compile(r'"[\w.-]{1,64}"')
 MAX_VCARD = 2 * 1024 * 1024  # one card incl. photo
+TOMBSTONE_DAYS = 30  # phones that haven't synced for longer start over
 
 
 class Cards:
-    def __init__(self, flavour, ctag):
-        self.flavour, self._ctag = flavour, ctag
+    def __init__(self, flavour, book):
+        self.flavour, self.book = flavour, book
 
     def ctag(self):
-        return f'"{self._ctag}"'
+        return f'"{self.book.ctag}"'
 
     def etags(self, uid=None):
-        qs = Card.objects.all() if uid is None else Card.objects.filter(uid=uid)
-        return [(str(u), e) for u, e in qs.values_list("uid", "etag")]
+        qs = Card.objects.filter(deleted=False)
+        return [(str(u), e) for u, e in (qs if uid is None else qs.filter(uid=uid)).values_list("uid", "etag")]
 
     def cards(self, uids=None):
-        qs = Card.objects.all() if uids is None else Card.objects.filter(uid__in=uids)
+        qs = Card.objects.filter(deleted=False)
+        qs = qs if uids is None else qs.filter(uid__in=uids)
         return [(str(u), e, v) for u, e, v in qs.values_list("uid", "etag", self.flavour)]
+
+    def sync_token(self):
+        return f"urn:kartei:sync:{int(timezone.now().timestamp() * 1e6)}"
+
+    def changes(self, token):
+        m = re.fullmatch(r"urn:kartei:sync:(\d+)", token)
+        if not m:
+            return None
+        since = datetime.fromtimestamp(int(m[1]) / 1e6, tz=tz.utc) - timedelta(seconds=5)
+        if self.book.tombstones_since and since < self.book.tombstones_since:
+            return None
+        cards = Card.objects.filter(changed_at__gte=since)
+        return ([str(u) for u in cards.filter(deleted=False).values_list("uid", flat=True)],
+                [str(u) for u in cards.filter(deleted=True).values_list("uid", flat=True)])
 
 
 def well_known(request):
@@ -48,7 +65,7 @@ def well_known(request):
 @csrf_exempt
 def carddav(request, uid=None):
     b = Book.get()
-    return dav.serve(request, uid, b.username, b.password_hash, lambda flavour: Cards(flavour, b.ctag))
+    return dav.serve(request, uid, b.username, b.password_hash, lambda flavour: Cards(flavour, b))
 
 
 def _token_ok(request):
@@ -89,7 +106,7 @@ def push(request):
     if not _token_ok(request):
         return JsonResponse({"error": "unauthorized"}, status=401)
     if request.method == "GET":
-        return JsonResponse({"cards": {str(u): e for u, e in Card.objects.values_list("uid", "etag")}})
+        return JsonResponse({"cards": {str(u): e for u, e in Card.objects.filter(deleted=False).values_list("uid", "etag")}})
     if request.method != "POST":
         return JsonResponse({"error": "method"}, status=405)
     if request.content_type != "application/json":
@@ -120,19 +137,24 @@ def push(request):
 
     with transaction.atomic():
         book = Book.objects.select_for_update().get_or_create(pk=1)[0]
-        have = dict(Card.objects.filter(uid__in=[c[0] for c in cards]).values_list("uid", "etag"))
-        have = {str(u): e for u, e in have.items()}
+        live = Card.objects.filter(deleted=False)
+        have = {str(u): e for u, e in live.filter(uid__in=[c[0] for c in cards]).values_list("uid", "etag")}
         changed = [c for c in cards if have.get(c[0]) != c[1]]
         for uid, etag, ios, android in changed:
-            Card.objects.update_or_create(uid=uid, defaults={"etag": etag, "ios": ios, "android": android})
-        deleted = Card.objects.filter(uid__in=delete).delete()[0] if delete else 0
+            Card.objects.update_or_create(uid=uid, defaults={"etag": etag, "ios": ios, "android": android, "deleted": False})
+        # deleted cards become tombstones (without their content) so phones can sync the removal
+        now = timezone.now()
+        deleted = live.filter(uid__in=delete).update(deleted=True, ios="", android="", changed_at=now) if delete else 0
+        old = now - timedelta(days=TOMBSTONE_DAYS)
+        if Card.objects.filter(deleted=True, changed_at__lt=old).delete()[0]:
+            book.tombstones_since = old
         if changed or deleted:
             book.ctag = uuid.uuid4().hex
         if cred is not None:
             book.username, book.password_hash = cred["username"], cred["password_hash"]
         book.pushed_at = timezone.now()
         book.save()
-    return JsonResponse({"ok": True, "updated": len(changed), "deleted": deleted, "total": Card.objects.count()})
+    return JsonResponse({"ok": True, "updated": len(changed), "deleted": deleted, "total": live.count()})
 
 
 def not_found(request, exception=None):

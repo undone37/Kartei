@@ -7,6 +7,9 @@ class Card(models.Model):
     etag = models.CharField(max_length=80)
     ios = models.TextField()
     android = models.TextField()
+    # sync-collection: when the card last changed; deleted cards stay as tombstones for TOMBSTONE_DAYS
+    changed_at = models.DateTimeField(auto_now=True, db_index=True)
+    deleted = models.BooleanField(default=False)
 
 
 class Book(models.Model):
@@ -15,6 +18,7 @@ class Book(models.Model):
     username = models.CharField(max_length=150, blank=True)
     password_hash = models.CharField(max_length=255, blank=True)  # Django password hash; empty = nobody gets in
     pushed_at = models.DateTimeField(null=True, blank=True)
+    tombstones_since = models.DateTimeField(null=True, blank=True)  # removals before this are forgotten
 
     @classmethod
     def get(cls):
