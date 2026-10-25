@@ -29,7 +29,7 @@
     flex: none; display: inline-grid; place-items: center; width: var(--s); height: var(--s);
     border-radius: 50%; overflow: hidden; font-size: calc(var(--s) * 0.38); font-weight: 600;
     background: light-dark(hsl(var(--h) 70% 92%), hsl(var(--h) 30% 22%));
-    color: light-dark(hsl(var(--h) 45% 32%), hsl(var(--h) 60% 80%));
+    color: light-dark(hsl(var(--h) 45% 30%), hsl(var(--h) 60% 80%)); /* ≥ 4.9:1 for every hue */
     outline: 1px solid light-dark(rgb(0 0 0 / 0.06), rgb(255 255 255 / 0.08)); outline-offset: -1px;
   }
   .company { border-radius: 22%; background: var(--panel-2); color: var(--muted); }

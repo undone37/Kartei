@@ -227,6 +227,10 @@ Der Reiter **Verlauf** zeigt jede Änderung am Kontakt: wer wann was geändert h
 
 ![Verlauf eines Kontakts](../img/de/history.png)
 
+**Bearbeiter** können eine Änderung rückgängig machen: **Zurücksetzen** neben einer Änderung setzt deren Felder auf die Werte davor zurück. Kartei zeigt vorher, was sich ändert (*Funktion: Assistenz → Buchhaltung*), und fragt nach. Felder, die schon wieder den alten Wert haben, bleiben unberührt; Felder, die nur Admins ändern dürfen, werden übersprungen. Das Zurücksetzen erscheint selbst als neue Änderung im Verlauf – lässt sich also ebenfalls rückgängig machen.
+
+![Einen Wert aus dem Verlauf wiederherstellen](../img/de/history-restore.png)
+
 ## Prüfungen
 
 Kontaktdaten veralten: Leute wechseln die Stelle, Firmen ziehen um oder geben auf. Deshalb bittet Kartei regelmäßig die Kollegin oder den Kollegen, der für einen Kontakt verantwortlich ist (*Ansprechpartner intern*), ihn zu prüfen.
@@ -325,6 +329,19 @@ Sobald ein Bearbeiter entschieden hat, verschwindet der Vorschlag aus der Liste;
 ![Menü Neu](../img/de/new-menu.png)
 
 Die **Firma** einer Person wählst du, indem du einen Teil des Namens tippst (*Firma suchen …*). Für einen neuen Mitarbeiter einer Firma geht es noch schneller: Firma öffnen, Reiter **Personen**, **Person bei dieser Firma anlegen** – die Firma ist dann schon eingetragen.
+
+### Aus vCard importieren {#aus-vcard-importieren}
+
+Kontakte, die als vCard (`.vcf`) kommen – etwa im Anhang einer E-Mail, vom Handy oder aus Outlook exportiert –, musst du nicht abtippen:
+
+1. Klick oben rechts auf **Neu** und wähle **Aus vCard importieren …**.
+2. Zieh die `.vcf`-Datei auf das Feld oder klick darauf, um sie auszuwählen (mehrere Dateien oder eine Datei mit mehreren Karten gehen auch). Alternativ fügst du den vCard-Text ein.
+3. Jede Karte öffnet sich als **ausgefülltes Formular für einen neuen Kontakt** (*Kontakt 1 von 3*): Namen, Firma, Funktion, Telefonnummern, E-Mail-Adressen, Adresse, Geburtstag und Foto landen in den Feldern mit der passenden vCard-Zuordnung. Kennt Kartei die Firma schon, wird sie verknüpft, und es erscheinen wie gewohnt der Hinweis auf Dubletten und *Angaben von … übernehmen*.
+4. Prüf und ergänze die Angaben und klick auf **Anlegen** – oder **Überspringe** die Karte.
+
+![Kontakt aus einer vCard importieren](../img/de/vcard-import.png)
+
+Werte ohne passendes Feld (z. B. eine Pager-Nummer) stehen über dem Formular, damit du sie bei Bedarf von Hand übernimmst. Mit der Rolle *Nur Lesen* werden aus den Karten stattdessen [Vorschläge](#neuen-kontakt-vorschlagen).
 
 ### Angaben von der Firma übernehmen
 

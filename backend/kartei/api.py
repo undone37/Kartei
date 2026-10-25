@@ -21,11 +21,11 @@ from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from . import adsync, audit, batch, exports, gdpr, graph, importer, ldapusers, relaypush, reviews
+from . import adsync, audit, batch, exports, gdpr, graph, handover, importer, ldapusers, relaypush, reviews
 from .msg import msg
 from .net import client_ip
 from .models import (ROLE_RANK, USER_TYPES, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind, Profile,
-                     Proposal, Record, Review, Role, Settings, user_options)
+                     Proposal, Record, Review, Role, Settings, assignable, user_options)
 from .validation import REGEX_TYPES, clean_core, merge_data
 from .vcard import TARGETS as VCARD_TARGETS
 
@@ -1289,7 +1289,22 @@ def _admins_left(excluding):
 
 @needs(ADMIN)
 def users_list(request):
-    return JsonResponse({"users": [ser_user(u) for u in User.objects.order_by("username")]})
+    refs = handover.refs()  # contacts naming each user: left people still named there need a handover
+    return JsonResponse({"users": [ser_user(u) | {"refs": refs[u.username]} for u in User.objects.order_by("username")]})
+
+
+@needs(ADMIN)
+def user_handover(request, pk):
+    """GET: what a handover would change. POST {to}: the successor takes the user's place in all contacts."""
+    u = User.objects.filter(pk=pk).first()
+    if not u:
+        return err("not_found", 404)
+    if request.method == "GET":
+        return JsonResponse(handover.plan(u))
+    to = User.objects.filter(username=str(request.json.get("to", ""))).select_related("profile").first()
+    if not to or to == u or not assignable(to):
+        return err("validation", fields={"to": "invalid_user"})
+    return JsonResponse({"records": handover.apply(u, to, request.user)})
 
 
 @needs(ADMIN)
@@ -1365,6 +1380,8 @@ def user_delete(request, pk):
         return err("cannot_delete_self", 409)
     if rank_of(u) == ADMIN and not _admins_left(u):
         return err("last_admin", 409)
+    if handover.refs()[u.username]:  # contacts would keep pointing at a user that no longer exists
+        return err("handover_first", 409)
     audit.log(request.user, "delete", "user", u.id, u.username, audit.diff(_user_snapshot(u), {}))
     u.delete()
     return JsonResponse({"ok": True})

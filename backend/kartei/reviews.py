@@ -240,7 +240,7 @@ def notify(s):
     if not mail_ready(s):
         return 0
     with mail_connection(s) as conn:
-        return _review_digests(s, conn, open_reviews().filter(notified_at__isnull=True, assignee__isnull=False), "review")
+        return _review_digests(s, conn, open_reviews().filter(notified_at__isnull=True, assignee__is_active=True), "review")
 
 
 def remind(s):
@@ -248,7 +248,7 @@ def remind(s):
     if not mail_ready(s) or not s.review_remind_days:
         return 0
     cutoff = timezone.now() - timedelta(days=s.review_remind_days)
-    pending = open_reviews().filter(notified_at__lte=cutoff, assignee__isnull=False, record__deleted_at__isnull=True)
+    pending = open_reviews().filter(notified_at__lte=cutoff, assignee__is_active=True, record__deleted_at__isnull=True)
     with mail_connection(s) as conn:
         return _review_digests(s, conn, pending, "reminder", reminder=True)
 

@@ -2,6 +2,7 @@
 // Users: admin from init_app (E2E_ADMIN_PASSWORD), the demo users from `seed_demo --password` (E2E_PASSWORD).
 // Every test puts the data back, so the suite can run again on the same database.
 import { test as base, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 const PW = { admin: process.env.E2E_ADMIN_PASSWORD || 'admin12345', other: process.env.E2E_PASSWORD || 'demo12345' }
 
@@ -49,6 +50,29 @@ async function choose(page, input) {
 const dialog = (page) => page.locator('dialog[open]')
 const actions = (page) => page.locator('header .actions')
 const deleteButton = (page) => actions(page).locator('button.danger')
+
+test.describe('accessibility', () => {
+  // WCAG 2.1 A/AA checks (axe-core) on the main screens, in both themes; serious and critical findings fail
+  for (const theme of ['light', 'dark']) {
+    test(`main screens have no serious accessibility problems (${theme})`, async ({ as }) => {
+      const opts = { colorScheme: theme }
+      const pages = [[null, '/'], ['mmuster', '/'], ['mmuster', 'person'], ['mmuster', '/new/person'], ['mmuster', '/phonelist'],
+        ['mmuster', '/account'], ['admin', '/settings/fields'], ['admin', '/settings/users'], ['admin', '/settings/api']]
+      const found = []
+      for (const [user, path] of pages) {
+        const page = await as(user, opts)
+        await page.addInitScript((t) => localStorage.setItem('kartei:theme', t), theme)
+        const target = path === 'person' ? `/person/${(await page.records()).find((r) => r.kind === 'person').uid}` : path
+        await page.goto(target)
+        await page.waitForLoadState('networkidle')
+        const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+        for (const v of r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical'))
+          found.push(`${path}: ${v.id} – ${v.nodes[0].target.join(' ')}`)
+      }
+      expect(found).toEqual([])
+    })
+  }
+})
 
 test.describe('sign-in', () => {
   test('a wrong password is refused, the right one opens the dashboard', async ({ as }) => {
@@ -122,6 +146,33 @@ test.describe('phone list', () => {
     await page.getByLabel('by name').check()
     await expect(sheet.locator('tr.co')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Print / PDF' })).toBeEnabled()
+  })
+})
+
+test.describe('leavers', () => {
+  test('an admin hands the contacts of someone who left over to a successor', async ({ as }) => {
+    const admin = await as('admin')
+    const leaver = await admin.api('post', '/api/admin/users', { username: 'leaver', first_name: 'Lea', last_name: 'Ver', password: 'x'.repeat(12), role: 'maintainer' })
+    const p = (await admin.records()).find((r) => r.kind === 'person' && r.data.internal_contact)
+    const before = p.data.internal_contact
+    let r = await admin.api('patch', `/api/records/${p.uid}`, { version: p.version, data: { internal_contact: 'leaver' } })
+    try {
+      await admin.api('patch', `/api/admin/users/${leaver.id}`, { is_active: false })
+      await admin.goto('/settings/users')
+      const row = admin.getByRole('row').filter({ hasText: 'leaver' })
+      await expect(row.getByText('1 contacts to hand over')).toBeVisible()
+      await row.getByRole('button', { name: 'Hand over …: leaver' }).click()
+      await expect(admin.getByText('Lea Ver is named in 1 contacts')).toBeVisible()
+      await choose(admin, admin.getByRole('combobox', { name: 'Successor' }))
+      await admin.getByRole('button', { name: 'Hand over …', exact: true }).click()
+      await expect(admin.getByText(/1 contacts handed over to/)).toBeVisible()
+      r = (await admin.records()).find((x) => x.uid === p.uid)
+      expect(r.data.internal_contact).not.toBe('leaver')
+      expect(r.data.internal_contact).toBeTruthy()
+    } finally {
+      if (r.data.internal_contact !== before) await admin.api('patch', `/api/records/${p.uid}`, { version: r.version, data: { internal_contact: before } })
+      await admin.api('delete', `/api/admin/users/${leaver.id}`)
+    }
   })
 })
 
@@ -204,6 +255,25 @@ test.describe('editing', () => {
     } finally {
       const r = (await page.records()).find((x) => x.uid === p.uid)
       await page.api('patch', `/api/records/${p.uid}`, { version: r.version, data: { job_title: p.data.job_title } })
+    }
+  })
+
+  test('a change is undone from the history', async ({ as }) => {
+    const page = await as('mmuster')
+    const p = (await page.free()).find((r) => r.kind === 'person' && r.data.job_title && r.data.department)
+    try {
+      await page.api('patch', `/api/records/${p.uid}`, { version: p.version, data: { job_title: 'E2E Irrtum', department: 'E2E Abt' } })
+      await page.goto(`/person/${p.uid}`)
+      await page.getByRole('button', { name: 'History' }).click()
+      await page.getByRole('button', { name: 'Restore' }).first().click()
+      await expect(dialog(page)).toContainText(`E2E Irrtum → ${p.data.job_title}`)
+      await dialog(page).getByRole('button', { name: 'Restore' }).click()
+      await expect(page.getByText('Values restored')).toBeVisible()
+      const now = (await page.records()).find((r) => r.uid === p.uid)
+      expect([now.data.job_title, now.data.department]).toEqual([p.data.job_title, p.data.department])
+    } finally {
+      const now = (await page.records()).find((r) => r.uid === p.uid)
+      await page.api('patch', `/api/records/${p.uid}`, { version: now.version, data: { job_title: p.data.job_title, department: p.data.department } })
     }
   })
 
@@ -309,6 +379,36 @@ test.describe('new contact proposals', () => {
     } finally {
       await editor.api('delete', `/api/records/${uid}`)
       await (await as('admin')).api('delete', `/api/trash/${uid}`)
+    }
+  })
+})
+
+test.describe('vCard import', () => {
+  test('a maintainer imports a .vcf: pre-filled form, linked company, skip, summary', async ({ as }) => {
+    const page = await as('mmuster')
+    const c = (await page.records()).find((r) => r.kind === 'company')
+    const vcf = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Vogelsang;Vera;;;', `ORG:${c.name};Einkauf`, 'TITLE:Einkauf',
+      'EMAIL;TYPE=WORK:vera.vogelsang@beispiel.example', 'TEL;TYPE=CELL:+49 170 5550101', 'END:VCARD',
+      'BEGIN:VCARD', 'VERSION:3.0', 'KIND:org', 'FN:Zweite Testfirma', 'ORG:Zweite Testfirma', 'END:VCARD'].join('\r\n')
+    await page.goto('/')
+    await page.getByRole('button', { name: 'New' }).click()
+    await page.getByRole('link', { name: 'Import from vCard …' }).click()
+    await page.locator('input[type=file]').setInputFiles({ name: 'contacts.vcf', mimeType: 'text/vcard', buffer: Buffer.from(vcf) })
+    await expect(page.getByText('Contact 1 of 2')).toBeVisible()
+    await expect(page.locator('#last_name')).toHaveValue('Vogelsang')
+    await expect(page.locator('#f-email')).toHaveValue('vera.vogelsang@beispiel.example')
+    await expect(page.locator('#f-mobile')).toHaveValue('+49 170 5550101')
+    await choose(page, page.locator('#f-internal_contact'))
+    await page.keyboard.press('Control+s')
+    await expect(page.getByText('Contact 2 of 2')).toBeVisible()
+    await page.getByRole('button', { name: 'Skip' }).click()
+    await expect(page.getByText('Done: 1 created, 0 proposed, 1 skipped.')).toBeVisible()
+    const r = (await page.records()).find((x) => x.last_name === 'Vogelsang')
+    try {
+      expect(r.company).toBe(c.uid)
+    } finally {
+      await page.api('delete', `/api/records/${r.uid}`)
+      await (await as('admin')).api('delete', `/api/trash/${r.uid}`)
     }
   })
 })

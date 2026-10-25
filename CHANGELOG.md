@@ -6,10 +6,21 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- Handover when someone leaves: the user list marks people who left but are still named in contacts; *Hand over …* puts a successor in their place in all user fields (responsible, internal contacts), open reviews follow, every change is in the contacts' history. Users still named in contacts can't be deleted; review mails no longer go to deactivated users.
+- vCard import (*New → Import from vCard*): each card of a `.vcf` file (vCard 2.1, 3.0, 4.0) opens as a pre-filled new-contact form, mapped through the fields' vCard targets incl. photo and company link; read-only users propose instead.
+- Undo from the history: maintainers set the fields of a change back to their previous values (*History → Restore*), with a preview and the usual validation and conflict check.
 - Data protection: an access report per contact for admins (GDPR Art. 15: all data, history, proposals, reviews and the systems the data goes to; print or PDF), and on permanent deletion the contact's history and audit entries lose name and values (Art. 17, setting *Anonymise the history when deleting permanently*, on by default).
 - CardDAV `sync-collection` (RFC 6578), in Kartei and the DMZ relay: phones fetch only what changed since their last sync.
 - Webhooks: contact changes are POSTed to other systems within seconds, signed with HMAC-SHA256, retried for about a day (*Settings → API*).
 - Phone list: the current list (with search and filters) as a printable phone list, by company or by name, with selectable phone and email columns; the browser saves it as PDF.
+
+### Changed
+
+- Accessibility: grey text meets WCAG AA contrast (4.5:1) in the light and dark theme, form controls in the user list and account page have labels; a browser test checks the main screens with axe-core in both themes.
+
+### Fixed
+
+- A user deactivated by the LDAP user import lost access only when their session expired (up to 14 days); now on their next request.
 
 ## [0.2.0-beta] – 2026-10-25
 

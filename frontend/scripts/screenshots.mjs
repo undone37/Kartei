@@ -37,6 +37,17 @@ const SHOTS = [
   { name: 'person', user: 'mmuster', path: (h) => `/person/${h.person}` },
   { name: 'history', user: 'mmuster', path: (h) => `/person/${h.person}`, steps: open('nav.tabs button:nth-child(2)') },
   { name: 'company', user: 'mmuster', path: (h) => `/company/${h.company}` },
+  { name: 'history-restore', user: 'mmuster', path: (h) => `/person/${h.person}`, before: async (ctx, h) => {
+      const r = await (await api(ctx, 'get', `/api/records/${h.person}`)).json()
+      h.restoreBack = { job_title: r.data.job_title ?? null }
+      await api(ctx, 'patch', `/api/records/${h.person}`, { version: r.version, data: { job_title: 'Assistenz' } })
+    }, steps: async (p) => {
+      await p.locator('nav.tabs button:nth-child(2)').click(); await wait(500)
+      await p.locator('.restore').first().click(); await wait(400)
+    }, after: async (ctx, h) => {
+      const r = await (await api(ctx, 'get', `/api/records/${h.person}`)).json()
+      await api(ctx, 'patch', `/api/records/${h.person}`, { version: r.version, data: h.restoreBack })
+    } },
   { name: 'company-persons', user: 'mmuster', path: (h) => `/company/${h.company}`, steps: open('nav.tabs button:nth-child(2)') },
   { name: 'edit', user: 'mmuster', path: (h) => `/person/${h.person}`, steps: async (p) => { await p.keyboard.press('e'); await wait(400) } },
   { name: 'new-person', user: 'mmuster', path: (h) => `/new/person?company=${h.company}` },
@@ -61,6 +72,14 @@ const SHOTS = [
   { name: 'trash', user: 'mmuster', path: '/trash' },
   { name: 'report', user: 'admin', path: (h) => `/report/${h.person}` },
   { name: 'phonelist', user: 'mmuster', path: '/phonelist' },
+  { name: 'vcard-import', user: 'mmuster', path: '/import/vcard', steps: async (p) => {
+      const vcf = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lehmann;Jonas;;;', 'ORG:Musterfirma Energie AG;Vertrieb', 'TITLE:Vertrieb',
+        'EMAIL;TYPE=WORK:jonas.lehmann@musterfirma.example', 'TEL;TYPE=WORK:+49 511 1000-88', 'TEL;TYPE=CELL:+49 170 5550188',
+        'item1.TEL:+49 511 1000-89', 'item1.X-ABLabel:Pager', 'END:VCARD',
+        'BEGIN:VCARD', 'VERSION:3.0', 'N:Albers;Paula;;;', 'ORG:Albers Consulting', 'END:VCARD'].join('\r\n')
+      await p.locator('input[type=file]').setInputFiles({ name: 'kontakte.vcf', mimeType: 'text/vcard', buffer: Buffer.from(vcf) })
+      await wait(500)
+    } },
   { name: 'account', user: 'kkramer', path: '/account' },
   { name: 'mobile', user: 'kkramer', path: '/', viewport: { width: 390, height: 844 } },
   { name: 'mobile-contact', user: 'kkramer', path: (h) => `/person/${h.person}`, viewport: { width: 390, height: 844 } },
@@ -92,9 +111,10 @@ const SHOTS = [
   { name: 'settings-general-phones', user: 'admin', path: '/settings/general', steps: open('button:has(.lucide-phone)') },
   { name: 'settings-carddav-password', user: 'admin', path: '/settings/carddav', steps: open('button:has(.lucide-key-round)') },
   { name: 'settings-api-token', user: 'admin', path: '/settings/api', steps: async (p) => {
-      await p.locator('form.toolbar input:not([type=radio])').fill('Telefonanlage')
-      await p.locator('form.toolbar input[type=radio][value=write]').check().catch(() => {})
-      await p.locator('form.toolbar button').click(); await wait(600)
+      const form = p.locator('form.toolbar').first() // the token form; the webhook form follows
+      await form.locator('input:not([type=radio])').fill('Telefonanlage')
+      await form.locator('input[type=radio][value=write]').check().catch(() => {})
+      await form.locator('button').click(); await wait(600)
     }, after: async (ctx) => {
       const { tokens } = await (await api(ctx, 'get', '/api/admin/tokens')).json()
       for (const tk of tokens.filter((x) => x.name === 'Telefonanlage')) await api(ctx, 'delete', `/api/admin/tokens/${tk.id}`)

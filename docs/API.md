@@ -530,7 +530,7 @@ def verify(secret: str, headers, body: bytes, max_age=300) -> bool:
 
 ### Answers and retries
 
-- Any `2xx` answer counts as delivered; answer quickly (within 10 seconds) and do the work afterwards.
+- Any `2xx` answer counts as delivered; answer quickly (within 5 seconds) and do the work afterwards. Redirects are not followed and count as failures, so give the final URL.
 - Anything else (error status, timeout, no connection) is retried after 1, 5, 30, 120, 360 and 720 minutes; after the 7th failed attempt the delivery is given up. *Settings → API* shows the last result and the number of waiting and given-up deliveries.
 - Deliveries are kept for 30 days. If a receiver was down for longer than the retries, reconcile with the [delta sync](#changes-since-the-last-call-delta-sync).
 

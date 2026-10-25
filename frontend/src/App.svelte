@@ -1,12 +1,13 @@
 <script lang="ts">
   import logo from './assets/logo.svg'
-  import { Bookmark, Building2, ChevronDown, Copy, Download, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, Printer, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
+  import { Bookmark, Building2, ChevronDown, Copy, Download, FileUp, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, Printer, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
   import AdvancedFilter from './components/AdvancedFilter.svelte'
   import Combobox from './components/Combobox.svelte'
   import Login from './components/Login.svelte'
   import RecordForm from './components/RecordForm.svelte'
   import ProposalPage from './components/ProposalPage.svelte'
   import PhoneList from './components/PhoneList.svelte'
+  import VcardImport from './components/VcardImport.svelte'
   import ReportPage from './components/ReportPage.svelte'
   import RecordList from './components/RecordList.svelte'
   import RecordView from './components/RecordView.svelte'
@@ -50,6 +51,7 @@
     if (a === 'new' && (b === 'person' || b === 'company')) return { name: 'new' as const, kind: b as Kind }
     if (a === 'proposal' && b) return { name: 'proposal' as const, id: Number(b) }
     if (a === 'phonelist') return { name: 'phonelist' as const }
+    if (a === 'import' && b === 'vcard') return { name: 'vcard' as const }
     if (a === 'report' && b) return { name: 'report' as const, uid: b }
     if (a === 'trash') return { name: 'trash' as const }
     if (a === 'settings') return { name: 'settings' as const, tab: b ?? 'fields' }
@@ -255,6 +257,8 @@
             <UserRound size={16} />{store.canEdit ? t('kind.person') : t('new.propose_person')}<kbd>N</kbd></a>
           <a href="/new/company" onclick={() => document.getElementById('new-menu')?.hidePopover()}>
             <Building2 size={16} />{store.canEdit ? t('kind.company') : t('new.propose_company')}<kbd>⇧ N</kbd></a>
+          <a href="/import/vcard" onclick={() => document.getElementById('new-menu')?.hidePopover()}>
+            <FileUp size={16} />{t('vcardimport.menu')}</a>
         </div>
         <button class="btn icon ghost user" popovertarget="user-menu" aria-label={userLabel}><User size={18} /></button>
         <div id="user-menu" popover class="menu" style="right: 12px">
@@ -364,6 +368,8 @@
                                                          : proposal ? go(`/proposal/${proposal}`, true) : history.back())} />
             {/key}
           </div>
+        {:else if view.name === 'vcard'}
+          <VcardImport />
         {:else if view.name === 'report'}
           {#key view.uid}<ReportPage uid={view.uid} />{/key}
         {:else if view.name === 'phonelist'}
@@ -472,7 +478,7 @@
     font-size: 12.5px; white-space: nowrap; cursor: pointer; transition: color 0.12s, background-color 0.12s; }
   .scopes button:hover { color: var(--text); }
   .scopes button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
-  .scopes .todo .n { color: #fff; background: var(--accent); border-radius: 8px; padding: 0 5px; }
+  .scopes .todo .n { color: light-dark(#fff, #0f0f12); background: var(--accent); border-radius: 8px; padding: 0 5px; }  /* like .btn.primary */
   .scopes .n { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
   .filters { display: flex; gap: 6px; padding: 12px 12px 6px; flex-wrap: wrap; }
   .filters .n { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
