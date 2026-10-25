@@ -15,7 +15,7 @@ import logging
 import time
 from datetime import timedelta
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from django.conf import settings as dj
 from django.utils import timezone
@@ -23,7 +23,17 @@ from django.utils import timezone
 from .models import AuditEntry, Webhook, WebhookDelivery
 
 log = logging.getLogger(__name__)
-TIMEOUT = 10
+TIMEOUT = 5
+BUDGET = 30  # seconds per deliver_due(): a slow receiver must not hold up exports, purging and syncs in the same loop
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):  # a redirect counts as a failed delivery, it isn't followed
+        return None
+
+
+_opener = build_opener(_NoRedirect)
+urlopen = _opener.open
 RETRY_MINUTES = (1, 5, 30, 120, 360, 720)  # after the 7th failed attempt the delivery is given up (about a day)
 KEEP_DAYS = 30
 EVENT_OF = {"create": "contact.created", "update": "contact.updated", "merge": "contact.updated",
@@ -85,13 +95,20 @@ def _record(hook, ok, code, error):
 
 
 def deliver_due(limit=200):
-    """Send due deliveries (oldest first). Returns the number sent successfully."""
-    sent = 0
+    """Send due deliveries (oldest first) within BUDGET seconds. After a failure, that webhook's other deliveries wait
+    for the next run, so one unreachable receiver costs at most one timeout per run. Returns the number delivered."""
+    sent, failing, start = 0, set(), time.monotonic()
     now = timezone.now()
     due = list(WebhookDelivery.objects.filter(status="pending", next_at__lte=now, webhook__enabled=True)
                .select_related("webhook").order_by("pk")[:limit])
     for d in due:
+        if time.monotonic() - start > BUDGET:
+            break
+        if d.webhook_id in failing:
+            continue
         ok, code, error = send(d.webhook, d.event, d.pk, payload(d))
+        if not ok:
+            failing.add(d.webhook_id)
         d.attempts += 1
         if ok:
             d.status, d.last_error = "delivered", ""
