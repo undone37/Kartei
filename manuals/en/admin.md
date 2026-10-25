@@ -742,6 +742,7 @@ The contacts appear as a separate account in the Contacts app and are updated au
 - Photos of persons and logos of companies.
 - Names of users and linked persons (e.g. *Internal contact*) as text.
 - Deleted contacts disappear from the phones.
+- Phones that support it (iPhone, DAVx⁵ and most other clients) only fetch what changed since their last sync (`sync-collection`), which keeps syncs fast with many contacts. After a change to the vCard mapping, the *Public URL* or contacts deleted permanently from the recycle bin, each phone does one full sync on its own.
 
 If CardDAV is disabled, the address returns "not found" and the phones keep their last state until the account is removed. Android has no built-in CardDAV; use the [Outlook / Exchange sync](#outlook-sync) or a CardDAV app.
 
@@ -753,7 +754,7 @@ If phones must not reach the internal network, run a small **CardDAV relay** in 
 |---|---|---|
 | Phones connect to | Kartei (`https://kartei.example.de/carddav/`) | the relay (`https://carddav.example.de/carddav/`) |
 | Connection inside ↔ DMZ | none | Kartei (`exporter`) → relay, HTTPS only; the relay never connects anywhere |
-| Data on the DMZ host | none | the rendered vCards (iOS and Android variant), the CardDAV username and the password **hash**: nothing else, no database or LDAP access |
+| Data on the DMZ host | none | the rendered vCards (iOS and Android variant), the CardDAV username and the password **hash**: nothing else, no database or LDAP access. Deleted cards are kept as empty markers for 30 days so phones learn about the deletion; phones that haven't synced for longer do one full sync. |
 
 The relay is the same image started with other settings (`docker build --target relay`, no frontend). It stores the cards in its own SQLite file, serves the same read-only CardDAV as Kartei (address `/carddav/`, discovery `/.well-known/carddav`, rate limit for wrong passwords) and has no other pages: no admin, no sign-in, no listing.
 

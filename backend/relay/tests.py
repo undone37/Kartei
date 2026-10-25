@@ -5,9 +5,12 @@ Runs with the Kartei settings (manage.py test adds the relay app) and with confi
 import base64
 import hashlib
 import json
+import re
+from datetime import timedelta
 
 from django.contrib.auth.hashers import make_password
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from .models import Book, Card
 
@@ -130,3 +133,34 @@ class CardDavTests(RelayTestBase):
         self.assertIn(f"iOS {B}".encode(), r.content)
         r = self.dav("REPORT", "/carddav/kontakte/", '<c:addressbook-query xmlns:c="urn:ietf:params:xml:ns:carddav"/>')
         self.assertEqual(r.content.count(b"BEGIN:VCARD"), 2)
+
+    def sync(self, token=""):
+        body = ('<d:sync-collection xmlns:d="DAV:"><d:sync-token>' + token + '</d:sync-token><d:sync-level>1</d:sync-level>'
+                '<d:prop><d:getetag/></d:prop></d:sync-collection>')
+        return self.dav("REPORT", "/carddav/kontakte/", body)
+
+    def test_sync_collection(self):
+        r = self.sync()  # first sync: everything
+        self.assertEqual((r.status_code, r.content.count(b".vcf</d:href>")), (207, 2))
+        Card.objects.update(changed_at=timezone.now() - timedelta(hours=1))
+        token = re.search(rb"<d:sync-token>([^<]+)</d:sync-token>", r.content)[1].decode()
+        self.assertEqual(self.sync(token).content.count(b"<d:response>"), 0)  # nothing new
+        self.push({"cards": [card(A, 2), card(C)], "delete": [B]})
+        r = self.sync(token)
+        self.assertIn(f"{A}.vcf</d:href><d:propstat>".encode(), r.content)
+        self.assertIn(f"{C}.vcf</d:href><d:propstat>".encode(), r.content)
+        self.assertIn(f"{B}.vcf</d:href><d:status>HTTP/1.1 404 Not Found".encode(), r.content)
+        self.assertEqual(self.dav("GET", f"/carddav/kontakte/{B}.vcf").status_code, 404)  # a tombstone isn't served
+        self.push({"cards": [card(B, 3)]})  # comes back
+        self.assertEqual(self.dav("GET", f"/carddav/kontakte/{B}.vcf").status_code, 200)
+        # tombstones are kept 30 days; a token from before that can't be served any more
+        Card.objects.filter(uid=C).update(deleted=True, changed_at=timezone.now() - timedelta(days=40))
+        self.push({})
+        self.assertFalse(Card.objects.filter(uid=C).exists())
+        self.assertEqual(self.sync(token).status_code, 207)  # this phone synced after the cut: still fine
+        old = int((timezone.now() - timedelta(days=35)).timestamp() * 1e6)
+        r = self.sync(f"urn:kartei:sync:{old}")
+        self.assertEqual(r.status_code, 403)
+        self.assertIn(b"valid-sync-token", r.content)
+        self.assertEqual(self.sync("garbage").status_code, 403)
+
