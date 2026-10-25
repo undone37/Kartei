@@ -7,6 +7,7 @@
   import RecordForm from './components/RecordForm.svelte'
   import ProposalPage from './components/ProposalPage.svelte'
   import PhoneList from './components/PhoneList.svelte'
+  import ReportPage from './components/ReportPage.svelte'
   import RecordList from './components/RecordList.svelte'
   import RecordView from './components/RecordView.svelte'
   import Toasts from './components/Toasts.svelte'
@@ -49,6 +50,7 @@
     if (a === 'new' && (b === 'person' || b === 'company')) return { name: 'new' as const, kind: b as Kind }
     if (a === 'proposal' && b) return { name: 'proposal' as const, id: Number(b) }
     if (a === 'phonelist') return { name: 'phonelist' as const }
+    if (a === 'report' && b) return { name: 'report' as const, uid: b }
     if (a === 'trash') return { name: 'trash' as const }
     if (a === 'settings') return { name: 'settings' as const, tab: b ?? 'fields' }
     if (a === 'account') return { name: 'account' as const }
@@ -362,6 +364,8 @@
                                                          : proposal ? go(`/proposal/${proposal}`, true) : history.back())} />
             {/key}
           </div>
+        {:else if view.name === 'report'}
+          {#key view.uid}<ReportPage uid={view.uid} />{/key}
         {:else if view.name === 'phonelist'}
           <PhoneList items={results.map((x) => x.rec)} />
         {:else if view.name === 'proposal'}

@@ -939,6 +939,7 @@ Jeder Empfänger bekommt den Text in seiner Sprache (oder in der Standardsprache
 | *Standardsprache* | Sprache für alle, die unter *Mein Konto* keine eigene gewählt haben, und für E-Mails an feste Empfänger. Die Anmeldeseite folgt der Browsersprache. |
 | *Öffentliche Adresse* | z. B. `https://kartei.example.de`. Für Links in E-Mails, in vCards (`SOURCE`) und für die CardDAV-Adresse. |
 | *Papierkorb automatisch leeren nach (Tagen)* | Kontakte im Papierkorb werden nach so vielen Tagen endgültig gelöscht. *0* = nie (Standard). |
+| *Beim endgültigen Löschen den Verlauf anonymisieren* | An (Standard): Ein endgültig gelöschter Kontakt verliert auch im Verlauf und im Protokoll Name und Werte; siehe [Datenschutz](#datenschutz). |
 | *Export-Intervall (Minuten)* | Takt aller Hintergrundaufgaben (siehe [Hintergrundaufgaben](#hintergrundaufgaben)). Standard 15, mindestens 1. |
 
 ### Telefonnummern
@@ -1068,6 +1069,19 @@ Was protokolliert wird:
 Nicht protokolliert werden Anmeldungen und die einzelnen Läufe von Exporten und Syncs (deren Ergebnis zeigt der jeweilige Reiter und das Log des `exporter`). Automatische Aktionen erscheinen als Benutzer *system*, Änderungen über ein Schreib-Token als `api:<Token-Name>`.
 
 Jeder Kontakt hat außerdem einen eigenen Reiter *Verlauf*, siehe [Benutzerhandbuch](user.html).
+
+## Datenschutz {#datenschutz}
+
+Kartei enthält personenbezogene Daten. Zwei Funktionen helfen bei den Rechten der betroffenen Personen (DSGVO):
+
+**Datenauskunft (Art. 15).** Am Kontakt öffnet das Dokumentsymbol (*Datenauskunft*, nur Admins) eine Aufstellung über alles, was Kartei zum Kontakt speichert – auch Felder, die nur Admins sehen –, den vollständigen Verlauf, Vorschläge und Prüfungen sowie **wohin die Daten gehen**: Telefone (CardDAV, Relay), Outlook / Exchange, Active Directory, die Exporte, die den Kontakt enthalten, API-Token und Webhooks, jeweils mit den betroffenen Feldern bzw. Spalten. *Drucken / PDF* druckt sie oder speichert sie als PDF für die Person. Die Erstellung steht im Verlauf des Kontakts.
+
+![Datenauskunft](../img/de/report.png)
+
+**Löschung (Art. 17).** Löschen verschiebt einen Kontakt zunächst in den Papierkorb. *Endgültig löschen* (oder das automatische Leeren unter *Allgemein*) entfernt ihn dauerhaft. Mit *Beim endgültigen Löschen den Verlauf anonymisieren* (Standard: an) behalten seine Einträge in Verlauf und Protokoll danach nur, wer wann was getan hat; Name und alle Werte werden entfernt (angezeigt als *(anonymisiert)*). Schalte das nur ab, wenn du die Werte aus einem dokumentierten Grund brauchst.
+
+> Bereits weitergegebene Daten (Exportdateien, andere Systeme über API oder Webhooks) löscht Kartei nicht selbst: Der nächste Export enthält den Kontakt nicht mehr, Telefone und Outlook entfernen ihn beim nächsten Abgleich; andere Systeme müssen ihn selbst löschen (das Webhook-Ereignis `contact.deleted` sagt es ihnen).
+{: .tip}
 
 ## Sicherheit
 

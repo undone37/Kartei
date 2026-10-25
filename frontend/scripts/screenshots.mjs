@@ -59,6 +59,7 @@ const SHOTS = [
   { name: 'duplicates', user: 'admin', path: '/duplicates' },
   { name: 'merge', user: 'admin', path: '/duplicates', steps: open('a[href^="/duplicates/"]') },
   { name: 'trash', user: 'mmuster', path: '/trash' },
+  { name: 'report', user: 'admin', path: (h) => `/report/${h.person}` },
   { name: 'phonelist', user: 'mmuster', path: '/phonelist' },
   { name: 'account', user: 'kkramer', path: '/account' },
   { name: 'mobile', user: 'kkramer', path: '/', viewport: { width: 390, height: 844 } },

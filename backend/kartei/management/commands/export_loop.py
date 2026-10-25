@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 from django.utils import timezone
 
-from kartei import adsync, audit, exports, graph, ldapusers, relaypush, reviews, webhooks
+from kartei import adsync, exports, gdpr, graph, ldapusers, relaypush, reviews, webhooks
 from kartei.models import ExportProfile, Record, Settings
 
 log = logging.getLogger(__name__)
@@ -22,8 +22,7 @@ def tick():
         log.info("export %s: %s", p.name, exports.run(p))
     if s.trash_days:
         for r in Record.objects.filter(deleted_at__lt=timezone.now() - timedelta(days=s.trash_days)):
-            audit.log(None, "purge", "record", r.uid, r.display_name, {"reason": [None, f"trash_days={s.trash_days}"]})
-            r.delete()
+            gdpr.purge(None, r, {"reason": [None, f"trash_days={s.trash_days}"]})
     started, mailed = reviews.tick()
     if started or mailed:
         log.info("reviews: started %s, mails %s", started, mailed)

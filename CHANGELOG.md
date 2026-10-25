@@ -6,6 +6,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- Data protection: an access report per contact for admins (GDPR Art. 15: all data, history, proposals, reviews and the systems the data goes to; print or PDF), and on permanent deletion the contact's history and audit entries lose name and values (Art. 17, setting *Anonymise the history when deleting permanently*, on by default).
 - CardDAV `sync-collection` (RFC 6578), in Kartei and the DMZ relay: phones fetch only what changed since their last sync.
 - Webhooks: contact changes are POSTed to other systems within seconds, signed with HMAC-SHA256, retried for about a day (*Settings → API*).
 - Phone list: the current list (with search and filters) as a printable phone list, by company or by name, with selectable phone and email columns; the browser saves it as PDF.

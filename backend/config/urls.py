@@ -15,6 +15,7 @@ urlpatterns = [
     path("api/records", M(POST=api.create_record)),
     path("api/records/<uuid:uid>", M(GET=api.get_record, PATCH=api.update_record, DELETE=api.delete_record)),
     path("api/records/<uuid:uid>/restore", M(POST=api.restore_record)),
+    path("api/records/<uuid:uid>/report", M(GET=api.record_report)),
     path("api/records/<uuid:uid>/history", M(GET=api.history)),
     path("api/records/<uuid:uid>/proposals", M(POST=api.propose)),
     path("api/records/<uuid:uid>/propagate", M(POST=api.propagate)),
