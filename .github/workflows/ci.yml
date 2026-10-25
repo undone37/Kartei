@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "23 4 * * 1"   # weekly, so new vulnerabilities in unchanged images show up too
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -117,6 +119,9 @@ jobs:
     name: Docker image
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    permissions:
+      contents: read
+      security-events: write   # vulnerability reports in the Security tab
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
@@ -149,3 +154,31 @@ jobs:
         with:
           name: sbom
           path: sbom/
+      # known vulnerabilities (Grype): reported in Security → Code scanning; fails only for critical ones that have a fix
+      - id: scan
+        uses: anchore/scan-action@v7
+        with:
+          image: kartei:ci
+          severity-cutoff: critical
+          only-fixed: true
+          output-format: sarif
+          output-file: kartei.sarif
+      - id: scan-relay
+        if: always()
+        uses: anchore/scan-action@v7
+        with:
+          image: kartei-relay:ci
+          severity-cutoff: critical
+          only-fixed: true
+          output-format: sarif
+          output-file: kartei-relay.sarif
+      - if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: kartei.sarif
+          category: image-kartei
+      - if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: kartei-relay.sarif
+          category: image-kartei-relay
