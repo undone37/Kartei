@@ -976,4 +976,5 @@ export default {
   'proposal.back': "Back to the start page",
   'proposal.form_hint_new': "The contact is not created directly; it goes to a maintainer for approval.",
   'audit.type.proposal': "Proposal",
+  'top.source': "Source code",
 } as Record<string, string>

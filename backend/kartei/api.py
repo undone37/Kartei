@@ -6,6 +6,7 @@ import uuid
 from datetime import timedelta
 from functools import wraps
 
+from django.conf import settings as dj
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
@@ -168,7 +169,7 @@ def session(request):
     s = Settings.get()
     out = {"default_language": s.default_language, "authenticated": request.user.is_authenticated}
     if request.user.is_authenticated:
-        out["user"] = ser_user(request.user)
+        out |= {"user": ser_user(request.user), "version": dj.KARTEI_VERSION, "source": dj.KARTEI_SOURCE_URL}
     return JsonResponse(out)
 
 

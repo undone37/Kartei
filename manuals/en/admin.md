@@ -85,6 +85,7 @@ cp .env.example .env
 | `SECURE_COOKIES` | `1` (default). Set to `0` only for local tests over plain HTTP. |
 | `PROXY_HEADERS` | `1` (default): the client address for the rate limits is taken from the last `X-Forwarded-For` entry, which the reverse proxy appends. Set to `0` if Kartei is reached without a reverse proxy. |
 | `LOG_LEVEL` | Log level of `web` and `exporter` (default `INFO`). |
+| `KARTEI_SOURCE_URL` | Link to the source code at the bottom of the user menu (default: the Kartei repository). If you run a modified version, point it to your code: the AGPL requires offering it to the users. |
 
 Generate the secret like this:
 

@@ -85,6 +85,7 @@ cp .env.example .env
 | `SECURE_COOKIES` | `1` (Standard). Nur für lokale Tests über reines HTTP auf `0` setzen. |
 | `PROXY_HEADERS` | `1` (Standard): Die Absenderadresse für die Sperren nach Fehlversuchen kommt aus dem letzten Eintrag von `X-Forwarded-For`, den der Reverse Proxy anhängt. Auf `0` setzen, wenn Kartei ohne Reverse Proxy erreichbar ist. |
 | `LOG_LEVEL` | Log-Level von `web` und `exporter` (Standard `INFO`). |
+| `KARTEI_SOURCE_URL` | Link zum Quellcode unten im Benutzermenü (Standard: das Kartei-Repository). Betreibst du eine veränderte Fassung, trag hier deren Quellcode ein: Die AGPL verlangt, ihn den Benutzern anzubieten. |
 
 Einen Schlüssel erzeugst du zum Beispiel so:
 

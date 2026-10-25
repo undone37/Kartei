@@ -113,6 +113,55 @@ jobs:
             frontend/test-results/
             server.log
 
+  upgrade:
+    name: Upgrade from the latest release
+    runs-on: ubuntu-26.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: kartei
+          POSTGRES_USER: kartei
+          POSTGRES_PASSWORD: kartei
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kartei -d kartei" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://kartei:kartei@127.0.0.1:5432/kartei
+      SECRET_KEY: upgrade-test-only-not-secret-xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      ALLOWED_HOSTS: localhost
+    steps:
+      - uses: actions/checkout@v7
+      - name: Latest release with sample data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(gh release list -R "$GITHUB_REPOSITORY" -L 1 --json tagName --jq '.[0].tagName' | sed 's/^v//')
+          echo "Upgrading from $version"
+          docker run -d --name old --network host -e SECRET_KEY -e DATABASE_URL -e ALLOWED_HOSTS -e SECURE_COOKIES=0 \
+            -e ADMIN_USERNAME=admin -e ADMIN_PASSWORD=admin12345 "ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/kartei:$version" \
+            sh -c "python manage.py migrate --noinput -v0 && python manage.py init_app && exec gunicorn config.wsgi -b 127.0.0.1:8009"
+          curl -sf --retry 60 --retry-connrefused --retry-delay 1 -o /dev/null http://127.0.0.1:8009/api/session
+          docker exec old python manage.py seed_demo --password demo12345
+          docker exec -i old python manage.py shell < .github/upgrade-fingerprint.py | grep FINGERPRINT > before.txt
+          docker rm -f old
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: System libraries for python-ldap
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libldap-dev libsasl2-dev
+      - run: pip install -r backend/requirements.txt
+      - name: Migrate with this version; the data must be unchanged and usable
+        working-directory: backend
+        run: |
+          python manage.py migrate --noinput
+          python manage.py shell < ../.github/upgrade-fingerprint.py | grep FINGERPRINT > ../after.txt
+          diff ../before.txt ../after.txt
+          ADMIN_USERNAME=admin ADMIN_PASSWORD=admin12345 python manage.py init_app
+          python manage.py shell < ../.github/upgrade-smoke.py
+
   docker:
     name: Docker image
     runs-on: ubuntu-26.04

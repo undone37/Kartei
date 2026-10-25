@@ -62,6 +62,11 @@ TEMPLATES = [{
 }]
 
 # an empty DATABASE_URL counts as unset (dj_database_url would fall back to a dummy backend)
+# shown in the user menu: the release tag (set by the image build) and where the source code is (AGPL: forks that run
+# a modified version point this at their code)
+KARTEI_VERSION = os.environ.get("KARTEI_VERSION") or "dev"
+KARTEI_SOURCE_URL = os.environ.get("KARTEI_SOURCE_URL") or "https://github.com/undone37/Kartei"
+
 DATABASES = {"default": dj_database_url.parse(
     os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}", conn_max_age=600,
     conn_health_checks=True)}  # a reused connection is checked first (e.g. after a cluster failover)

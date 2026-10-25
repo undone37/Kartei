@@ -39,7 +39,7 @@ cp .env.example .env        # set SECRET_KEY, POSTGRES_PASSWORD, ADMIN_USERNAME/
 docker compose up -d --build
 ```
 
-Instead of building, you can use the released images: set `KARTEI_IMAGE=ghcr.io/undone37/kartei:0.1.0-beta` in `.env`, then `docker compose pull && docker compose up -d --no-build` (relay: `RELAY_IMAGE=ghcr.io/undone37/kartei-relay:0.1.0-beta`).
+Instead of building, you can use the released images: set `KARTEI_IMAGE=ghcr.io/undone37/kartei:0.2.0-beta` in `.env`, then `docker compose pull && docker compose up -d --no-build` (relay: `RELAY_IMAGE=ghcr.io/undone37/kartei-relay:0.2.0-beta`).
 
 To use a dedicated PostgreSQL server or cluster instead of the bundled database container, set `DATABASE_URL` and use `compose.external-db.yaml`; the administrator manual (Installation) has the details.
 
@@ -88,7 +88,7 @@ cd frontend && npm test && npm run check
 cd frontend && npm run test:e2e   # browser tests against a running server with seed_demo data (once: npx playwright install chromium)
 ```
 
-GitHub Actions runs the backend tests on SQLite and PostgreSQL 18, the frontend checks, the browser tests and the Docker build on every push, keeps SBOMs (SPDX and CycloneDX) of the source tree and both images as a build artifact, and scans both images for known vulnerabilities (Grype; results under *Security → Code scanning*; a critical vulnerability with an available fix fails the build). The images of the latest release are scanned again every day. Dependabot proposes weekly updates for Python, npm, the Docker base images and the actions; it stays on the Django LTS and on the newest Python that Django supports.
+GitHub Actions runs the backend tests on SQLite and PostgreSQL 18, the frontend checks, the browser tests, an upgrade test (the latest release's image with sample data, then this version's migrations: the data must be unchanged) and the Docker build on every push, keeps SBOMs (SPDX and CycloneDX) of the source tree and both images as a build artifact, and scans both images for known vulnerabilities (Grype; results under *Security → Code scanning*; a critical vulnerability with an available fix fails the build). The images of the latest release are scanned again every day. Dependabot proposes weekly updates for Python, npm, the Docker base images and the actions; it stays on the Django LTS and on the newest Python that Django supports.
 
 ### Releases
 

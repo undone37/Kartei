@@ -18,6 +18,9 @@ RUN apt-get update \
  && apt-get purge -y gcc && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 COPY backend/ .
 RUN useradd -r -u 1000 kartei
+# release tag, shown in the user menu (the release workflow passes it); late, so a new version keeps the pip cache
+ARG KARTEI_VERSION=dev
+ENV KARTEI_VERSION=$KARTEI_VERSION
 
 # --- CardDAV relay for the DMZ (docker build --target relay): own SQLite file in /data, no frontend
 FROM backend AS relay
