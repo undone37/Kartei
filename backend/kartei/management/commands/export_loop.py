@@ -1,5 +1,6 @@
 """Long-running exporter: runs auto exports, purges the recycle bin, syncs Outlook and AD, pushes to the CardDAV relay.
-Interval is read from Settings each loop; an Outlook, AD or relay "sync now" request is picked up within POLL seconds."""
+Interval is read from Settings each loop; an Outlook, AD or relay "sync now" request is picked up within POLL seconds,
+and webhook events are delivered every POLL seconds."""
 import logging
 import time
 from datetime import timedelta
@@ -8,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 from django.utils import timezone
 
-from kartei import adsync, audit, exports, graph, ldapusers, relaypush, reviews
+from kartei import adsync, audit, exports, graph, ldapusers, relaypush, reviews, webhooks
 from kartei.models import ExportProfile, Record, Settings
 
 log = logging.getLogger(__name__)
@@ -34,6 +35,8 @@ def tick():
         log.info("ad sync: %s", status)
     if (status := relaypush.run()) is not None:
         log.info("carddav relay push: %s", status)
+    webhooks.deliver_due()
+    webhooks.cleanup()
     return s.export_interval_minutes
 
 
@@ -70,3 +73,7 @@ class Command(BaseCommand):
                         log.info("carddav relay push (requested): %s", relaypush.run())
                 except Exception:
                     log.exception("carddav relay push failed")
+                try:
+                    webhooks.deliver_due()  # every POLL seconds, not only per export interval
+                except Exception:
+                    log.exception("webhook delivery failed")

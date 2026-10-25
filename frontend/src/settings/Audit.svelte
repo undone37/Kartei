@@ -31,7 +31,7 @@
 <div class="toolbar">
   <select class="select" bind:value={type} onchange={() => load()}>
     <option value="">{t('audit.all_types')}</option>
-    {#each ['record', 'proposal', 'field', 'section', 'user', 'settings', 'export', 'token'] as ty}<option value={ty}>{t(`audit.type.${ty}`)}</option>{/each}
+    {#each ['record', 'proposal', 'field', 'section', 'user', 'settings', 'export', 'token', 'webhook'] as ty}<option value={ty}>{t(`audit.type.${ty}`)}</option>{/each}
   </select>
   <input class="input" placeholder={t('audit.search')} bind:value={q} oninput={() => { clearTimeout(timer); timer = setTimeout(() => load(), 250) }} />
 </div>

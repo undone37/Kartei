@@ -1028,6 +1028,22 @@ Ein Token *Lesen und schreiben* arbeitet wie ein **Bearbeiter, der nur die Felde
 
 Gib ein Schreib-Token nur Systemen, die wirklich Daten ändern müssen, und bewahr es so sicher auf wie ein Passwort.
 
+### Webhooks
+
+Statt Kartei alle paar Minuten abzufragen, können andere Systeme sofort benachrichtigt werden: Ein **Webhook** schickt jede Änderung an einem Kontakt als HTTPS-Anfrage an die Adresse des Systems, signiert mit einem geheimen Schlüssel.
+
+![Webhooks im Reiter API](../img/de/settings-webhooks.png)
+
+1. Trag unter *Webhooks* einen *Namen* und die *Adresse (URL)* ein, die dir das empfangende System nennt.
+2. Wähl bei Bedarf die *Ereignisse* (angelegt, geändert, gelöscht, wiederhergestellt); keine Auswahl heißt alle.
+3. *Webhook anlegen* zeigt den **geheimen Schlüssel** einmal an. Trag ihn im empfangenden System ein; damit prüft es, dass die Anfragen wirklich von Kartei kommen.
+4. *Test-Ereignis senden* (Papierflieger) schickt sofort eine Testanfrage und zeigt das Ergebnis.
+
+- Der Inhalt ist der Kontakt mit den Feldern, die für *Alle* sichtbar sind – wie in der REST-API. Die Entwicklerdokumentation (`docs/API.md`, *Webhooks*) beschreibt die Anfrage und die Prüfung der Signatur.
+- Kartei stellt innerhalb von etwa 10 Sekunden zu. Fehlgeschlagene Zustellungen werden etwa einen Tag lang wiederholt; die Tabelle zeigt das letzte Ergebnis und wie viele Zustellungen warten oder aufgegeben wurden.
+- *Aktiv* schaltet einen Webhook ab, ohne ihn zu löschen; das Schlüsselsymbol erzeugt einen neuen geheimen Schlüssel (der alte gilt sofort nicht mehr).
+- Anlegen, Ändern und Löschen von Webhooks steht im Protokoll.
+
 ## Protokoll
 
 *Einstellungen → Protokoll* listet jede Änderung mit Zeitpunkt, Benutzer, Aktion, Objekt und den geänderten Werten (alter Wert durchgestrichen → neuer Wert).

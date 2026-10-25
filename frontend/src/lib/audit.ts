@@ -53,6 +53,7 @@ const ATTR: Record<string, Record<string, string>> = {
   },
   section: { label: 'fields.label', key: 'audit.attr.key', order: 'audit.attr.order' },
   token: { name: 'tokens.name', scope: 'tokens.scope' },
+  webhook: { name: 'hooks.name', url: 'hooks.url', events: 'hooks.events', enabled: 'hooks.active', secret_enc: 'hooks.secret' },
   export: {
     name: 'exports.name', enabled: 'exports.enabled', format: 'exports.format', path: 'exports.path',
     schedule: 'exports.schedule', kinds: 'exports.kinds', filter_field: 'exports.filter_field',

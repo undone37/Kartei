@@ -10,6 +10,8 @@ from datetime import timedelta
 from functools import wraps
 
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
@@ -17,11 +19,11 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 
-from . import audit, reviews
+from . import audit, reviews, webhooks
 from .api import (ADMIN, MAINT, READ, _add_new_options, _apply, delete_tree, err, needs, records_qs, ser_record,
                   snapshot, visible_fields)
 from .net import client_ip
-from .models import ApiToken, FieldDef, Kind, Record, Settings
+from .models import ApiToken, FieldDef, Kind, Record, Settings, Webhook
 
 
 def token_auth(*allowed):
@@ -220,3 +222,85 @@ def token_delete(request, pk):
     audit.log(request.user, "delete", "token", t.id, t.name, {"name": [t.name, None], "scope": [t.scope, None]})
     t.delete()
     return JsonResponse({"ok": True})
+
+
+# ---------------------------------------------------------------- webhooks (admin)
+
+def ser_webhook(h):
+    return {"id": h.id, "name": h.name, "url": h.url, "events": h.events, "enabled": h.enabled,
+            "created_at": h.created_at.isoformat(), "created_by": h.created_by.username if h.created_by else "",
+            "last_status": h.last_status, **webhooks.stats(h)}
+
+
+def _webhook_fields(b, h):
+    """Apply name/url/events/enabled from a body; returns field errors."""
+    errors = {}
+    if "name" in b:
+        h.name = str(b.get("name") or "").strip()[:100]
+    if "url" in b:
+        h.url = str(b.get("url") or "").strip()
+        try:
+            URLValidator(schemes=["http", "https"])(h.url)
+        except ValidationError:
+            errors["url"] = "invalid_url"
+    if "events" in b:
+        ev = b.get("events")
+        if not isinstance(ev, list) or any(e not in Webhook.EVENTS for e in ev):
+            errors["events"] = "invalid"
+        else:
+            h.events = list(dict.fromkeys(ev))
+    if "enabled" in b:
+        h.enabled = bool(b.get("enabled"))
+    if not h.name:
+        errors["name"] = "required"
+    if not h.url:
+        errors["url"] = "required"
+    return errors
+
+
+@needs(ADMIN)
+def webhook_list(request):
+    if request.method == "POST":
+        h = Webhook(created_by=request.user)
+        if errors := _webhook_fields(request.json, h):
+            return err("validation", fields=errors)
+        secret = "whsec_" + secrets.token_urlsafe(32)
+        h.secret = secret
+        h.save()
+        audit.log(request.user, "create", "webhook", h.id, h.name,
+                  {"name": [None, h.name], "url": [None, h.url], "events": [None, h.events]})
+        return JsonResponse({**ser_webhook(h), "secret": secret}, status=201)  # shown once
+    return JsonResponse({"webhooks": [ser_webhook(h) for h in Webhook.objects.select_related("created_by").order_by("name")]})
+
+
+@needs(ADMIN)
+def webhook_detail(request, pk):
+    h = Webhook.objects.filter(pk=pk).first()
+    if not h:
+        return err("not_found", 404)
+    if request.method == "DELETE":
+        audit.log(request.user, "delete", "webhook", h.id, h.name, {"name": [h.name, None], "url": [h.url, None]})
+        h.delete()
+        return JsonResponse({"ok": True})
+    before = {"name": h.name, "url": h.url, "events": h.events, "enabled": h.enabled}
+    if errors := _webhook_fields(request.json, h):
+        return err("validation", fields=errors)
+    h.save()
+    if change := audit.diff(before, {"name": h.name, "url": h.url, "events": h.events, "enabled": h.enabled}):
+        audit.log(request.user, "update", "webhook", h.id, h.name, change)
+    return JsonResponse(ser_webhook(h))
+
+
+@needs(ADMIN)
+def webhook_action(request, pk, action):
+    """test: send a ping now; secret: replace the secret (shown once)."""
+    h = Webhook.objects.filter(pk=pk).first()
+    if not h or action not in ("test", "secret"):
+        return err("not_found", 404)
+    if action == "test":
+        return JsonResponse(webhooks.ping(h))
+    secret = "whsec_" + secrets.token_urlsafe(32)
+    h.secret = secret
+    h.save(update_fields=["secret_enc"])
+    audit.log(request.user, "update", "webhook", h.id, h.name, {"secret_enc": ["***", "***"]})
+    return JsonResponse({"secret": secret})

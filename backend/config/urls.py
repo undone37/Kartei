@@ -60,6 +60,9 @@ urlpatterns = [
     path("api/v1/contacts/<uuid:uid>", api_v1.contact),
     path("api/admin/tokens", M(GET=api_v1.tokens, POST=api_v1.tokens)),
     path("api/admin/tokens/<int:pk>", M(DELETE=api_v1.token_delete)),
+    path("api/admin/webhooks", M(GET=api_v1.webhook_list, POST=api_v1.webhook_list)),
+    path("api/admin/webhooks/<int:pk>", M(PATCH=api_v1.webhook_detail, DELETE=api_v1.webhook_detail)),
+    path("api/admin/webhooks/<int:pk>/<str:action>", M(POST=api_v1.webhook_action)),
     # carddav relay (DMZ)
     path("api/admin/carddav/relay-token", M(POST=api.relay_token)),
     path("api/admin/carddav/relay-test", M(POST=api.relay_test)),

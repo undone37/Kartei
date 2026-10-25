@@ -25,6 +25,7 @@ The machine-readable description is [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1)
 - [Rate limiting](#rate-limiting)
 - [Examples](#examples)
 - [Recommended sync pattern](#recommended-sync-pattern)
+- [Webhooks](#webhooks)
 
 ## Authentication
 
@@ -478,3 +479,58 @@ print(caller["display_name"] if caller else "unknown")
    - Store the new `cursor`.
 3. Join persons and companies via `company` (UID), or simply use `company_name`.
 4. When writing back, send the `version` you have stored. On `409`, take the current contact from the response, re-apply your change and try again.
+
+## Webhooks
+
+Instead of polling, a system can be notified right away: an administrator adds a **webhook** under *Settings → API* (name, URL, events) and gets a secret, shown once. Kartei then POSTs every contact change to that URL, usually within 10 seconds.
+
+### Events
+
+| Event | When |
+|---|---|
+| `contact.created` | a person or company was created (also by import or an accepted proposal) |
+| `contact.updated` | a contact was changed (form, bulk edit, import, merge, REST API, accepted proposal) |
+| `contact.deleted` | a contact was moved to the recycle bin |
+| `contact.restored` | a contact was restored from the recycle bin |
+| `ping` | the *Send test event* button |
+
+A webhook without selected events receives all of them.
+
+### Request
+
+```http
+POST /your/hook HTTP/1.1
+Content-Type: application/json
+User-Agent: Kartei/0.3.0
+X-Kartei-Event: contact.updated
+X-Kartei-Delivery: 4711
+X-Kartei-Timestamp: 1793000000
+X-Kartei-Signature: sha256=5d41402abc4b2a76b9719d911017c592…
+
+{"id": 4711, "event": "contact.updated", "occurred_at": "2026-10-25T09:14:03.120000+00:00",
+ "uid": "8f0c…", "contact": { …the contact object… }}
+```
+
+- `contact` is [the contact object](#the-contact-object) as `GET /api/v1/contacts/<uid>` returns it, with the fields visible to *Everyone*, **in its state when the event is sent**. It is `null` if the contact is no longer live (e.g. for `contact.deleted`). Treat the event as "this contact changed" and the content as its latest state.
+- `id` (also in `X-Kartei-Delivery`) identifies the delivery; a retry sends the same `id`, so you can ignore duplicates.
+- Events are sent in the order they happened; after a failure, later events are not held back, so check `occurred_at` or compare the `version` if order matters.
+
+### Verifying the signature
+
+`X-Kartei-Signature` is `sha256=` followed by the hex HMAC-SHA256 of `"<X-Kartei-Timestamp>.<raw body>"` with the webhook's secret. Check it on the raw bytes, before parsing the JSON, and reject old timestamps to block replays:
+
+```python
+import hashlib, hmac, time
+
+def verify(secret: str, headers, body: bytes, max_age=300) -> bool:
+    ts = headers["X-Kartei-Timestamp"]
+    expected = "sha256=" + hmac.new(secret.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, headers["X-Kartei-Signature"]) and abs(time.time() - int(ts)) < max_age
+```
+
+### Answers and retries
+
+- Any `2xx` answer counts as delivered; answer quickly (within 10 seconds) and do the work afterwards.
+- Anything else (error status, timeout, no connection) is retried after 1, 5, 30, 120, 360 and 720 minutes; after the 7th failed attempt the delivery is given up. *Settings → API* shows the last result and the number of waiting and given-up deliveries.
+- Deliveries are kept for 30 days. If a receiver was down for longer than the retries, reconcile with the [delta sync](#changes-since-the-last-call-delta-sync).
+

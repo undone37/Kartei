@@ -97,6 +97,13 @@ const SHOTS = [
       const { tokens } = await (await api(ctx, 'get', '/api/admin/tokens')).json()
       for (const tk of tokens.filter((x) => x.name === 'Telefonanlage')) await api(ctx, 'delete', `/api/admin/tokens/${tk.id}`)
     } },
+  { name: 'settings-webhooks', user: 'admin', path: '/settings/api', before: async (ctx) => {
+      await api(ctx, 'post', '/api/admin/webhooks', { name: 'Intranet', url: 'https://intranet.example.de/kartei-hook', events: [] })
+    }, steps: async (p) => { await p.getByRole('heading', { level: 2 }).last().evaluate((h) => h.scrollIntoView({ block: 'start' })); await wait(300) },
+    after: async (ctx) => {
+      const { webhooks } = await (await api(ctx, 'get', '/api/admin/webhooks')).json()
+      for (const h of webhooks.filter((x) => x.name === 'Intranet')) await api(ctx, 'delete', `/api/admin/webhooks/${h.id}`)
+    } },
   ...['fields', 'users', 'ldap', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'audit']
     .map((tab) => ({ name: `settings-${tab}`, user: 'admin', path: `/settings/${tab}` })),
 ]
@@ -155,6 +162,7 @@ for (const lang of LANGS) {
   for (const s of SHOTS) {
     if (ONLY && !ONLY.includes(s.name)) continue
     if (s.user !== current) { await login(ctx, s.user, lang); current = s.user }
+    if (s.before) await s.before(ctx, h)
     const page = await ctx.newPage()
     try {
       if (s.viewport) await page.setViewportSize(s.viewport)
