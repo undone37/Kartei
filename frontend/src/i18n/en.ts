@@ -1140,6 +1140,8 @@ export default {
   'sso.scopes': "Scopes",
   'sso.claim': "Claim for the first sign-in",
   'sso.claim_hint': "The first time, this claim must equal the user name of a SCIM user (or the directory email of an LDAP user); after that Kartei only goes by the account's issuer and subject. Local users and superusers never sign in this way.",
+  'sso.mfa_trusted': "The provider's multi-factor authentication counts",
+  'sso.mfa_trusted_hint': "Only switch this on if the provider enforces MFA for every sign-in to Kartei (e.g. a conditional access policy). Then Kartei doesn't ask for its own code after single sign-on, and “Two-factor sign-in required for” doesn't apply to these sessions. Sign-ins with a password still need Kartei's code.",
   'sso.label': "Button text on the login page",
   'sso.redirect': "Redirect URI (register it in the identity provider)",
   'err.oidc_incomplete': "Needs the issuer, client ID, client secret and the public URL (General)",

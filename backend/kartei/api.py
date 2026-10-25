@@ -58,7 +58,7 @@ def needs(min_rank):
             request.rank = rank_of(request.user)
             if request.rank < min_rank:
                 return err("forbidden", 403)
-            if fn.__name__ not in ("my_totp", "update_me") and totp_due(request.user):  # set up the required 2FA first
+            if fn.__name__ not in ("my_totp", "update_me") and totp_due(request.user, request):  # set up the required 2FA first
                 return err("totp_setup_required", 403)
             request.json = {}
             if request.body and request.content_type == "application/json":
@@ -149,9 +149,14 @@ def totp_policy(u):
     return need == "all" or (need == "admins" and rank_of(u) == 2)
 
 
-def totp_due(u):
-    """Required but not set up yet: the user can't do anything else until it is."""
-    return totp_policy(u) and not profile_of(u).totp_secret_enc
+def provider_mfa(request):
+    """Signed in by single sign-on, and the admin trusts the provider's multi-factor authentication."""
+    return bool(request.session.get("sso_at")) and Settings.get().oidc_mfa_trusted
+
+
+def totp_due(u, request=None):
+    """Required but not set up yet: the user can't do anything else until it is (unless the provider's MFA counts)."""
+    return totp_policy(u) and not profile_of(u).totp_secret_enc and not (request and provider_mfa(request))
 
 
 def ser_user(u):
@@ -184,7 +189,8 @@ def session(request):
     out = {"default_language": s.default_language, "authenticated": request.user.is_authenticated,
            "sso": oidc.configured(s), "sso_label": s.oidc_label}
     if request.user.is_authenticated:
-        out |= {"user": ser_user(request.user), "version": dj.KARTEI_VERSION, "source": dj.KARTEI_SOURCE_URL}
+        out |= {"user": ser_user(request.user) | {"totp_due": totp_due(request.user, request)},
+                "version": dj.KARTEI_VERSION, "source": dj.KARTEI_SOURCE_URL}
     return JsonResponse(out)
 
 
@@ -259,7 +265,7 @@ def oidc_callback(request):
         user = oidc.finish(request.session, s, request.GET.get("code", ""), request.GET.get("state", ""))
     except oidc.SignInError as e:
         return HttpResponseRedirect(f"/?login_error={e}")
-    if profile_of(user).totp_secret_enc:  # the provider doesn't replace Kartei's second factor: the login page asks
+    if profile_of(user).totp_secret_enc and not s.oidc_mfa_trusted:  # unless the provider's MFA counts, the login page asks
         request.session["sso_pending"] = {"user": user.id, "at": int(time.time())}
         return HttpResponseRedirect("/?login_step=totp")
     _sso_login(request, user)
@@ -1564,7 +1570,7 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
                   "ad_enabled", "ad_ou", "ad_bind_dn", "ad_kinds", "ad_columns", "ad_max_shrink_percent"]
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
 SETTINGS_ATTRS += ["mail_templates", "mail_transport", "mail_graph_sender"]
-SETTINGS_ATTRS += ["oidc_issuer", "oidc_client_id", "oidc_scopes", "oidc_claim", "oidc_label",
+SETTINGS_ATTRS += ["oidc_issuer", "oidc_client_id", "oidc_scopes", "oidc_claim", "oidc_label", "oidc_mfa_trusted",
                    "scim_group_admin", "scim_group_maintainer", "scim_group_read"]
 SETTINGS_ATTRS += ["carddav_relay_enabled", "carddav_relay_url", "carddav_relay_tls_verify", "carddav_relay_ca_cert",
                    "carddav_relay_max_delete_percent"]

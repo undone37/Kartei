@@ -480,7 +480,7 @@ Wer sich anmelden kann:
 - Bei Entra ID werden Gäste aus anderen Verzeichnissen abgewiesen.
 - Die Anmeldung nutzt den Autorisierungscode-Fluss mit PKCE; Kartei prüft Aussteller, Empfänger, Ablauf und Nonce des ID-Tokens. Jede Anmeldung steht im Protokoll.
 
-**Zwei-Faktor-Anmeldung und Single Sign-on:** Die Mehrfaktor-Authentifizierung des Providers ersetzt die von Kartei nicht. Hat ein Konto die Zwei-Faktor-Anmeldung eingeschaltet (oder ist sie [Pflicht](#allgemeine-einstellungen)), fragt Kartei nach dem Provider den Code ab. SCIM-Benutzer haben kein Kartei-Passwort: Zum Einschalten brauchen sie stattdessen eine Single-Sign-on-Anmeldung in den letzten 10 Minuten. Erzwingt der Provider schon MFA, lass *Zwei-Faktor-Anmeldung Pflicht für* auf *Niemanden* oder *Administratoren*.
+**Zwei-Faktor-Anmeldung und Single Sign-on:** Die Mehrfaktor-Authentifizierung des Providers ersetzt die von Kartei nicht. Hat ein Konto die Zwei-Faktor-Anmeldung eingeschaltet (oder ist sie [Pflicht](#allgemeine-einstellungen)), fragt Kartei nach dem Provider den Code ab. SCIM-Benutzer haben kein Kartei-Passwort: Zum Einschalten brauchen sie stattdessen eine Single-Sign-on-Anmeldung in den letzten 10 Minuten. Erzwingt der Provider bei jeder Anmeldung an Kartei MFA (z. B. per Richtlinie für bedingten Zugriff), schalte *Mehrfaktor-Authentifizierung des Providers zählt* ein: Dann fragt Kartei nach Single Sign-on keinen Code ab, und *Zwei-Faktor-Anmeldung Pflicht für* gilt für diese Sitzungen nicht. Anmeldungen mit Passwort brauchen weiterhin den Kartei-Code.
 
 ## Felder
 

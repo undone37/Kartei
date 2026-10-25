@@ -188,3 +188,23 @@ class OidcTests(ApiTestBase):
         s = self.j("post", "/api/me/totp", {"action": "setup"})
         code = totp.code_at(s["secret"], int(time.time() // totp.STEP))
         self.assertTrue(self.j("post", "/api/me/totp", {"action": "confirm", "code": code})["user"]["totp"])
+
+    def test_provider_mfa_can_count(self):
+        from . import totp
+        p = Profile.objects.get(user__username="read")
+        p.totp_secret = totp.new_secret()
+        p.save()
+        Settings.objects.update(oidc_mfa_trusted=True, totp_required="all")
+        self.assertEqual(self.sso(sub="sub-2", preferred_username="read@example.com"), "/")  # no code step
+        self.assertEqual(self.who(), "read")
+        self.client.logout()
+        self.assertEqual(self.sso(), "/")  # a SCIM user without 2FA: not forced to set it up either
+        self.assertFalse(self.client.get("/api/session").json()["user"]["totp_due"])
+        self.j("get", "/api/bootstrap")
+        self.client.logout()
+        self.client.force_login(User.objects.get(username="maintainer@example.com"))  # not by single sign-on
+        self.assertEqual(self.j("get", "/api/bootstrap", status=403)["error"], "totp_setup_required")
+        Settings.objects.update(oidc_mfa_trusted=False)
+        self.client.logout()
+        self.sso()
+        self.assertEqual(self.j("get", "/api/bootstrap", status=403)["error"], "totp_setup_required")

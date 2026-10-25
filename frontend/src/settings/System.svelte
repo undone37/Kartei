@@ -319,6 +319,10 @@
           <button type="button" class="btn icon" title={t('view.copy')} aria-label={t('view.copy')} onclick={() => copy(redirectUri)}><Copy size={15} /></button>
         </div>
       </div>
+      <div>
+        <label class="check"><input type="checkbox" bind:checked={s.oidc_mfa_trusted} /> {t('sso.mfa_trusted')}</label>
+        <p class="hint">{t('sso.mfa_trusted_hint')}</p>
+      </div>
     {:else if section === 'ldap'}
       <p class="hint">{t('ldap.hint')}</p>
       <div>

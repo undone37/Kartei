@@ -480,7 +480,7 @@ Who can sign in:
 - With Entra ID, guests from other directories are refused.
 - The sign-in uses the authorization code flow with PKCE; Kartei checks issuer, audience, expiry and nonce of the ID token. Each sign-in is in the audit log.
 
-**Two-factor sign-in and single sign-on:** the provider's multi-factor authentication doesn't replace Kartei's own. If an account has two-factor sign-in switched on (or it is [required](#general-settings)), Kartei asks for the code after the provider. SCIM users have no Kartei password: to switch two-factor sign-in on, they need a single sign-on in the last 10 minutes instead. If the provider already enforces MFA, leave *Two-factor sign-in required for* at *Nobody* or *Administrators*.
+**Two-factor sign-in and single sign-on:** the provider's multi-factor authentication doesn't replace Kartei's own. If an account has two-factor sign-in switched on (or it is [required](#general-settings)), Kartei asks for the code after the provider. SCIM users have no Kartei password: to switch two-factor sign-in on, they need a single sign-on in the last 10 minutes instead. If the provider enforces MFA for every sign-in to Kartei (e.g. a conditional access policy), switch on *The provider's multi-factor authentication counts*: Kartei then asks for no code after single sign-on, and *Two-factor sign-in required for* doesn't apply to those sessions. Password sign-ins still need Kartei's code.
 
 ## Fields
 

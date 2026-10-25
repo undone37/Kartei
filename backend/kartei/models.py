@@ -160,6 +160,7 @@ class Settings(models.Model):
     oidc_scopes = models.CharField(max_length=255, default="openid profile email")
     oidc_claim = models.CharField(max_length=20, default="preferred_username")  # matched at the first sign-in
     oidc_label = models.CharField(max_length=60, blank=True)  # login button; empty = "Sign in with single sign-on"
+    oidc_mfa_trusted = models.BooleanField(default=False)  # the provider enforces MFA: no Kartei code after single sign-on
     scim_token_hash = models.CharField(max_length=64, blank=True)  # SHA-256 of the bearer token, shown once
     scim_seen_at = models.DateTimeField(null=True, blank=True)  # last authenticated SCIM request (shown in the UI)
     scim_group_admin = models.CharField(max_length=20, blank=True)  # ScimGroup ids

@@ -1140,6 +1140,8 @@ export default {
   'sso.scopes': "Scopes",
   'sso.claim': "Claim für die erste Anmeldung",
   'sso.claim_hint': "Beim ersten Mal muss dieser Claim dem Benutzernamen eines SCIM-Benutzers (oder der Verzeichnis-E-Mail eines LDAP-Benutzers) entsprechen; danach erkennt Kartei das Konto nur noch an Aussteller und Subject. Lokale Benutzer und Superuser melden sich nie so an.",
+  'sso.mfa_trusted': "Mehrfaktor-Authentifizierung des Providers zählt",
+  'sso.mfa_trusted_hint': "Nur einschalten, wenn der Provider bei jeder Anmeldung an Kartei MFA erzwingt (z. B. per Richtlinie für bedingten Zugriff). Dann fragt Kartei nach Single Sign-on keinen eigenen Code ab, und „Zwei-Faktor-Anmeldung Pflicht für“ gilt für diese Sitzungen nicht. Anmeldungen mit Passwort brauchen weiterhin den Kartei-Code.",
   'sso.label': "Text der Schaltfläche auf der Anmeldeseite",
   'sso.redirect': "Umleitungs-URI (im Identity-Provider eintragen)",
   'err.oidc_incomplete': "Dafür fehlen Aussteller, Client-ID, Client-Geheimnis oder die öffentliche Adresse (Allgemein)",
