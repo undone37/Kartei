@@ -351,7 +351,7 @@ Lokale Benutzer bleiben als Rückfallebene erhalten, falls das Verzeichnis nicht
 - **Anlegen:** *Lokaler Benutzer* → *Benutzername*, *Passwort* (mindestens 10 Zeichen), optional Vor- und Nachname, *E-Mail* und *Rolle* eingeben → *Anlegen*. Für Prüf-E-Mails braucht der Benutzer eine E-Mail-Adresse.
 - **Rolle ändern:** in der Spalte *Rolle* auswählen, das wirkt sofort.
 - **Passwort zurücksetzen:** Schlüsselsymbol (*Passwort setzen*) → neues Passwort eingeben → *Speichern*.
-- **Deaktivieren:** Haken bei *Aktiv* entfernen. Der Benutzer kann sich nicht mehr anmelden, bleibt aber in der Liste und in den Benutzerfeldern der Kontakte (als inaktiv markiert). Das ist meist besser als Löschen.
+- **Deaktivieren:** Haken bei *Aktiv* entfernen. Der Benutzer kann sich nicht mehr anmelden, bleibt aber in der Liste und in den Benutzerfeldern der Kontakte (als inaktiv markiert), bis du sie [übergibst](#leavers). Das ist meist besser als Löschen.
 - **Löschen:** Papierkorbsymbol, dann im Dialog bestätigen. Das Konto kann sich nicht mehr anmelden, und seine eigenen gespeicherten Filter (auch geteilte) werden gelöscht; Kontakte behalten den Benutzernamen in Verantwortlich-Feldern. AD-Benutzer kommen beim nächsten Benutzerimport wieder, solange sie in einer Rollengruppe sind. Dich selbst kannst du nicht löschen.
 
 > Hinweis: Der letzte aktive Admin lässt sich weder herabstufen noch deaktivieren oder löschen (*Der letzte Admin kann nicht entfernt werden*). Der erste Admin aus der `.env` ist ein Superuser (Tooltip *Hauptadministrator (Superuser) – immer Admin*); seine Rolle lässt sich in der Liste nicht ändern.
@@ -365,6 +365,17 @@ Bei LDAP-Benutzern (*Herkunft* `LDAP`) sind *Rolle*, *Aktiv* und das Passwort ge
 - AD-Konto deaktivieren oder aktivieren.
 
 Die Änderung greift bei der nächsten Anmeldung oder beim nächsten Benutzerimport (täglich oder per *Speichern & Benutzer jetzt importieren*). Wer in keiner Rollengruppe mehr ist, wird **deaktiviert, nicht gelöscht** – so bleibt der Name an den Kontakten sichtbar, für die er zuständig war. Kommt er wieder in eine Gruppe, wird er reaktiviert.
+
+### Wenn jemand das Unternehmen verlässt {#leavers}
+
+Deaktivieren (lokale Benutzer) oder aus den Rollengruppen entfernen (LDAP-Benutzer; der nächste Benutzerimport deaktiviert sie). Anmelden geht dann nicht mehr; eine offene Sitzung endet mit der nächsten Anfrage.
+
+- **Der Verlauf bleibt vollständig.** Jeder Eintrag im Protokoll und im Verlauf behält den Namen dessen, der die Änderung gemacht hat – auch nach dem Löschen des Kontos.
+- **Kontakte übergeben.** Die Benutzerliste markiert Ausgeschiedene, die noch in Kontakten eingetragen sind (*N Kontakte zu übergeben*). *Übergeben …* (Pfeil-Symbol) zeigt, wie viele Kontakte und offene Überprüfungen betroffen sind; Nachfolge auswählen und bestätigen. Die Nachfolge übernimmt in allen Benutzerfeldern (Verantwortliche, interne Kontakte); offene Überprüfungen gehen an die neue Verantwortliche. Jede Änderung steht im Verlauf des Kontakts, als Übergabe gekennzeichnet. Das geht auch bei aktiven Benutzern, z. B. nach einem Stellenwechsel.
+- **Offene Überprüfungen** Ausgeschiedener bleiben bis zur Übergabe offen; Kartei schickt ihnen keine Mails mehr.
+- **Vorschläge** von ihnen bleiben offen; Bearbeiter entscheiden wie gewohnt.
+- **API-Tokens und Webhooks** gehören Kartei, nicht dem Admin, der sie angelegt hat, und funktionieren weiter.
+- **Löschen** lässt sich ein Konto erst, wenn kein Kontakt es mehr nennt (*vorher übergeben*).
 
 ## Anmeldung über LDAP / AD
 

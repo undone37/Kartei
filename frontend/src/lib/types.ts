@@ -97,6 +97,7 @@ export interface User {
   is_active: boolean
   is_superuser: boolean
   last_login: string | null
+  refs?: number // contacts naming this user (user list only)
 }
 
 export interface AuditEntry {
