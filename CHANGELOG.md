@@ -6,6 +6,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- Two-factor sign-in (TOTP, RFC 6238) for local and LDAP users: set up under *My account* with a QR code, 8 one-time recovery codes, no reuse of a code; admins can reset it for a user.
 - CardDAV `sync-collection` (RFC 6578), in Kartei and the DMZ relay: phones fetch only what changed since their last sync.
 - Webhooks: contact changes are POSTed to other systems within seconds, signed with HMAC-SHA256, retried for about a day (*Settings → API*).
 - Phone list: the current list (with search and filters) as a printable phone list, by company or by name, with selectable phone and email columns; the browser saves it as PDF.

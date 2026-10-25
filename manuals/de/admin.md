@@ -352,6 +352,7 @@ Lokale Benutzer bleiben als Rückfallebene erhalten, falls das Verzeichnis nicht
 - **Rolle ändern:** in der Spalte *Rolle* auswählen, das wirkt sofort.
 - **Passwort zurücksetzen:** Schlüsselsymbol (*Passwort setzen*) → neues Passwort eingeben → *Speichern*.
 - **Deaktivieren:** Haken bei *Aktiv* entfernen. Der Benutzer kann sich nicht mehr anmelden, bleibt aber in der Liste und in den Benutzerfeldern der Kontakte (als inaktiv markiert). Das ist meist besser als Löschen.
+- **Zwei-Faktor-Anmeldung:** schalten die Benutzer selbst unter *Mein Konto* ein; die Liste kennzeichnet sie mit **2FA**. Hat jemand Handy und Wiederherstellungscodes verloren, schaltet das Schildsymbol (*Zwei-Faktor-Anmeldung zurücksetzen*) sie nach einer Rückfrage ab, sodass wieder das Passwort reicht (prüf die Anfrage vorher). Gilt für lokale und LDAP-Benutzer.
 - **Löschen:** Papierkorbsymbol, dann im Dialog bestätigen. Das Konto kann sich nicht mehr anmelden, und seine eigenen gespeicherten Filter (auch geteilte) werden gelöscht; Kontakte behalten den Benutzernamen in Verantwortlich-Feldern. AD-Benutzer kommen beim nächsten Benutzerimport wieder, solange sie in einer Rollengruppe sind. Dich selbst kannst du nicht löschen.
 
 > Hinweis: Der letzte aktive Admin lässt sich weder herabstufen noch deaktivieren oder löschen (*Der letzte Admin kann nicht entfernt werden*). Der erste Admin aus der `.env` ist ein Superuser (Tooltip *Hauptadministrator (Superuser) – immer Admin*); seine Rolle lässt sich in der Liste nicht ändern.
@@ -1075,6 +1076,7 @@ Jeder Kontakt hat außerdem einen eigenen Reiter *Verlauf*, siehe [Benutzerhandb
 - **Nur einmal angezeigt:** Das CardDAV-Passwort und die API-Token werden nur als Hash gespeichert. Sie erscheinen einmal beim Erzeugen; danach lassen sie sich nur ersetzen.
 - **Sperren nach Fehlversuchen:** Nach 10 fehlgeschlagenen Anmeldungen für einen Benutzernamen, 20 fehlgeschlagenen CardDAV-Anmeldungen bzw. 20 fehlgeschlagenen API-Anfragen ist die Absenderadresse 15 Minuten gesperrt. Hinter dem Reverse Proxy ist das der letzte Eintrag von `X-Forwarded-For`; sorg dafür, dass der Proxy ihn anhängt und Port 8000 nicht direkt erreichbar ist (ohne Proxy: `PROXY_HEADERS=0`).
 - **Nur HTTPS:** Cookies sind als *Secure* markiert. Lass `SECURE_COOKIES=1` im Betrieb.
+- **Zwei-Faktor-Anmeldung:** Schalte sie für jedes Admin-Konto ein, vor allem für das lokale aus der `.env` (*Mein Konto*). CardDAV, REST-API und Webhooks betrifft sie nicht.
 - **Minimale Rechte:** Das LDAP-Dienstkonto braucht nur Leserechte. Gib dem AD-Schreibkonto nur Rechte auf der Ziel-OU, beschränke die Outlook-App auf die Postfächer der Gruppe und `Mail.Send` auf das sendende Postfach.
 - **Sichtbarkeit der Felder:** CardDAV, Outlook-Sync und API sehen nur Felder, die für *Alle* sichtbar sind. Exporte und der AD-Sync enthalten, was du einrichtest – schütze die Exportfreigabe entsprechend.
 - **Notfallzugang:** `/django-admin/` ist eine versteckte Rückfallebene für Superuser. Nutze sie nur im Notfall; Änderungen dort umgehen die Prüfungen von Kartei und landen nicht im Protokoll.

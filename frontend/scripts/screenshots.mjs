@@ -61,6 +61,9 @@ const SHOTS = [
   { name: 'trash', user: 'mmuster', path: '/trash' },
   { name: 'phonelist', user: 'mmuster', path: '/phonelist' },
   { name: 'account', user: 'kkramer', path: '/account' },
+  { name: 'account-totp', user: 'kkramer', path: '/account', steps: async (p) => {
+      await p.locator('section.card').last().locator('.btn.primary').click(); await wait(600)
+      await p.locator('section.card').last().evaluate((s) => s.scrollIntoView({ block: 'end' })); await wait(200) } },
   { name: 'mobile', user: 'kkramer', path: '/', viewport: { width: 390, height: 844 } },
   { name: 'mobile-contact', user: 'kkramer', path: (h) => `/person/${h.person}`, viewport: { width: 390, height: 844 } },
   { name: 'dashboard-admin', user: 'admin', path: '/' },

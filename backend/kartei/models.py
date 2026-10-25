@@ -47,6 +47,11 @@ class Profile(models.Model):
     source = models.CharField(max_length=5, choices=[("local", "local"), ("ldap", "ldap")], default="local")
     recent = models.JSONField(default=list, blank=True)  # record uids, last viewed first (dashboard)
     favorites = models.JSONField(default=list, blank=True)  # record uids, starred first
+    # two-factor sign-in (totp.py): secret stored encrypted; empty = off
+    totp_secret_enc = models.TextField(blank=True)
+    totp_secret = _secret("totp_secret_enc")
+    totp_last_counter = models.BigIntegerField(null=True, blank=True)  # last accepted step, against replay
+    totp_recovery = models.JSONField(default=list, blank=True)  # SHA-256 of unused recovery codes
 
     @property
     def rank(self):

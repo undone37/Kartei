@@ -158,8 +158,9 @@ class Store {
     this.status = 'login'
   }
 
-  async login(username: string, password: string) {
-    const { user } = await post<{ user: User }>('/api/login', { username, password })
+  /** code: the two-factor code, asked for after the server answered "totp_required" */
+  async login(username: string, password: string, code?: string) {
+    const { user } = await post<{ user: User }>('/api/login', { username, password, ...(code ? { code } : {}) })
     this.user = user
     this.applyLang()
     await this.sync()
