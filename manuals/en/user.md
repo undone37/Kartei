@@ -241,6 +241,10 @@ The **History** tab shows every change to the contact: who changed what and when
 
 ![History of a contact](../img/en/history.png)
 
+**Maintainers** can undo a change: **Restore** next to a change sets its fields back to the values before it. Kartei first shows what will change (*Job title: Assistant → Accounting*) and asks for confirmation. Fields that already have the old value again are left alone, and fields only admins may edit are skipped. The restore itself appears as a new change in the history, so it can be undone too.
+
+![Restoring a value from the history](../img/en/history-restore.png)
+
 ## Reviews
 
 Contact details go out of date: people change jobs, companies move or close down. That is why Kartei regularly asks the colleague responsible for a contact (its *Internal contact*) to check it.

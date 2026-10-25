@@ -1101,4 +1101,9 @@ export default {
   'err.sso_invalid': "The answer from Microsoft was not valid",
   'err.sso_unknown_user': "There is no active Kartei user for this Microsoft account",
   'err.sso_ambiguous': "This Microsoft account matches several Kartei users – please contact your administrator",
+  'history.restore': "Restore",
+  'history.restore_hint': "Set the fields of this change back to their previous values",
+  'history.restore_title': "Restore these values?",
+  'history.restored': "Values restored",
+  'history.conflict': "The contact was changed in the meantime – please try again",
 } as Record<string, string>

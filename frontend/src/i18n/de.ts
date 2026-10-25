@@ -1101,4 +1101,9 @@ export default {
   'err.sso_invalid': "Die Antwort von Microsoft war ungültig",
   'err.sso_unknown_user': "Zu diesem Microsoft-Konto gibt es keinen aktiven Kartei-Benutzer",
   'err.sso_ambiguous': "Dieses Microsoft-Konto passt zu mehreren Kartei-Benutzern – bitte an die Administration wenden",
+  'history.restore': "Zurücksetzen",
+  'history.restore_hint': "Die Felder dieser Änderung auf ihre vorherigen Werte zurücksetzen",
+  'history.restore_title': "Diese Werte wiederherstellen?",
+  'history.restored': "Werte wiederhergestellt",
+  'history.conflict': "Der Kontakt wurde inzwischen geändert – bitte noch einmal versuchen",
 } as Record<string, string>
