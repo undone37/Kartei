@@ -96,8 +96,10 @@
   </div>
   {#if field && op !== 'clear'}
     {#key field.key + op}
-      <!-- removing only offers existing options; required is checked per record by the server -->
-      <FieldInput field={{ ...field, required: false, open_options: op !== 'remove' && field.open_options }} {value}
+      <!-- removing only offers existing options (incl. users that can't be assigned any more, e.g. admins);
+           required is checked per record by the server -->
+      <FieldInput field={{ ...field, required: false, open_options: op !== 'remove' && field.open_options,
+                           options: op === 'remove' ? field.options.map(({ pick: _, ...o }) => o) : field.options }} {value}
                   onchange={(v) => (value = v)} />
     {/key}
   {/if}

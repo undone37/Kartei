@@ -3,8 +3,9 @@
   import { ApiError, del, post } from '../lib/api'
   import { go } from '../lib/router.svelte'
   import { store } from '../lib/store.svelte'
-  import { dateTime, fmt, relTime } from '../lib/format'
-  import { L, t, terr } from '../lib/i18n.svelte'
+  import { dateTime, relTime } from '../lib/format'
+  import { t, terr } from '../lib/i18n.svelte'
+  import { fieldName, valueText } from '../lib/proposals'
   import { toast } from '../lib/toast.svelte'
   import { confirmDialog } from '../lib/confirm.svelte'
   import type { Proposal, Rec } from '../lib/types'
@@ -29,18 +30,12 @@
   })
   // a person whose company someone reported as gone
   const companyGone = $derived(rec.company ? store.proposals.find((p) => p.record === rec.company && p.reason === 'company_gone') : undefined)
-  const affected = (p: Proposal) => (p.reason === 'company_gone' ? store.persons.get(p.record) ?? [] : [])
+  const affected = (p: Proposal) => (p.reason === 'company_gone' && p.record ? store.persons.get(p.record) ?? [] : [])
   let notes = $state<Record<number, string>>({})
   let busy = $state(false)
 
-  const fieldByKey = $derived(new Map(store.fields.map((f) => [f.key, f])))
-  const label = (key: string) => (fieldByKey.get(key) ? L(fieldByKey.get(key)!.label) : t(`core.${key}`))
-  const show = (scope: 'core' | 'data', key: string, v: any) => {
-    if (v == null || v === '' || (Array.isArray(v) && !v.length)) return '—'
-    if (scope === 'core') return key === 'company' ? store.byUid.get(v)?.name ?? '—' : String(v)
-    const f = fieldByKey.get(key)
-    return f ? fmt(f, v) : String(v)
-  }
+  const label = fieldName
+  const show = valueText
   const rows = (p: Proposal) =>
     (['core', 'data'] as const).flatMap((s) => Object.keys(p.changes[s] ?? {}).map((k) => ({
       key: k, label: label(k), from: show(s, k, p.base[s]?.[k]), to: show(s, k, p.changes[s]![k]),

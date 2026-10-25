@@ -6,6 +6,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- Read-only users can propose new persons and companies (*New → Propose new person/company*); maintainers create, adjust or reject them from the list *Proposals*. Included in the proposal emails and the audit log.
 - Support for a dedicated PostgreSQL server or cluster instead of the bundled database container (`compose.external-db.yaml`), documented in the administrator manual with TLS, cluster, PgBouncer and migration notes.
 - End-to-end browser tests (Playwright) that run in CI on every push and pull request.
 - Vulnerability scanning of both images in CI and a daily scan of the latest release's images; results under *Security → Code scanning*.
@@ -14,6 +15,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Changed
 
+- Administrators are no longer offered in user fields such as *Internal contact* (nor matched by the CSV import); values set earlier stay.
 - Faster for large directories: the initial data load takes about half the time (11,000 contacts: 0.8 s → 0.4 s), and CardDAV lists its cards about five times faster.
 - A successful CardDAV sign-in is remembered for five minutes instead of checking the password hash on every request of a phone sync.
 - Database connections are checked before reuse, so Kartei recovers cleanly after a database failover.

@@ -5,6 +5,7 @@
   import Combobox from './components/Combobox.svelte'
   import Login from './components/Login.svelte'
   import RecordForm from './components/RecordForm.svelte'
+  import ProposalPage from './components/ProposalPage.svelte'
   import RecordList from './components/RecordList.svelte'
   import RecordView from './components/RecordView.svelte'
   import Toasts from './components/Toasts.svelte'
@@ -45,6 +46,7 @@
     const [a, b] = parts
     if (a === 'person' || a === 'company') return { name: 'record' as const, uid: b }
     if (a === 'new' && (b === 'person' || b === 'company')) return { name: 'new' as const, kind: b as Kind }
+    if (a === 'proposal' && b) return { name: 'proposal' as const, id: Number(b) }
     if (a === 'trash') return { name: 'trash' as const }
     if (a === 'settings') return { name: 'settings' as const, tab: b ?? 'fields' }
     if (a === 'account') return { name: 'account' as const }
@@ -76,7 +78,8 @@
     internal: store.fields.filter((f) => f.type === 'users' && !f.archived).map((f) => f.key),
   })
   const reviewUids = $derived(new Set(store.reviews.map((r) => r.record)))
-  const proposalUids = $derived(new Set(store.proposals.map((p) => p.record)))
+  const proposalUids = $derived(new Set(store.proposals.flatMap((p) => (p.record ? [p.record] : []))))
+  const proposalCount = $derived(proposalUids.size + store.newProposals.length)
   const inScope = (r: Rec, s: Scope) => {
     if (s === 'all') return true
     if (s === 'review') return reviewUids.has(r.uid)
@@ -88,14 +91,14 @@
   const scopes = $derived([
     ...(['responsible', 'internal'] as const).filter((s) => userKeys[s].length),
     ...(reviewUids.size ? ['review' as const] : []),
-    ...(proposalUids.size ? ['proposals' as const] : []), // read-only users: their own pending proposals
+    ...(proposalCount ? ['proposals' as const] : []), // read-only users: their own pending proposals
   ])
   const activeScope = $derived<Scope>(scope !== 'all' && scopes.includes(scope) ? scope : 'all')
   const scopeCounts = $derived({
     responsible: store.records.filter((r) => inScope(r, 'responsible')).length,
     internal: store.records.filter((r) => inScope(r, 'internal')).length,
     review: reviewUids.size,
-    proposals: proposalUids.size,
+    proposals: proposalCount,
   })
 
   const results = $derived.by(() => {
@@ -151,7 +154,7 @@
     } else if (e.key === 'Escape' && inSearch) {
       if (query) query = ''
       else searchEl?.blur()
-    } else if (!inField && store.canEdit && (e.key === 'n' || e.key === 'N')) {
+    } else if (!inField && store.user && (e.key === 'n' || e.key === 'N')) { // read only: propose a new contact
       e.preventDefault()
       go(e.key === 'N' ? '/new/company' : '/new/person')
     }
@@ -210,7 +213,7 @@
   const duplicatesPage = () => import('./components/Duplicates.svelte')
 
   const userLabel = $derived(store.user ? [store.user.first_name, store.user.last_name].join(' ').trim() || store.user.username : '')
-  const showList = $derived(view.name === 'list' || view.name === 'record')
+  const showList = $derived(view.name === 'list' || view.name === 'record' || view.name === 'proposal')
 </script>
 
 <svelte:window onkeydown={onkey} />
@@ -241,15 +244,14 @@
             <RefreshCw size={16} />
           </button>
         {/if}
-        {#if store.canEdit}
-          <button class="btn primary" popovertarget="new-menu"><Plus size={16} /><span class="hide-sm">{t('top.new')}</span><ChevronDown size={14} /></button>
-          <div id="new-menu" popover class="menu" style="right: 64px">
-            <a href="/new/person" onclick={() => document.getElementById('new-menu')?.hidePopover()}>
-              <UserRound size={16} />{t('kind.person')}<kbd>N</kbd></a>
-            <a href="/new/company" onclick={() => document.getElementById('new-menu')?.hidePopover()}>
-              <Building2 size={16} />{t('kind.company')}<kbd>⇧ N</kbd></a>
-          </div>
-        {/if}
+        <!-- read only: the same menu proposes the new contact to a maintainer -->
+        <button class="btn primary" popovertarget="new-menu"><Plus size={16} /><span class="hide-sm">{t('top.new')}</span><ChevronDown size={14} /></button>
+        <div id="new-menu" popover class="menu" style="right: 64px">
+          <a href="/new/person" onclick={() => document.getElementById('new-menu')?.hidePopover()}>
+            <UserRound size={16} />{store.canEdit ? t('kind.person') : t('new.propose_person')}<kbd>N</kbd></a>
+          <a href="/new/company" onclick={() => document.getElementById('new-menu')?.hidePopover()}>
+            <Building2 size={16} />{store.canEdit ? t('kind.company') : t('new.propose_company')}<kbd>⇧ N</kbd></a>
+        </div>
         <button class="btn icon ghost user" popovertarget="user-menu" aria-label={userLabel}><User size={18} /></button>
         <div id="user-menu" popover class="menu" style="right: 12px">
           <div class="who"><strong>{userLabel}</strong><span class="muted">{t(`role.${store.user?.role}`)}</span></div>
@@ -325,6 +327,16 @@
           {#if picked && store.canEdit}
             <BulkBar {picked} all={results.map((x) => x.rec.uid)} onpick={(s) => (picked = s)} onclose={() => (picked = null)} />
           {/if}
+          {#if activeScope === 'proposals' && store.newProposals.length}
+            <!-- proposed new contacts have no record yet: listed above the contacts with proposals -->
+            <nav class="newprops" aria-label={t('proposal.new_list')}>
+              {#each store.newProposals as p (p.id)}
+                <a href="/proposal/{p.id}" class:on={view.name === 'proposal' && view.id === p.id}>
+                  {#if p.record_kind === 'person'}<UserRound size={15} />{:else}<Building2 size={15} />{/if}
+                  <span class="nm">{p.label}</span><span class="badge">{t('proposal.new_badge')}</span></a>
+              {/each}
+            </nav>
+          {/if}
           <div class="list"><RecordList items={results} {selected} {query} picked={store.canEdit ? picked : null} {onpick} /></div>
         </aside>
       {/if}
@@ -337,12 +349,16 @@
           {/if}
         {:else if view.name === 'new'}
           <div class="newform">
-            <h1>{view.kind === 'person' ? t('new.person') : t('new.company')}</h1>
+            <h1>{store.canEdit ? (view.kind === 'person' ? t('new.person') : t('new.company'))
+                               : view.kind === 'person' ? t('new.propose_person') : t('new.propose_company')}</h1>
             {#key view.kind + presetCompany}
-              <RecordForm rec={null} kind={view.kind} {presetCompany}
-                          onclose={(saved) => (saved ? go(`/${saved.kind}/${saved.uid}`, true) : history.back())} />
+              <RecordForm rec={null} kind={view.kind} {presetCompany} mode={store.canEdit ? 'edit' : 'propose'}
+                          onclose={(saved, proposal) => (saved ? go(`/${saved.kind}/${saved.uid}`, true)
+                                                         : proposal ? go(`/proposal/${proposal}`, true) : history.back())} />
             {/key}
           </div>
+        {:else if view.name === 'proposal'}
+          {#key view.id}<ProposalPage id={view.id} />{/key}
         {:else if view.name === 'trash'}
           <Trash />
         {:else if view.name === 'settings'}
@@ -462,6 +478,10 @@
   .save-row { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
   .save-row label { display: flex; align-items: center; gap: 6px; margin-right: auto; font-size: 13px; }
   .list { flex: 1; min-height: 0; }
+  .newprops { display: flex; flex-direction: column; gap: 2px; padding: 0 8px 6px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .newprops a { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; color: var(--text); }
+  .newprops a:hover, .newprops a.on { background: var(--panel-2); text-decoration: none; }
+  .newprops .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pane { min-height: 0; background: var(--panel); }
   .newform { max-width: 920px; margin: 0 auto; padding: 24px 28px; }
   .newform h1 { font-size: 22px; margin-bottom: 18px; }

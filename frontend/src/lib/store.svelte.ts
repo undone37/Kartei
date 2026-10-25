@@ -58,6 +58,9 @@ class Store {
     return this.reviews.find((r) => r.record === uid)
   }
 
+  /** proposed new contacts: they have no record yet */
+  newProposals = $derived(this.proposals.filter((p) => p.kind === 'create'))
+
   proposalsFor(uid: string) {
     return this.proposals.filter((p) => p.record === uid)
   }

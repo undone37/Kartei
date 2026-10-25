@@ -76,6 +76,11 @@ const SHOTS = [
       await api(ctx, 'patch', `/api/records/${h.batch.uid}`, { version: r.version, data: { company_phone: h.batch.phone } })
     } },
   { name: 'proposal-own', user: 'kkramer', path: (h) => `/${h.change.kind}/${h.change.uid}` },
+  { name: 'propose-new', user: 'kkramer', path: '/new/person', steps: async (p) => {
+      await p.locator('#proposal-comment').fill('Neuer Ansprechpartner laut E-Mail') // first, so the form stays at the top
+      await p.locator('#first_name').fill('Jonas'); await p.locator('#last_name').fill('Lehmann')
+      await p.evaluate(() => document.querySelector('main.pane')?.scrollTo(0, 0)); await wait(300) } },
+  { name: 'proposal-new', user: 'mmuster', path: (h) => `/proposal/${h.newProp}?list=proposals` },
   { name: 'propose-delete-person', user: 'kkramer', path: (h) => `/person/${h.reviewPerson}`, steps: open('.panel.review .actions button:nth-child(3)') },
   { name: 'proposal-company-gone', user: 'mmuster', path: (h) => `/company/${h.gone}` },
   { name: 'quality-open', user: 'admin', path: '/quality', steps: async (p) => { await p.locator('details.card summary').nth(5).click(); await wait(300) } },
@@ -133,9 +138,10 @@ async function hints(ctx, lang) {
     o.first_name === r.first_name && o.last_name === r.last_name && o.company === r.company))
   const demo = byName('Demo Netz GmbH')
   const gone = b.proposals.find((p) => p.reason === 'company_gone')
+  const newProp = b.proposals.find((p) => p.kind === 'create')?.id
   h0 = { dupFirst: twin?.first_name ?? 'Greta', dupLast: twin?.last_name ?? 'Wagner' }
   return { company: company?.uid, person: person?.uid, review, reviewPerson, change: change && kind(change.record), del: del && kind(del.record),
-           dupCompany: twin?.company ?? company?.uid, batch: demo && { uid: demo.uid, phone: demo.data.company_phone }, gone: gone?.record }
+           dupCompany: twin?.company ?? company?.uid, batch: demo && { uid: demo.uid, phone: demo.data.company_phone }, gone: gone?.record, newProp }
 }
 
 const browser = await chromium.launch()

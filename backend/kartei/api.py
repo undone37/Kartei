@@ -573,7 +573,9 @@ def propagate(request, uid):
 # ---------------------------------------------------------------- reviews & proposals
 
 def ser_proposal(p):
-    return {"id": p.id, "record": str(p.record.uid), "kind": p.kind, "changes": p.changes, "base": p.base,
+    return {"id": p.id, "record": str(p.record.uid) if p.record_id else None,
+            "record_kind": p.record.kind if p.record_id else p.record_kind, "label": p.label,
+            "kind": p.kind, "changes": p.changes, "base": p.base,
             "comment": p.comment, "reason": p.reason, "proposer": p.proposer_name,
             "created_at": p.created_at.isoformat(), "status": p.status}
 
@@ -581,7 +583,8 @@ def ser_proposal(p):
 def workflow(request):
     """Part of bootstrap/changes: my open reviews; pending proposals (maintainers: all, others: their own)."""
     mine = reviews.open_reviews().filter(assignee=request.user, record__deleted_at__isnull=True).select_related("record")
-    props = Proposal.objects.filter(status="pending", record__deleted_at__isnull=True).select_related("record")
+    props = Proposal.objects.filter(Q(record__isnull=True) | Q(record__deleted_at__isnull=True), status="pending") \
+        .select_related("record")
     if request.rank < MAINT:
         props = props.filter(proposer=request.user)
     return {"reviews": [{"id": rv.id, "record": str(rv.record.uid), "created_at": rv.created_at.isoformat(),
@@ -625,6 +628,21 @@ def propose(request, uid):
     return JsonResponse({"proposal": ser_proposal(p)}, status=201)
 
 
+@needs(READ)
+def propose_new(request):
+    """A new person or company for a maintainer to create. Body like POST /api/records, plus `comment`."""
+    b = request.json
+    if b.get("kind") not in Kind.values:
+        return err("invalid_kind")
+    p = Proposal(kind="create", record_kind=b["kind"], proposer=request.user, proposer_name=request.user.username)
+    logged, error = _fill_proposal(request, None, p, b)
+    if error:
+        return error
+    p.save()
+    audit.log(request.user, "propose", "proposal", p.id, p.label, logged)
+    return JsonResponse({"proposal": ser_proposal(p)}, status=201)
+
+
 def _company_reviews(company, user):
     return Review.objects.filter(Q(record=company) | Q(record__company=company), assignee=user)
 
@@ -652,6 +670,16 @@ def _fill_proposal(request, r, p, b):
         if "company" in logged:  # history shows names, like record snapshots do
             logged["company"] = [Record.objects.filter(uid=v).values_list("name", flat=True).first() if v else None
                                  for v in logged["company"]]
+    elif p.kind == "create":  # a new contact: validated like a maintainer creating it, on the fields the proposer sees
+        fields = [f for f in FieldDef.objects.all() if f.visible(request.rank)]
+        probe = Record(kind=p.record_kind)
+        if errors := _apply(max(request.rank, MAINT), probe, b, fields):
+            return None, err("validation", fields=errors)
+        core = {k: v for k, v in _core(probe).items() if v}
+        p.changes, p.base = {"core": core, "data": probe.data}, {}
+        logged = {"kind": [None, p.record_kind]} | {k: [None, v] for k, v in (core | probe.data).items()}
+        if "company" in logged:
+            logged["company"] = [None, probe.company.name]
     elif p.kind == "delete":
         p.reason = str(b.get("reason") or "other")
         if p.reason not in DELETE_REASONS[r.kind]:
@@ -677,17 +705,18 @@ def own_proposal(request, pk):
         p = Proposal.objects.select_for_update().filter(pk=pk, status="pending", proposer=request.user).first()
         if not p:
             return err("not_found", 404)
-        r = records_qs().get(pk=p.record_id)
+        r = records_qs().get(pk=p.record_id) if p.record_id else None  # create: no record yet
+        target = ("record", r.uid) if r else ("proposal", p.id)
         if request.method == "DELETE":
             p.status, p.decided_at = "withdrawn", timezone.now()
             p.save()
-            audit.log(request.user, "withdraw", "record", r.uid, r.display_name, {"kind": [None, p.kind]})
+            audit.log(request.user, "withdraw", *target, p.label, {"kind": [None, p.kind]})
             return JsonResponse({"ok": True})
         logged, error = _fill_proposal(request, r, p, request.json)
         if error:
             return error
         p.save()
-        audit.log(request.user, "propose", "record", r.uid, r.display_name, logged)
+        audit.log(request.user, "propose", *target, p.label, logged)
     return JsonResponse({"proposal": ser_proposal(p)})
 
 
@@ -698,9 +727,31 @@ def decide_proposal(request, pk, action):
         p = Proposal.objects.select_for_update().filter(pk=pk, status="pending").first()
         if not p:
             return err("not_found", 404)
+        extra = {"proposed_by": [None, p.proposer_name]} | ({"note": [None, note]} if note else {})
+        if p.kind == "create":
+            r = None
+            if action == "accept":
+                body = {**p.changes.get("core", {}), "data": p.changes.get("data", {})}
+                if isinstance(request.json.get("override"), dict):  # the reviewer adjusted the proposal
+                    body = request.json["override"]
+                    extra["adjusted"] = [None, True]
+                fields = list(FieldDef.objects.all())
+                r = Record(kind=p.record_kind, updated_by=request.user)
+                if errors := _apply(request.rank, r, body, fields):
+                    return err("validation", fields=errors)
+                r.save()
+                audit.log(request.user, "create", "record", r.uid, r.display_name, audit.diff({}, snapshot(r)) | extra)
+                _add_new_options(request.user, fields, r)
+                p.record = r
+            else:
+                audit.log(request.user, "reject", "proposal", p.id, p.label, extra)
+            p.status = "accepted" if action == "accept" else "rejected"
+            p.decided_by, p.decided_at, p.decision_note = request.user, timezone.now(), note
+            p.save()
+            return JsonResponse({"proposal": ser_proposal(p),
+                                 "record": ser_record(records_qs().get(pk=r.pk), visible_fields(request.rank)) if r else None})
         # of=self: Postgres can't lock the nullable side of the company join
         r = Record.objects.select_for_update(of=("self",)).select_related("company").get(pk=p.record_id)
-        extra = {"proposed_by": [None, p.proposer_name]} | ({"note": [None, note]} if note else {})
         if action == "accept":
             if r.deleted_at:
                 return err("not_found", 404)

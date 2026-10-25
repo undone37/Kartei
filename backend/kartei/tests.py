@@ -450,7 +450,17 @@ class UserFieldTests(ApiTestBase):
         f = next(f for f in boot["fields"] if f["key"] == "internal_contact")
         self.assertEqual(f["type"], "user")
         self.assertIn({"value": "read", "de": "Rita Reader", "en": "Rita Reader"}, f["options"])
-        r = self.create(internal_contact="read", internal_contacts=["admin", "read", "admin"])
+        r = self.create(internal_contact="read", internal_contacts=["maintainer", "read", "maintainer"])
+        self.assertEqual(r["data"]["internal_contacts"], ["maintainer", "read"])
+        # admins are listed (for existing values) but can't be picked
+        self.assertIn({"value": "admin", "de": "Anna Admin", "en": "Anna Admin", "pick": False}, f["options"])
+        for key, v in (("internal_contact", "admin"), ("internal_contacts", ["admin"])):
+            bad = self.j("post", "/api/records", {"kind": "person", "last_name": "A", "data": {key: v}}, status=400)
+            self.assertEqual(bad["fields"][key], "invalid_user")
+        rec = Record.objects.get(uid=r["uid"])
+        rec.data["internal_contacts"] = ["admin", "read"]  # assigned before the rule: stays on unrelated edits
+        rec.save()
+        r = self.j("patch", f"/api/records/{r['uid']}", {"version": r["version"], "first_name": "Ann"})
         self.assertEqual(r["data"]["internal_contacts"], ["admin", "read"])
         bad = self.j("post", "/api/records", {"kind": "person", "last_name": "Y", "data": {"internal_contact": "nobody"}},
                      status=400)
@@ -464,11 +474,14 @@ class UserFieldTests(ApiTestBase):
                      status=400)
         self.assertEqual(bad["fields"]["internal_contacts"], "invalid_user")
         f = next(f for f in self.j("get", "/api/bootstrap")["fields"] if f["key"] == "internal_contact")
-        self.assertIn({"value": "read", "de": "Rita Reader (inaktiv)", "en": "Rita Reader (inactive)"}, f["options"])
+        self.assertIn({"value": "read", "de": "Rita Reader (inaktiv)", "en": "Rita Reader (inactive)", "pick": False},
+                      f["options"])
 
     def test_names_in_vcard_and_export(self):
-        r = self.create(internal_contact="read", internal_contacts=["admin", "maintainer"])
+        r = self.create(internal_contact="read", internal_contacts=["maintainer"])
         rec = Record.objects.get(uid=r["uid"])
+        rec.data["internal_contacts"] = ["admin", "maintainer"]  # an admin assigned before admins were excluded
+        rec.save()
         vcf = render(rec, list(FieldDef.objects.all()), "ios", names=ref_names()).replace("\r\n ", "")
         self.assertIn("Ansprechpartner intern: Rita Reader", vcf)
         self.assertIn(r"interne Kontakte: Anna Admin\, maintainer", vcf)
@@ -491,11 +504,12 @@ class UserFieldTests(ApiTestBase):
 
     def test_import_matches_users(self):
         csv_data = ("ID;Vorname;Nachname;Firma;Ansprechpartner intern;Kontakte intern\n"
-                    "P-1;A;B;;RR;Anna Admin |##| maintainer, Unbekannt\n").encode()
+                    "P-1;A;B;;RR;Anna Admin |##| maintainer, Unbekannt\n").encode()  # admins can't be assigned
         res = import_test_csv(csv_data, dry_run=False)
         data = Record.objects.get(legacy_id="P-1").data
-        self.assertEqual((data["internal_contact"], data["internal_contacts"]), ("read", ["admin", "maintainer"]))
-        self.assertTrue(any(w.startswith("@import_unknown_user") and "Unbekannt" in w for w in res["warnings"]))
+        self.assertEqual((data["internal_contact"], data["internal_contacts"]), ("read", ["maintainer"]))
+        self.assertTrue(any(w.startswith("@import_unknown_user") and "Unbekannt" in w and "Anna Admin" in w
+                            for w in res["warnings"]))
 
 
 class OpenOptionsTests(ApiTestBase):
@@ -702,6 +716,50 @@ class ReviewTests(ApiTestBase):
         e = AuditEntry.objects.filter(target_id=self.p["uid"], action="update").first()
         self.assertEqual((e.changes["email"][1], e.changes["adjusted"]), ("mayer@alt.de", [None, True]))
 
+    def test_new_contact_proposal(self):
+        self.as_("read")
+        self.j("post", "/api/records", {"kind": "person", "last_name": "Neu"}, status=403)  # can't create
+        self.j("post", "/api/proposals", {"kind": "robot"}, status=400)
+        bad = self.j("post", "/api/proposals", {"kind": "person", "data": {"email": "nina@alt.de"}}, status=400)
+        self.assertEqual(bad["fields"]["last_name"], "required")
+        p = self.j("post", "/api/proposals", {"kind": "person", "first_name": "Nina", "last_name": "Neu",
+                                              "company": self.co["uid"], "data": {"email": "nina@alt.de", "internal_contact": "read"},
+                                              "comment": "neue Kollegin"}, status=201)["proposal"]
+        self.assertEqual((p["kind"], p["record"], p["record_kind"], p["label"]), ("create", None, "person", "Nina Neu"))
+        self.assertEqual(p["changes"], {"core": {"first_name": "Nina", "last_name": "Neu", "company": self.co["uid"]},
+                                        "data": {"email": "nina@alt.de", "internal_contact": "read"}})
+        self.assertEqual([x["id"] for x in self.j("get", "/api/bootstrap")["proposals"]], [p["id"]])
+        p = self.j("patch", f"/api/proposals/{p['id']}", {"first_name": "Nina", "last_name": "Neumann",
+                                                          "company": self.co["uid"], "data": {"internal_contact": "read"}})["proposal"]
+        self.assertEqual(p["label"], "Nina Neumann")
+        e = AuditEntry.objects.filter(target_type="proposal", target_id=str(p["id"])).first()
+        self.assertEqual((e.action, e.target_label, e.changes["company"]), ("propose", "Nina Neumann", [None, "Alt GmbH"]))
+        self.j("post", f"/api/proposals/{p['id']}/accept", status=403)
+        self.as_("maintainer")
+        out = self.j("post", f"/api/proposals/{p['id']}/accept", {"note": "willkommen"})
+        r = out["record"]
+        self.assertEqual((r["last_name"], r["company"], out["proposal"]["record"]), ("Neumann", self.co["uid"], r["uid"]))
+        created = AuditEntry.objects.get(target_id=r["uid"], action="create")
+        self.assertEqual((created.changes["proposed_by"], created.changes["note"]), ([None, "read"], [None, "willkommen"]))
+        self.assertEqual(self.j("get", "/api/bootstrap")["proposals"], [])
+
+    def test_new_company_proposal_adjusted_rejected_withdrawn(self):
+        self.as_("read")
+        new = lambda name: self.j("post", "/api/proposals", {"kind": "company", "name": name, "data": {"internal_contact": "read"}},
+                                   status=201)["proposal"]
+        a, b, c = new("Neu AG"), new("Unsinn GmbH"), new("Doppelt KG")
+        self.j("delete", f"/api/proposals/{c['id']}")
+        self.as_("maintainer")
+        bad = self.j("post", f"/api/proposals/{a['id']}/accept", {"override": {"name": ""}}, status=400)
+        self.assertEqual(bad["fields"]["name"], "required")
+        out = self.j("post", f"/api/proposals/{a['id']}/accept", {"override": {"name": "Neu AG & Co. KG", "data": {"internal_contact": "read"}}})
+        self.assertEqual(out["record"]["name"], "Neu AG & Co. KG")
+        self.assertTrue(AuditEntry.objects.get(target_id=out["record"]["uid"], action="create").changes["adjusted"])
+        self.assertIsNone(self.j("post", f"/api/proposals/{b['id']}/reject", {"note": "gibt es nicht"})["record"])
+        self.assertTrue(AuditEntry.objects.filter(action="reject", target_type="proposal", target_id=str(b["id"])).exists())
+        self.assertEqual(Record.objects.filter(name__in=["Unsinn GmbH", "Doppelt KG"]).count(), 0)
+        self.assertEqual(self.j("get", "/api/bootstrap")["proposals"], [])
+
     def test_delete_proposal_and_reject(self):
         self.as_("read")
         p1 = self.j("post", f"/api/records/{self.co['uid']}/proposals", {"kind": "delete", "comment": "insolvent"},
@@ -760,9 +818,9 @@ class ReviewTests(ApiTestBase):
         self.as_("admin")
         self.j("post", f"/api/records/{self.p['uid']}/review/request")
         rec = self.j("get", f"/api/records/{self.p['uid']}")
-        self.j("patch", f"/api/records/{self.p['uid']}", {"version": rec["version"], "data": {"internal_contact": "admin"}})
+        self.j("patch", f"/api/records/{self.p['uid']}", {"version": rec["version"], "data": {"internal_contact": "maintainer"}})
         rv = Review.objects.get(record__uid=self.p["uid"])
-        self.assertEqual((rv.assignee.username, rv.notified_at), ("admin", None))
+        self.assertEqual((rv.assignee.username, rv.notified_at), ("maintainer", None))
         self.j("delete", f"/api/records/{self.p['uid']}")
         rv.refresh_from_db()
         self.assertEqual(rv.outcome, "cancelled")
@@ -1261,7 +1319,9 @@ class SeedDemoTests(TestCase):
         self.assertEqual(Record.objects.filter(kind="company").count(), 6)
         self.assertTrue(User.objects.get(username="kkramer").check_password("demo-pass-123"))
         self.assertTrue(Review.objects.exists())
-        self.assertEqual(Proposal.objects.filter(status="pending").count(), 3)
+        self.assertEqual(Proposal.objects.filter(status="pending").count(), 4)  # incl. one new person
+        new = Proposal.objects.get(kind="create")
+        self.assertEqual(new.changes["data"]["job_title"], "Einkauf")  # field values survive the seeding
         self.assertEqual(Record.objects.filter(deleted_at__isnull=False).count(), 3)  # recycle bin has content
         kw = FieldDef.objects.get(key="keywords")  # used keywords are pickable options
         self.assertIn("Kunde", [o["value"] for o in kw.options])

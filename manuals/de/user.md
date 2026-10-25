@@ -15,6 +15,7 @@ Kartei ist ein Adressbuch für Personen und Firmen. Je nachdem, wie deine Organi
 | Listen exportieren (Excel, CSV), Filter speichern, Favoriten setzen | ✓ | ✓ |
 | Eigene Prüfungen bestätigen (*Alles korrekt*) | ✓ | ✓ |
 | Änderungen und Löschungen vorschlagen | ✓ | – |
+| Neue Personen und Firmen vorschlagen | ✓ | – |
 | Eigene offene Vorschläge in der Liste *Vorschläge* sehen | ✓ | – |
 | Kontakte anlegen, bearbeiten und löschen, mehrere auf einmal bearbeiten | – | ✓ |
 | Kontakte aus dem Papierkorb wiederherstellen | – | ✓ |
@@ -274,6 +275,19 @@ Bei einer Firma gibt es nur **Firma existiert nicht mehr** und **Anderer Grund**
 
 Hat schon jemand gemeldet, dass die Firma nicht mehr existiert, sagt Kartei dir das (*Das wurde für diese Firma bereits gemeldet – es wartet auf Freigabe.*), und deine Prüfung gilt trotzdem als erledigt.
 
+### Neuen Kontakt vorschlagen {#neuen-kontakt-vorschlagen}
+
+Mit der Rolle *Nur Lesen* kannst du auch neue Personen und Firmen vorschlagen, etwa eine neue Ansprechpartnerin bei einem Kunden.
+
+1. Klick oben rechts auf **Neu** und wähle **Neue Person vorschlagen** oder **Neue Firma vorschlagen** (oder drück <kbd>N</kbd> bzw. <kbd>Umschalt</kbd>+<kbd>N</kbd>).
+2. Füll das Formular aus, soweit du die Angaben kennst. Pflichtfelder sind mit **\*** markiert; oben steht zur Erinnerung: *Der Kontakt wird nicht direkt angelegt, sondern einem Bearbeiter zur Freigabe vorgelegt.*
+3. Erklär bei Bedarf unter **Kommentar (optional)**, woher die Angaben stammen.
+4. Klick auf **Vorschlag senden**.
+
+![Neue Person vorschlagen](../img/de/propose-new.png)
+
+Kartei zeigt deinen Vorschlag dann auf einer eigenen Seite, und er erscheint in der Liste **Vorschläge** mit dem Kennzeichen **neu**. Bis ein Bearbeiter entschieden hat, kannst du ihn dort **Bearbeiten** oder **Zurückziehen**. Ein Bild ergänzt der Bearbeiter, nachdem der Kontakt angelegt ist.
+
 ### Eigenen Vorschlag ändern oder zurückziehen
 
 Solange noch niemand entschieden hat, steht dein Vorschlag am Kontakt mit dem Hinweis **Wartet auf Freigabe**. Alle deine offenen Vorschläge findest du in der Liste **Vorschläge**. Am Kontakt kannst du:
@@ -287,7 +301,7 @@ Sobald ein Bearbeiter entschieden hat, verschwindet der Vorschlag aus der Liste;
 
 ## Kontakte anlegen und bearbeiten
 
-**Bearbeiter.** Mit der Rolle *Nur Lesen* gibt es die Knöpfe **Neu** und **Bearbeiten** nicht – du schlägst Änderungen stattdessen vor.
+**Bearbeiter.** Mit der Rolle *Nur Lesen* gibt es den Knopf **Bearbeiten** nicht, und **Neu** legt nur einen Vorschlag an – du [schlägst](#neuen-kontakt-vorschlagen) Änderungen und neue Kontakte stattdessen vor.
 
 ### Person oder Firma anlegen
 
@@ -342,7 +356,7 @@ Hat jemand anderes denselben Kontakt gespeichert, während du ihn bearbeitet has
 ### Auswahlfelder, Benutzer und verknüpfte Personen
 
 - **Auswahlfelder** (z. B. *Anrede*, *Schlagworte*): Tipp, um die Optionen zu durchsuchen. Manche Felder erlauben neue Werte: neuen Wert eintippen und **„…“ hinzufügen** wählen. Er steht dann allen als Option zur Verfügung.
-- **Benutzerfelder** (z. B. *Ansprechpartner intern*, *Kontakte intern*): Kolleginnen und Kollegen nach Name oder Benutzername auswählen. Der *Ansprechpartner intern* ist für den Kontakt verantwortlich und bekommt seine Prüfungen; darauf beruht die Liste **Verantwortlich**. Unter *Kontakte intern* können mehrere Personen stehen; darauf beruht die Liste **Intern**.
+- **Benutzerfelder** (z. B. *Ansprechpartner intern*, *Kontakte intern*): Kolleginnen und Kollegen nach Name oder Benutzername auswählen (Administratoren werden nicht angeboten). Der *Ansprechpartner intern* ist für den Kontakt verantwortlich und bekommt seine Prüfungen; darauf beruht die Liste **Verantwortlich**. Unter *Kontakte intern* können mehrere Personen stehen; darauf beruht die Liste **Intern**.
 - **Verknüpfte Personen** (z. B. *Geschäftsführer* einer Firma): eine Person der Firma auswählen. Erlaubt das Feld freien Text, kannst du auch einen Namen tippen und **„…“ als Text übernehmen** wählen.
 
 ### Firmenänderungen und Mitarbeiter
@@ -411,7 +425,7 @@ Kontakte, die sich nicht ändern ließen (z. B. weil ein Pflichtfeld leer würde
 
 ## Über Vorschläge entscheiden
 
-**Bearbeiter.** Schlagen Kolleginnen und Kollegen Änderungen oder Löschungen vor, zeigt die Startseite **… Vorschläge offen**, und die Liste **Vorschläge** erscheint. Öffne einen Kontakt aus dieser Liste – der Vorschlag steht über den Details.
+**Bearbeiter.** Schlagen Kolleginnen und Kollegen Änderungen, Löschungen oder neue Kontakte vor, zeigt die Startseite **… Vorschläge offen**, und die Liste **Vorschläge** erscheint. Öffne einen Kontakt aus dieser Liste – der Vorschlag steht über den Details.
 
 ### Änderungsvorschläge
 
@@ -438,6 +452,18 @@ Bei **Firma existiert nicht mehr** steht der Vorschlag an der Firma und listet d
 ![Über „Firma existiert nicht mehr“ entscheiden](../img/de/proposal-company-gone.png)
 
 Die Personen einer solchen Firma zeigen einen Hinweis (*Für … wurde gemeldet, dass die Firma nicht mehr existiert.*) mit dem Link **Zur Firma**, damit du dort entscheiden kannst.
+
+### Vorschläge für neue Kontakte
+
+Vorgeschlagene neue Personen und Firmen gibt es noch nicht, deshalb stehen sie oben in der Liste **Vorschläge**, gekennzeichnet mit **neu**. Ein Klick öffnet die Seite des Vorschlags: wer ihn wann geschickt hat, der Kommentar und alle vorgeschlagenen Werte.
+
+![Über eine vorgeschlagene neue Person entscheiden](../img/de/proposal-new.png)
+
+- **Anlegen:** legt den Kontakt mit den vorgeschlagenen Werten an und öffnet ihn.
+- **Anpassen:** öffnet das Formular mit den vorgeschlagenen Werten, z. B. um Firma oder Ansprechpartner intern zu ergänzen. **Anlegen** speichert deine Werte, und der Vorschlag gilt als angenommen.
+- **Ablehnen:** lehnt den Vorschlag ab; es wird kein Kontakt angelegt.
+
+Prüf vor dem Anlegen, ob es den Kontakt schon gibt: Das Formular zeigt dazu wie gewohnt den Hinweis auf mögliche Dubletten.
 
 > Jede Entscheidung samt Notiz steht im Verlauf des Kontakts. Gelöschte Kontakte lassen sich aus dem Papierkorb wiederherstellen.
 {: .tip}
@@ -487,7 +513,7 @@ Der verbleibende Kontakt behält beide Verläufe. Mitarbeiter, offene Prüfungen
 | <kbd>Enter</kbd> | in der Suche: ersten oder ausgewählten Treffer öffnen |
 | <kbd>Esc</kbd> | in der Suche: leeren, dann verlassen; im Formular: abbrechen |
 | <kbd>E</kbd> | geöffneten Kontakt bearbeiten (Bearbeiter) |
-| <kbd>N</kbd> / <kbd>Umschalt</kbd>+<kbd>N</kbd> | neue Person / neue Firma (Bearbeiter) |
+| <kbd>N</kbd> / <kbd>Umschalt</kbd>+<kbd>N</kbd> | neue Person / neue Firma (Nur Lesen: vorschlagen) |
 | <kbd>Strg</kbd>+<kbd>S</kbd> | Formular speichern (auf dem Mac auch <kbd>Cmd</kbd>+<kbd>S</kbd>) |
 
 Während du in einem Feld tippst, sind die Kürzel aus – außer <kbd>Strg</kbd>+<kbd>S</kbd> und <kbd>Esc</kbd> im Formular sowie Pfeiltasten und <kbd>Enter</kbd> in der Suche.

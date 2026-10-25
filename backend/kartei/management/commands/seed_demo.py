@@ -108,10 +108,10 @@ class Command(BaseCommand):
             audit.log(None, "create", "record", p.uid, p.display_name, {"last_name": [None, p.last_name]})
         # values written directly become options, like saving through the app does for open choice fields
         for f in FieldDef.objects.filter(type__in=("select", "multiselect")):
-            known = {o["value"] for o in f.options}
+            options = {o["value"] for o in f.options}  # not `known`: data() below still filters by field keys
             used = {v for r in Record.objects.filter(data__has_key=f.key)
                     for v in (r.data[f.key] if isinstance(r.data[f.key], list) else [r.data[f.key]])}
-            if new := sorted(used - known):
+            if new := sorted(used - options):
                 f.options = f.options + [{"value": v, "de": v, "en": v} for v in new]
                 f.save(update_fields=["options"])
 
@@ -133,6 +133,14 @@ class Command(BaseCommand):
         Proposal.objects.create(record=companies[2][0], kind="delete", reason="company_gone",
                                 comment="Firma laut Handelsregister aufgelöst", proposer=users["kkramer"],
                                 proposer_name="kkramer")
+        c0 = companies[0][0]  # a new colleague at a customer, proposed by the read-only user
+        Proposal.objects.create(kind="create", record_kind="person", proposer=users["kkramer"], proposer_name="kkramer",
+                                comment="Neue Ansprechpartnerin laut Telefonat",
+                                changes={"core": {"first_name": "Nina", "last_name": "Neumann", "company": str(c0.uid)},
+                                         "data": data(salutation="Frau", job_title="Einkauf", department="Einkauf",
+                                                      email=f"nina.neumann@{companies[0][1]}",
+                                                      phone_work=f"{c0.data['company_phone']}-77",
+                                                      internal_contact="kkramer")})
 
         # dashboard: recently viewed, favorites, saved filters
         for username in ("mmuster", "kkramer"):

@@ -91,7 +91,10 @@ def _person(value):
 
 
 def _active(username):
-    return isinstance(username, str) and User.objects.filter(username=username, is_active=True).exists()
+    """A user that may be newly assigned: active and not an administrator (existing values are kept as they are)."""
+    from .models import assignable
+    u = User.objects.select_related("profile").filter(username=username).first() if isinstance(username, str) else None
+    return bool(u and assignable(u))
 
 
 def _clean(f, value, old=None, cc=None):

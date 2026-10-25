@@ -105,13 +105,15 @@ test.describe('finding contacts', () => {
 })
 
 test.describe('roles', () => {
-  test('read only: no edit, no new, no settings', async ({ as }) => {
+  test('read only: no edit, new contacts only as proposals, no settings', async ({ as }) => {
     const page = await as('kkramer')
     const p = (await page.free()).find((r) => r.kind === 'person')
     await page.goto(`/person/${p.uid}`)
     await expect(actions(page).getByRole('button', { name: 'Propose change' })).toBeVisible()
     await expect(actions(page).getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'New', exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: 'New', exact: true }).click()
+    await expect(page.getByRole('link', { name: 'Propose new person' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Person', exact: true })).toHaveCount(0)
     expect((await page.api('get', '/api/admin/settings')).error).toBeTruthy()
   })
 
@@ -158,6 +160,19 @@ test.describe('editing', () => {
     expect((await page.records()).find((r) => r.uid === p.uid).data.email).toBe(p.data.email)
   })
 
+  test('administrators are not offered as internal contacts', async ({ as }) => {
+    const page = await as('mmuster')
+    const p = (await page.free()).find((r) => r.kind === 'person')
+    await page.goto(`/person/${p.uid}`)
+    await actions(page).getByRole('button', { name: 'Edit', exact: true }).click()
+    const input = page.locator('#f-internal_contacts')
+    await input.click()
+    const list = page.locator(`#${await input.getAttribute('aria-controls')}`)
+    await expect(list.getByRole('option').first()).toBeVisible()
+    await expect(list.getByRole('option', { name: /\badmin\b/ })).toHaveCount(0)
+    await expect(list.getByRole('option', { name: /mmuster/ })).toHaveCount(1)
+  })
+
   test('a new person at a company', async ({ as }) => {
     const page = await as('mmuster')
     const c = (await page.records()).find((r) => r.kind === 'company')
@@ -198,6 +213,42 @@ test.describe('reviews and proposals', () => {
     } finally {
       const r = (await editor.records()).find((x) => x.uid === p.uid)
       await editor.api('patch', `/api/records/${p.uid}`, { version: r.version, data: { department: p.data.department } })
+    }
+  })
+})
+
+test.describe('new contact proposals', () => {
+  test('read only proposes a new person, a maintainer creates it', async ({ as }) => {
+    const reader = await as('kkramer')
+    await reader.goto('/')
+    await reader.getByRole('button', { name: 'New' }).click()
+    await reader.getByRole('link', { name: 'Propose new person' }).click()
+    await expect(reader.getByText('The contact is not created directly')).toBeVisible()
+    await reader.locator('#first_name').fill('Paula')
+    await reader.locator('#last_name').fill('Proposal')
+    await choose(reader, reader.locator('#company'))
+    await choose(reader, reader.locator('#f-internal_contact'))
+    await reader.locator('#proposal-comment').fill('neue Kollegin')
+    await reader.getByRole('button', { name: 'Send proposal' }).click()
+    await expect(reader).toHaveURL(/\/proposal\/\d+/)
+    const id = reader.url().split('/proposal/')[1]
+    await expect(reader.getByRole('heading', { name: 'Paula Proposal' })).toBeVisible()
+    await expect(reader.getByText('Awaiting approval')).toBeVisible()
+
+    const editor = await as('mmuster')
+    await editor.goto('/')
+    await editor.getByRole('tab', { name: /Proposals/ }).click()
+    await editor.getByRole('link', { name: /Paula Proposal/ }).click()
+    await expect(editor).toHaveURL(new RegExp(`/proposal/${id}$`))
+    await editor.getByRole('button', { name: 'Create', exact: true }).click()
+    await expect(editor).toHaveURL(/\/person\/[0-9a-f-]{36}/)
+    const uid = editor.url().split('/person/')[1]
+    try {
+      await expect(editor.getByRole('heading', { name: 'Paula Proposal' })).toBeVisible()
+      expect((await editor.records()).some((r) => r.uid === uid)).toBe(true)
+    } finally {
+      await editor.api('delete', `/api/records/${uid}`)
+      await (await as('admin')).api('delete', `/api/trash/${uid}`)
     }
   })
 })

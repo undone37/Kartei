@@ -64,7 +64,7 @@ const ATTR: Record<string, Record<string, string>> = {
 /** fields: all field definitions (admins pass the full list incl. archived ones), used for record keys and ids */
 export function auditLabel(e: Pick<AuditEntry, 'target_type'>, key: string, fields: Field[] = store.fields): string {
   if (SPECIAL.includes(key)) return t(`audit.attr.${key}`)
-  if (e.target_type === 'record') {
+  if (e.target_type === 'record' || e.target_type === 'proposal') { // a proposed new contact holds record values
     const f = fields.find((f) => f.key === key)
     if (f) return L(f.label)
     return has(`core.${key}`) ? t(`core.${key}`) : key
@@ -90,8 +90,9 @@ export function auditValue(e: Pick<AuditEntry, 'target_type'>, key: string, v: a
   if (key === 'delete' || key === 'adjusted' || key === 'bulk') return yesNo(v)
   if (key === 'normalized') return typeof v === 'number' ? t('phone.done', { n: v }) : yesNo(v)
   if (key === 'reason') return t(`proposal.reason_${v}`)
-  if (key === 'kind') return v === 'delete' ? t('proposal.title_delete') : t('proposal.title_change')
-  if (e.target_type === 'record') {
+  if (key === 'kind') return v === 'person' || v === 'company' ? t(`kind.${v}`) : v === 'delete' ? t('proposal.title_delete')
+    : v === 'create' ? t('proposal.title_new') : t('proposal.title_change')
+  if (e.target_type === 'record' || e.target_type === 'proposal') {
     const f = fields.find((f) => f.key === key)
     if (f) return fmt(f, v) || '—'
   }
@@ -137,6 +138,7 @@ export function auditObject(e: AuditEntry, fields: Field[] = store.fields): { na
     const f = fields.find((f) => String(f.id) === e.target_id)
     return { name: f ? L(f.label) : e.target_label, type: t('audit.type.field') }
   }
+  if (e.target_type === 'proposal') return { name: e.target_label, type: t('audit.type.proposal'), href: `/proposal/${e.target_id}` }
   if (e.target_type === 'settings') {
     const name = has(`audit.label.${e.target_label}`) ? t(`audit.label.${e.target_label}`) : e.target_label
     return { name, type: t('audit.type.settings') }
