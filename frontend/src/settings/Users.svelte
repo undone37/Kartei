@@ -112,12 +112,12 @@
           {#if u.source === 'ldap' || u.is_superuser}
             <span title={u.source === 'ldap' ? t('users.ldap_role') : t('users.superuser_role')}>{t(`role.${u.role}`)}</span>
           {:else}
-            <select class="select sm" value={u.role} onchange={(e) => update(u, { role: e.currentTarget.value as Role })}>
+            <select class="select sm" value={u.role} aria-label={`${t('users.role')}: ${u.username}`} onchange={(e) => update(u, { role: e.currentTarget.value as Role })}>
               {#each ['read', 'maintainer', 'admin'] as r}<option value={r}>{t(`role.${r}`)}</option>{/each}
             </select>
           {/if}
         </td>
-        <td><input type="checkbox" checked={u.is_active} disabled={u.id === store.user?.id || u.source === 'ldap'} onchange={(e) => update(u, { is_active: e.currentTarget.checked })} /></td>
+        <td><input type="checkbox" checked={u.is_active} aria-label={`${t('users.active')}: ${u.username}`} disabled={u.id === store.user?.id || u.source === 'ldap'} onchange={(e) => update(u, { is_active: e.currentTarget.checked })} /></td>
         <td class="muted">{u.last_login ? relTime(u.last_login) : '—'}</td>
         <td class="act">
           {#if pwFor === u.id}
