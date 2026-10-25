@@ -213,7 +213,7 @@
   const duplicatesPage = () => import('./components/Duplicates.svelte')
 
   const userLabel = $derived(store.user ? [store.user.first_name, store.user.last_name].join(' ').trim() || store.user.username : '')
-  const showList = $derived(view.name === 'list' || view.name === 'record')
+  const showList = $derived(view.name === 'list' || view.name === 'record' || view.name === 'proposal')
 </script>
 
 <svelte:window onkeydown={onkey} />

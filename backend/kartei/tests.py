@@ -1320,6 +1320,8 @@ class SeedDemoTests(TestCase):
         self.assertTrue(User.objects.get(username="kkramer").check_password("demo-pass-123"))
         self.assertTrue(Review.objects.exists())
         self.assertEqual(Proposal.objects.filter(status="pending").count(), 4)  # incl. one new person
+        new = Proposal.objects.get(kind="create")
+        self.assertEqual(new.changes["data"]["job_title"], "Einkauf")  # field values survive the seeding
         self.assertEqual(Record.objects.filter(deleted_at__isnull=False).count(), 3)  # recycle bin has content
         kw = FieldDef.objects.get(key="keywords")  # used keywords are pickable options
         self.assertIn("Kunde", [o["value"] for o in kw.options])

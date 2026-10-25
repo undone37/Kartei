@@ -15,6 +15,7 @@ Kartei is a contact directory for persons and companies. Depending on how your o
 | Export lists (Excel, CSV), save filters, set favorites | ✓ | ✓ |
 | Confirm your own reviews (*All correct*) | ✓ | ✓ |
 | Propose changes and deletions | ✓ | – |
+| Propose new persons and companies | ✓ | – |
 | See your own pending proposals in the list *Proposals* | ✓ | – |
 | Create, edit and delete contacts, edit several at once | – | ✓ |
 | Restore contacts from the recycle bin | – | ✓ |
@@ -274,6 +275,19 @@ For a company, only **Company no longer exists** and **Other reason** are offere
 
 If someone has already reported that a company no longer exists, Kartei tells you (*This was already reported for this company – it is awaiting approval.*) and your review is still counted as done.
 
+### Proposing a new contact {#proposing-a-new-contact}
+
+With the role *Read only* you can also propose new persons and companies, e.g. a new colleague at a customer.
+
+1. Click **New** at the top right and choose **Propose new person** or **Propose new company** (or press <kbd>N</kbd> / <kbd>Shift</kbd>+<kbd>N</kbd>).
+2. Fill in the form as far as you know the details. Required fields are marked with **\***; a hint at the top reminds you: *The contact is not created directly; it goes to a maintainer for approval.*
+3. Optionally explain where the information comes from under **Comment (optional)**.
+4. Click **Send proposal**.
+
+![Proposing a new person](../img/en/propose-new.png)
+
+Kartei then shows your proposal on its own page, and it appears in the list **Proposals** with the badge **new**. Until a maintainer decides, you can **Edit** or **Withdraw** it there. Images can be added by the maintainer after the contact has been created.
+
 ### Editing or withdrawing your proposal
 
 As long as no maintainer has decided, your proposal is shown on the contact with the badge **Awaiting approval**. You find all your pending proposals in the list **Proposals**. On the contact you can:
@@ -287,7 +301,7 @@ Once a maintainer has decided, the proposal disappears from the list; the decisi
 
 ## Creating and editing contacts
 
-**Maintainers.** Read only users don't see the **New** and **Edit** buttons; they propose changes instead.
+**Maintainers.** Read only users don't see the **Edit** button, and **New** only proposes a contact; they [propose](#proposing-a-new-contact) changes and new contacts instead.
 
 ### Creating a person or company
 
@@ -411,7 +425,7 @@ Contacts that could not be changed (e.g. because a required field would become e
 
 ## Deciding proposals
 
-**Maintainers.** When colleagues propose changes or deletions, the dashboard shows **… proposals pending** and the list **Proposals** appears. Open a contact from that list to see the proposal above the details.
+**Maintainers.** When colleagues propose changes, deletions or new contacts, the dashboard shows **… proposals pending** and the list **Proposals** appears. Open a contact from that list to see the proposal above the details.
 
 ### Change proposals
 
@@ -438,6 +452,18 @@ For **Company no longer exists**, the proposal is shown on the company and lists
 ![Deciding a "Company no longer exists" proposal](../img/en/proposal-company-gone.png)
 
 The persons of such a company show a note (*… was reported as no longer existing.*) with a link **Open company**, so you can decide there.
+
+### Proposed new contacts
+
+Proposed new persons and companies don't exist yet, so they are listed at the top of the list **Proposals**, marked **new**. Click one to open its page: it shows who proposed it, the comment and all proposed values.
+
+![Deciding a proposed new person](../img/en/proposal-new.png)
+
+- **Create:** creates the contact with the proposed values and opens it.
+- **Adjust:** opens the form with the proposed values filled in, e.g. to complete the company or the internal contact. **Create** saves your values and accepts the proposal.
+- **Reject:** declines the proposal; no contact is created.
+
+Before creating, check that the contact doesn't exist yet: the form shows the usual hint on possible duplicates.
 
 > Every decision, including the note, is recorded in the contact's history. Deleted contacts can be restored from the recycle bin.
 {: .tip}
@@ -487,7 +513,7 @@ The remaining contact keeps both histories. The employees, open reviews and prop
 | <kbd>Enter</kbd> | in the search: open the first or selected result |
 | <kbd>Esc</kbd> | in the search: clear it, then leave it; in a form: cancel |
 | <kbd>E</kbd> | edit the open contact (maintainers) |
-| <kbd>N</kbd> / <kbd>Shift</kbd>+<kbd>N</kbd> | new person / new company (maintainers) |
+| <kbd>N</kbd> / <kbd>Shift</kbd>+<kbd>N</kbd> | new person / new company (read only: propose one) |
 | <kbd>Ctrl</kbd>+<kbd>S</kbd> | save the form (on a Mac also <kbd>Cmd</kbd>+<kbd>S</kbd>) |
 
 The shortcuts don't work while you are typing in a field (except <kbd>Ctrl</kbd>+<kbd>S</kbd> and <kbd>Esc</kbd> in forms, and the arrow keys and <kbd>Enter</kbd> in the search).
