@@ -57,6 +57,8 @@ def needs(min_rank):
             request.rank = rank_of(request.user)
             if request.rank < min_rank:
                 return err("forbidden", 403)
+            if fn.__name__ not in ("my_totp", "update_me") and totp_due(request.user):  # set up the required 2FA first
+                return err("totp_setup_required", 403)
             request.json = {}
             if request.body and request.content_type == "application/json":
                 try:
@@ -140,12 +142,23 @@ def ser_record(r, fields):
         "reviewed_by__username": rel(r.reviewed_by if r.reviewed_by_id else None)}, _keys(fields))
 
 
+def totp_policy(u):
+    """Two-factor sign-in is required for this user (Settings.totp_required: none / admins / all)."""
+    need = Settings.get().totp_required
+    return need == "all" or (need == "admins" and rank_of(u) == 2)
+
+
+def totp_due(u):
+    """Required but not set up yet: the user can't do anything else until it is."""
+    return totp_policy(u) and not profile_of(u).totp_secret_enc
+
+
 def ser_user(u):
     p = profile_of(u)
     return {"id": u.id, "username": u.username, "first_name": u.first_name, "last_name": u.last_name,
             "email": u.email, "role": Role.ADMIN if u.is_superuser else p.role, "language": p.language,
             "source": p.source, "is_active": u.is_active, "is_superuser": u.is_superuser, "totp": bool(p.totp_secret_enc),
-            "last_login": u.last_login.isoformat() if u.last_login else None}
+            "totp_due": totp_due(u), "last_login": u.last_login.isoformat() if u.last_login else None}
 
 
 def visible_fields(rank):
@@ -262,6 +275,8 @@ def my_totp(request):
     if action in ("recovery", "disable"):
         if not p.totp_secret_enc:
             return err("not_found", 404)
+        if action == "disable" and totp_policy(u):
+            return err("totp_policy", 409)
         if totp_locked(p):
             return err("too_many_attempts", 429)
         if not _second_factor(u, p, str(b.get("code") or "")):
@@ -1460,7 +1475,7 @@ def user_delete(request, pk):
 
 # ---------------------------------------------------------------- admin: settings
 
-SETTINGS_ATTRS = ["default_language", "base_url", "trash_days", "export_interval_minutes", "ldap_uri",
+SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days", "export_interval_minutes", "ldap_uri",
                   "ldap_start_tls", "ldap_ca_cert", "ldap_bind_dn", "ldap_user_base", "ldap_user_filter",
                   "ldap_group_admin", "ldap_group_maintainer", "ldap_group_read", "carddav_enabled",
                   "carddav_username", "graph_enabled", "graph_tenant_id", "graph_client_id", "graph_group_id",
@@ -1542,6 +1557,8 @@ def settings_put(request):
         errors["export_interval_minutes"] = "too_small"
     if s.ldap_user_filter and "%(user)s" not in s.ldap_user_filter:
         errors["ldap_user_filter"] = "missing_user_placeholder"
+    if s.totp_required not in ("none", "admins", "all"):
+        errors["totp_required"] = "invalid"
     if not str(s.graph_folder).strip():
         errors["graph_folder"] = "required"
     if s.graph_enabled and not (s.graph_tenant_id and s.graph_client_id and s.graph_group_id

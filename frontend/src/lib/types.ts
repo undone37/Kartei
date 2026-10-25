@@ -99,6 +99,7 @@ export interface User {
   last_login: string | null
   /** two-factor sign-in is on */
   totp?: boolean
+  totp_due?: boolean // required by the admin, not set up yet: nothing else works until it is
 }
 
 export interface AuditEntry {

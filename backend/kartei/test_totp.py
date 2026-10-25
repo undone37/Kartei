@@ -6,7 +6,7 @@ from unittest import mock
 from django.core.cache import cache
 
 from . import totp
-from .models import AuditEntry, Profile
+from .models import AuditEntry, Profile, Settings
 from .tests import ApiTestBase
 
 
@@ -104,3 +104,20 @@ class TotpTests(ApiTestBase):
         self.assertEqual(self.login(codes[0], status=429)["error"], "too_many_attempts")
         Profile.objects.filter(user=self.users["maintainer"]).update(totp_failed_at=None)  # 15 minutes later
         self.login(codes[0])
+
+    def test_policy_requires_it_for_admins_or_everyone(self):
+        self.as_("admin")
+        self.j("put", "/api/admin/settings", {"totp_required": "sometimes"}, status=400)
+        self.j("put", "/api/admin/settings", {"totp_required": "admins"})
+        self.assertTrue(self.client.get("/api/session").json()["user"]["totp_due"])
+        self.assertEqual(self.j("get", "/api/bootstrap", status=403)["error"], "totp_setup_required")
+        self.as_("maintainer")
+        self.j("get", "/api/bootstrap")  # not an admin
+        self.client.logout()
+        _, codes = self.enable("admin")  # setup and confirm are allowed while it's due
+        self.as_("admin")
+        self.j("get", "/api/bootstrap")
+        self.assertEqual(self.j("post", "/api/me/totp", {"action": "disable", "code": codes[0]}, status=409)["error"], "totp_policy")
+        Settings.objects.update(totp_required="all")
+        self.as_("read")
+        self.assertEqual(self.j("get", "/api/bootstrap", status=403)["error"], "totp_setup_required")

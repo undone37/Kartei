@@ -199,6 +199,13 @@
         </select>
       </div>
       <div>
+        <label class="label" for="totp-req">{t('general.totp_required')}</label>
+        <select id="totp-req" class="select" bind:value={s.totp_required}>
+          {#each ['none', 'admins', 'all'] as v (v)}<option value={v}>{t(`general.totp_required_${v}`)}</option>{/each}
+        </select>
+        <p class="hint">{t('general.totp_required_hint')}</p>
+      </div>
+      <div>
         <label class="label" for="base">{t('general.base_url')}</label>
         <input id="base" class="input" bind:value={s.base_url} placeholder="https://kartei.example.de" />
         <p class="hint">{t('general.base_url_hint')}</p>

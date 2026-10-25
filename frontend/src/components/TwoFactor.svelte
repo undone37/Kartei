@@ -6,6 +6,9 @@
   import { toast } from '../lib/toast.svelte'
   import type { User } from '../lib/types'
 
+  /** ondone: after the recovery codes were saved (the required setup right after sign-in) */
+  let { ondone }: { ondone?: () => void } = $props()
+
   /** Two-factor sign-in under "My account": set up with a QR code, show recovery codes once, renew, switch off. */
   let setup = $state<{ secret: string; qr: string } | null>(null)
   let code = $state('')
@@ -56,7 +59,7 @@
     <ul class="codes">{#each recovery as c (c)}<li><code>{c}</code></li>{/each}</ul>
     <div class="row">
       <button class="btn" onclick={copy}><Copy size={14} />{t('totp.copy')}</button>
-      <button class="btn primary" onclick={() => (recovery = null)}>{t('totp.saved')}</button>
+      <button class="btn primary" onclick={() => { recovery = null; ondone?.() }}>{t('totp.saved')}</button>
     </div>
   {:else if setup}
     <p>{t('totp.scan')}</p>

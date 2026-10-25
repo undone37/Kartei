@@ -67,6 +67,8 @@ def ad_default_columns():
 class Settings(models.Model):
     """Singleton (pk=1) holding everything an admin configures in the UI."""
     default_language = models.CharField(max_length=2, choices=LANGUAGES, default="de")
+    # two-factor sign-in is required for: nobody (voluntary), admins, or everyone
+    totp_required = models.CharField(max_length=6, choices=[(v, v) for v in ("none", "admins", "all")], default="none")
     base_url = models.URLField(blank=True)
     trash_days = models.PositiveIntegerField(default=0)  # 0 = recycle bin is never purged
     export_interval_minutes = models.PositiveIntegerField(default=15)

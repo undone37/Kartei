@@ -136,6 +136,39 @@ test.describe('two-factor sign-in', () => {
   })
 })
 
+test.describe('two-factor policy', () => {
+  test('required for everyone: setup right after sign-in, then the app', async ({ as }) => {
+    const admin = await as('admin')
+    await admin.api('put', '/api/admin/settings', { totp_required: 'all' })
+    // the admin is affected as well: it sets up its own two-factor sign-in through the API
+    const { secret: adminSecret } = await admin.api('post', '/api/me/totp', { action: 'setup' })
+    const adminCodes = (await admin.api('post', '/api/me/totp', { action: 'confirm', code: totpCode(adminSecret), password: PW.admin })).recovery
+    let recovery = []
+    try {
+      const page = await as('lschmidt')
+      await page.goto('/')
+      await expect(page.getByRole('heading', { name: 'Set up two-factor sign-in' })).toBeVisible()
+      await page.getByRole('button', { name: 'Set up' }).click()
+      const secret = (await page.locator('code').first().textContent()).trim()
+      await page.getByLabel('Code from the app').fill(totpCode(secret))
+      await page.locator('#totp-pw').fill(PW.other)
+      await page.getByRole('button', { name: 'Switch on' }).click()
+      recovery = (await page.locator('.codes code').allTextContents()).map((c) => c.trim())
+      await page.getByRole('button', { name: 'Saved them' }).click()
+      await expect(page.getByRole('listbox')).toBeVisible()
+    } finally {
+      await admin.api('put', '/api/admin/settings', { totp_required: 'none' })
+      await admin.api('post', '/api/me/totp', { action: 'disable', code: adminCodes[0] })
+      if (recovery.length) {
+        const user = await as(null)
+        await user.api('get', '/api/session')
+        await user.api('post', '/api/login', { username: 'lschmidt', password: PW.other, code: recovery[0] })
+        await user.api('post', '/api/me/totp', { action: 'disable', code: recovery[1] })
+      }
+    }
+  })
+})
+
 test.describe('finding contacts', () => {
   test('search by part of a phone number in another notation; Enter opens the hit', async ({ as }) => {
     const page = await as('kkramer')
