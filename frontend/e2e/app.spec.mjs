@@ -3,6 +3,7 @@
 // Every test puts the data back, so the suite can run again on the same database.
 import { test as base, expect } from '@playwright/test'
 import { createHmac } from 'node:crypto'
+import AxeBuilder from '@axe-core/playwright'
 
 const PW = { admin: process.env.E2E_ADMIN_PASSWORD || 'admin12345', other: process.env.E2E_PASSWORD || 'demo12345' }
 
@@ -63,6 +64,28 @@ function totpCode(secret, steps = 0) {
   const o = h[h.length - 1] & 15
   return String((h.readUInt32BE(o) & 0x7fffffff) % 1e6).padStart(6, '0')
 }
+test.describe('accessibility', () => {
+  // WCAG 2.1 A/AA checks (axe-core) on the main screens, in both themes; serious and critical findings fail
+  for (const theme of ['light', 'dark']) {
+    test(`main screens have no serious accessibility problems (${theme})`, async ({ as }) => {
+      const opts = { colorScheme: theme }
+      const pages = [[null, '/'], ['mmuster', '/'], ['mmuster', 'person'], ['mmuster', '/new/person'], ['mmuster', '/phonelist'],
+        ['mmuster', '/account'], ['admin', '/settings/fields'], ['admin', '/settings/users'], ['admin', '/settings/api']]
+      const found = []
+      for (const [user, path] of pages) {
+        const page = await as(user, opts)
+        await page.addInitScript((t) => localStorage.setItem('kartei:theme', t), theme)
+        const target = path === 'person' ? `/person/${(await page.records()).find((r) => r.kind === 'person').uid}` : path
+        await page.goto(target)
+        await page.waitForLoadState('networkidle')
+        const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+        for (const v of r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical'))
+          found.push(`${path}: ${v.id} – ${v.nodes[0].target.join(' ')}`)
+      }
+      expect(found).toEqual([])
+    })
+  }
+})
 
 test.describe('sign-in', () => {
   test('a wrong password is refused, the right one opens the dashboard', async ({ as }) => {
