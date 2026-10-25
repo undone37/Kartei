@@ -10,6 +10,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 - End-to-end browser tests (Playwright) that run in CI on every push and pull request.
 - Vulnerability scanning of both images in CI and a daily scan of the latest release's images; results under *Security → Code scanning*.
 - Code of conduct and this changelog.
+- Images for ARM64 (`linux/arm64`) besides `linux/amd64`, e.g. for ARM servers and Raspberry Pi 4/5.
 
 ### Changed
 
