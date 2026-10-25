@@ -435,6 +435,8 @@ The box below the button shows the last run: *new · updated · deactivated · l
 
 *Settings → Single sign-on* connects Kartei to an identity provider such as Entra ID, Okta, Authentik or Keycloak (with a SCIM plugin). The provider **creates the users in advance via SCIM** (with their groups) and they **sign in with OpenID Connect**, so the provider's multi-factor authentication and policies apply and no password reaches Kartei. Local users and LDAP keep working alongside.
 
+![The Single sign-on tab](../img/en/settings-sso.png)
+
 ### Provisioning (SCIM 2.0)
 
 1. Under *Provisioning (SCIM 2.0)*, copy the *SCIM base URL* (`https://kartei.example.com/scim/v2`) and click *Generate token*. The token is shown **once**; a new token replaces the old one. Next to the button, *Last contact from the identity provider* shows when it last called Kartei — a quick check that provisioning runs.
@@ -477,6 +479,8 @@ Who can sign in:
 - Kartei then stores the account's issuer and subject (`sub`); from then on only these count, so a renamed account still gets in and another account with the same name does not.
 - With Entra ID, guests from other directories are refused.
 - The sign-in uses the authorization code flow with PKCE; Kartei checks issuer, audience, expiry and nonce of the ID token. Each sign-in is in the audit log.
+
+**Two-factor sign-in and single sign-on:** the provider's multi-factor authentication doesn't replace Kartei's own. If an account has two-factor sign-in switched on (or it is [required](#general-settings)), Kartei asks for the code after the provider. SCIM users have no Kartei password: to switch two-factor sign-in on, they need a single sign-on in the last 10 minutes instead. If the provider already enforces MFA, leave *Two-factor sign-in required for* at *Nobody* or *Administrators*.
 
 ## Fields
 

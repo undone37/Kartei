@@ -32,6 +32,8 @@ Open the Kartei address your IT department gave you and sign in with your **User
 
 If your organization has set up single sign-on, the page also offers a sign-in button for it (e.g. **Sign in with single sign-on**): you then sign in with your organization account (and its usual security check) instead of typing a password into Kartei.
 
+![Sign-in page with single sign-on](../img/en/login-sso.png)
+
 ![Sign-in page](../img/en/login.png)
 
 If you enter a wrong password too many times, Kartei blocks further attempts for 15 minutes (*Too many attempts – please wait 15 minutes*). To leave Kartei, choose **Sign out** in the user menu.

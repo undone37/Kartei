@@ -32,6 +32,8 @@ Abschnitte, die nur für die Rolle *Bearbeiter* gelten, sind mit **Bearbeiter** 
 
 Hat deine Organisation Single Sign-on eingerichtet, bietet die Seite dafür eine eigene Schaltfläche an (z. B. **Mit Single Sign-on anmelden**): Dann meldest du dich mit deinem Konto der Organisation (und dessen üblicher Sicherheitsabfrage) an, statt in Kartei ein Passwort einzugeben.
 
+![Anmeldeseite mit Single Sign-on](../img/de/login-sso.png)
+
 ![Anmeldeseite](../img/de/login.png)
 
 Nach zu vielen falschen Passwörtern sperrt Kartei weitere Versuche für 15 Minuten (*Zu viele Versuche – bitte 15 Minuten warten*). Zum Abmelden wählst du **Abmelden** im Benutzermenü.

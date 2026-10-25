@@ -435,6 +435,8 @@ Das Feld unter der Schaltfläche zeigt den letzten Lauf: *neu · aktualisiert ·
 
 *Einstellungen → Single Sign-on* verbindet Kartei mit einem Identity-Provider wie Entra ID, Okta, Authentik oder Keycloak (mit SCIM-Plugin). Der Provider **legt die Benutzer vorab per SCIM an** (mit ihren Gruppen), und sie **melden sich mit OpenID Connect an** – so gelten seine Mehrfaktor-Authentifizierung und Richtlinien, und kein Passwort erreicht Kartei. Lokale Benutzer und LDAP funktionieren weiter.
 
+![Der Reiter Single Sign-on](../img/de/settings-sso.png)
+
 ### Bereitstellung (SCIM 2.0)
 
 1. Unter *Bereitstellung (SCIM 2.0)* die *SCIM-Basis-URL* (`https://kartei.example.com/scim/v2`) kopieren und *Token erzeugen* klicken. Das Token wird **einmal** angezeigt; ein neues Token ersetzt das alte. Neben der Schaltfläche zeigt *Letzter Kontakt vom Identitätsanbieter*, wann er Kartei zuletzt aufgerufen hat – ein schneller Check, ob die Bereitstellung läuft.
@@ -477,6 +479,8 @@ Wer sich anmelden kann:
 - Danach speichert Kartei Aussteller und Subject (`sub`) des Kontos; ab dann zählen nur noch diese – ein umbenanntes Konto kommt weiter hinein, ein anderes Konto mit gleichem Namen nicht.
 - Bei Entra ID werden Gäste aus anderen Verzeichnissen abgewiesen.
 - Die Anmeldung nutzt den Autorisierungscode-Fluss mit PKCE; Kartei prüft Aussteller, Empfänger, Ablauf und Nonce des ID-Tokens. Jede Anmeldung steht im Protokoll.
+
+**Zwei-Faktor-Anmeldung und Single Sign-on:** Die Mehrfaktor-Authentifizierung des Providers ersetzt die von Kartei nicht. Hat ein Konto die Zwei-Faktor-Anmeldung eingeschaltet (oder ist sie [Pflicht](#allgemeine-einstellungen)), fragt Kartei nach dem Provider den Code ab. SCIM-Benutzer haben kein Kartei-Passwort: Zum Einschalten brauchen sie stattdessen eine Single-Sign-on-Anmeldung in den letzten 10 Minuten. Erzwingt der Provider schon MFA, lass *Zwei-Faktor-Anmeldung Pflicht für* auf *Niemanden* oder *Administratoren*.
 
 ## Felder
 

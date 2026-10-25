@@ -129,6 +129,29 @@ const SHOTS = [
     }, steps: async (p) => {
       await p.locator('td.act button').filter({ has: p.locator('svg.lucide-arrow-right-left') }).first().click(); await wait(500)
     }, after: async (ctx, h) => { await api(ctx, 'patch', `/api/admin/users/${h.leaver.id}`, { is_active: true }) } },
+  // single sign-on: example provider, three groups pushed via SCIM and mapped to the roles
+  { name: 'settings-sso', user: 'admin', path: '/settings/sso', before: async (ctx, h) => {
+      const { token } = await (await api(ctx, 'post', '/api/admin/scim/token')).json()
+      const scim = (method, path, data) => ctx.request[method](`${BASE}/scim/v2/${path}`, { data, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/scim+json' } })
+      h.groups = []
+      for (const name of ['Kartei Admins', 'Kartei Maintainers', 'Kartei Read only'])
+        h.groups.push((await (await scim('post', 'Groups', { schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'], displayName: name, members: [] })).json()).id)
+      h.baseUrl = (await (await api(ctx, 'get', '/api/admin/settings')).json()).base_url
+      const r = await api(ctx, 'put', '/api/admin/settings', { base_url: 'https://kartei.example.com', oidc_issuer: 'https://id.example.com/realms/staff', oidc_client_id: 'kartei',
+        oidc_client_secret: 'example-secret', oidc_label: '', oidc_enabled: true,
+        scim_group_admin: h.groups[0], scim_group_maintainer: h.groups[1], scim_group_read: h.groups[2] })
+      if (!r.ok()) throw new Error(`settings-sso: ${await r.text()}`)
+      h.scim = scim
+    }, steps: async (p) => { await p.locator('#scim-url').evaluate((e) => e.scrollIntoView({ block: 'start' })); await wait(300) } },
+  // the login page with the single sign-on button (still switched on from the scene above), then everything back
+  { name: 'login-sso', user: null, path: '/', after: async (ctx, h) => {
+      const admin = await ctx.browser().newContext()
+      await login(admin, 'admin', '')
+      await api(admin, 'put', '/api/admin/settings', { base_url: h.baseUrl, oidc_enabled: false, oidc_issuer: '', oidc_client_id: '', oidc_client_secret: '', oidc_label: '',
+        scim_group_admin: '', scim_group_maintainer: '', scim_group_read: '' })
+      for (const id of h.groups) await h.scim('delete', `Groups/${id}`)
+      await admin.close()
+    } },
   { name: 'settings-webhooks', user: 'admin', path: '/settings/api', before: async (ctx) => {
       await api(ctx, 'post', '/api/admin/webhooks', { name: 'Intranet', url: 'https://intranet.example.de/kartei-hook', events: [] })
     }, steps: async (p) => { await p.getByRole('heading', { level: 2 }).last().evaluate((h) => h.scrollIntoView({ block: 'start' })); await wait(300) },
