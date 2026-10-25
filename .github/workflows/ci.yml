@@ -4,8 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-  schedule:
-    - cron: "23 4 * * 1"   # weekly, so new vulnerabilities in unchanged images show up too
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -14,7 +12,7 @@ concurrency:
 jobs:
   backend:
     name: Backend (${{ matrix.db }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +41,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - name: System libraries for python-ldap
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libldap2-dev libsasl2-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libldap-dev libsasl2-dev
       - run: pip install -r requirements.txt
       - name: Migrations are complete
         run: |
@@ -53,7 +51,7 @@ jobs:
 
   frontend:
     name: Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     defaults:
       run:
         working-directory: frontend
@@ -71,7 +69,7 @@ jobs:
 
   e2e:
     name: End-to-end (browser)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     env:
       DEBUG: "1"
       EXPORT_ROOT: /tmp/export
@@ -88,7 +86,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: System libraries for python-ldap
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libldap2-dev libsasl2-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libldap-dev libsasl2-dev
       - run: pip install -r backend/requirements.txt
       - name: Build the frontend
         working-directory: frontend
@@ -117,7 +115,7 @@ jobs:
 
   docker:
     name: Docker image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [backend, frontend]
     permissions:
       contents: read

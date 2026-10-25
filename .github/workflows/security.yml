@@ -1,0 +1,36 @@
+# Daily vulnerability scan of the published images of the latest release (what installations run).
+# New builds are scanned by CI on every push and pull request. Results: Security → Code scanning.
+name: Vulnerability scan
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [kartei, kartei-relay]
+    steps:
+      - id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "version=$(gh release list -R "$GITHUB_REPOSITORY" -L 1 --json tagName --jq '.[0].tagName' | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+      - uses: anchore/scan-action@v7
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.release.outputs.version }}
+          fail-build: false
+          only-fixed: true
+          output-format: sarif
+          output-file: scan.sarif
+      - uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: scan.sarif
+          category: release-${{ matrix.image }}
