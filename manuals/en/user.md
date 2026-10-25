@@ -160,6 +160,17 @@ The download button above the list exports exactly the contacts currently shown 
 > Exports are recorded in the audit log. Handle exported files with care, as they may contain personal data.
 {: .warn}
 
+### Phone list (print or PDF)
+
+The same menu offers **Phone list – print or PDF**: a printable list of the contacts currently shown (again with search, list and filters), e.g. all customers or one department's suppliers.
+
+![Phone list](../img/en/phonelist.png)
+
+- **Order:** *by company* (each company with its own numbers, its persons below) or *by name* (A–Z, with the company in its own column).
+- **only contacts with a number** leaves out contacts that have none of the chosen numbers.
+- **Columns:** tick the phone and email fields to print. Kartei preselects the phone fields that someone in the list has filled in.
+- **Print / PDF** opens your browser's print dialog. Choose your printer, or *Save as PDF* to get a file. Only the list itself is printed, on A4 with the column headings repeated on every page.
+
 ## The dashboard
 
 When no contact is selected, the right side shows your dashboard:
