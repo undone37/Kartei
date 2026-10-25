@@ -16,6 +16,10 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 - Accessibility: grey text meets WCAG AA contrast (4.5:1) in the light and dark theme, form controls in the user list and account page have labels; a browser test checks the main screens with axe-core in both themes.
 
+### Fixed
+
+- A user deactivated by the LDAP user import lost access only when their session expired (up to 14 days); now on their next request.
+
 ## [0.2.0-beta] – 2026-10-25
 
 Second beta: read-only users can propose new contacts, Kartei can use a dedicated PostgreSQL server or cluster, images are also built for ARM64, and large directories load faster.
