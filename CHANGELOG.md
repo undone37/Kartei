@@ -6,7 +6,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
-- Sign in with Microsoft (Entra ID, OpenID Connect with PKCE) using the Outlook app registration; only existing Kartei users, matched by email or user name; switch under *LDAP / AD*.
+- Sign in with Microsoft (Entra ID, OpenID Connect with PKCE) using the Outlook app registration; only active LDAP users (no local users, superusers or guests): matched once by sign-in name = directory email, then bound to the account's object id; needs the tenant id as a GUID; switch under *LDAP / AD*.
 - CardDAV `sync-collection` (RFC 6578), in Kartei and the DMZ relay: phones fetch only what changed since their last sync.
 - Webhooks: contact changes are POSTed to other systems within seconds, signed with HMAC-SHA256, retried for about a day (*Settings → API*).
 - Phone list: the current list (with search and filters) as a printable phone list, by company or by name, with selectable phone and email columns; the browser saves it as PDF.

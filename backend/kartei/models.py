@@ -47,6 +47,7 @@ class Profile(models.Model):
     source = models.CharField(max_length=5, choices=[("local", "local"), ("ldap", "ldap")], default="local")
     recent = models.JSONField(default=list, blank=True)  # record uids, last viewed first (dashboard)
     favorites = models.JSONField(default=list, blank=True)  # record uids, starred first
+    sso_oid = models.CharField(max_length=64, blank=True, db_index=True)  # Microsoft account bound at the first sign-in
 
     @property
     def rank(self):

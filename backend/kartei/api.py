@@ -1477,6 +1477,8 @@ def settings_put(request):
         errors["graph_enabled"] = "graph_incomplete"
     if s.oidc_enabled and not (s.graph_tenant_id and s.graph_client_id and s.graph_client_secret_enc and s.base_url):
         errors["oidc_enabled"] = "oidc_incomplete"  # app registration (Outlook tab) and public URL are needed
+    elif s.oidc_enabled and not oidc.tenant_ok(s.graph_tenant_id):
+        errors["oidc_enabled"] = "oidc_tenant_id"
     if errors:
         return err("validation", fields=errors)
     s.save()

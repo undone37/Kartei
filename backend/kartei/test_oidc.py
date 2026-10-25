@@ -8,15 +8,16 @@ from urllib.parse import parse_qs, urlparse
 from django.contrib.auth.models import User
 
 from .graph import GraphError
-from .models import AuditEntry, Settings
+from .models import AuditEntry, Profile, Settings
 from .tests import ApiTestBase
 
+OID = "0a0a0a0a-0000-0000-0000-000000000001"
 TENANT, CLIENT = "11111111-2222-3333-4444-555555555555", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 
 
 def id_token(**claims):
     body = {"iss": f"https://login.microsoftonline.com/{TENANT}/v2.0", "tid": TENANT, "aud": CLIENT,
-            "exp": time.time() + 600, "preferred_username": "maintainer@example.com"} | claims
+            "exp": time.time() + 600, "preferred_username": "maintainer@example.com", "oid": OID} | claims
     enc = lambda d: base64.urlsafe_b64encode(json.dumps(d).encode()).decode().rstrip("=")
     return f"{enc({'alg': 'RS256'})}.{enc(body)}.signature"
 
@@ -29,6 +30,11 @@ class OidcTests(ApiTestBase):
         s.base_url, s.oidc_enabled = "https://kartei.example", True
         s.save()
         User.objects.filter(username="maintainer").update(email="maintainer@example.com")
+        Profile.objects.filter(user__username__in=["maintainer", "read"]).update(source="ldap")  # directory users
+
+    def sso(self, **claims):
+        state, nonce = self.start()
+        return self.callback(state, id_token(nonce=nonce, **claims))[0]["Location"]
 
     def start(self):
         r = self.client.get("/api/oidc/start")
@@ -71,14 +77,30 @@ class OidcTests(ApiTestBase):
         r = self.client.get("/api/oidc/callback", {"error": "access_denied"})
         self.assertEqual(r["Location"], "/?login_error=sso_cancelled")
 
-    def test_user_name_from_the_account_and_inactive_users(self):
-        state, nonce = self.start()  # "read" has no email: matched by the part before the @
-        self.callback(state, id_token(nonce=nonce, preferred_username="READ@example.com"))
-        self.assertEqual(self.client.get("/api/session").json()["user"]["username"], "read")
+    def test_only_directory_users_by_upn_then_bound_to_the_account(self):
+        User.objects.filter(username="read").update(email="read@example.com")
+        self.assertEqual(self.sso(preferred_username="READ"), "/?login_error=sso_unknown_user")  # no local-part matching
+        self.assertEqual(self.sso(preferred_username="x@example.com", email="read@example.com"), "/?login_error=sso_unknown_user")
+        self.assertEqual(self.sso(idp="https://sts.windows.net/99999999-2222-3333-4444-555555555555/"),
+                         "/?login_error=sso_unknown_user")  # a guest
+        for username in ("admin", "maintainer"):  # a local user, a superuser
+            Profile.objects.filter(user__username="maintainer").update(source="local" if username == "maintainer" else "ldap")
+            User.objects.filter(username=username).update(email="who@example.com")
+            self.assertEqual(self.sso(preferred_username="who@example.com"), "/?login_error=sso_unknown_user", username)
+            User.objects.filter(username=username).update(email="")
+        Profile.objects.filter(user__username="maintainer").update(source="ldap")
+        User.objects.filter(username="maintainer").update(email="maintainer@example.com")
+        self.assertEqual(self.sso(), "/")
+        self.assertEqual(Profile.objects.get(user__username="maintainer").sso_oid, OID)
         self.client.logout()
+        # bound: a renamed account still gets in, another account with the same name doesn't
+        self.assertEqual(self.sso(preferred_username="renamed@example.com"), "/")
+        self.client.logout()
+        other = "0a0a0a0a-0000-0000-0000-000000000002"
+        self.assertEqual(self.sso(oid=other), "/?login_error=sso_unknown_user")
+        self.assertEqual(self.sso(oid=""), "/?login_error=sso_invalid")
         User.objects.filter(username="maintainer").update(is_active=False)
-        state, nonce = self.start()
-        self.assertEqual(self.callback(state, id_token(nonce=nonce))[0]["Location"], "/?login_error=sso_unknown_user")
+        self.assertEqual(self.sso(), "/?login_error=sso_unknown_user")
 
     def test_off_or_incomplete(self):
         Settings.objects.update(oidc_enabled=False)
@@ -88,3 +110,6 @@ class OidcTests(ApiTestBase):
         Settings.objects.update(base_url="")
         bad = self.j("put", "/api/admin/settings", {"oidc_enabled": True}, status=400)
         self.assertEqual(bad["fields"]["oidc_enabled"], "oidc_incomplete")
+        Settings.objects.update(base_url="https://kartei.example", graph_tenant_id="common")
+        bad = self.j("put", "/api/admin/settings", {"oidc_enabled": True}, status=400)
+        self.assertEqual(bad["fields"]["oidc_enabled"], "oidc_tenant_id")
