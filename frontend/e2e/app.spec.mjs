@@ -2,6 +2,7 @@
 // Users: admin from init_app (E2E_ADMIN_PASSWORD), the demo users from `seed_demo --password` (E2E_PASSWORD).
 // Every test puts the data back, so the suite can run again on the same database.
 import { test as base, expect } from '@playwright/test'
+import { createHmac } from 'node:crypto'
 import AxeBuilder from '@axe-core/playwright'
 
 const PW = { admin: process.env.E2E_ADMIN_PASSWORD || 'admin12345', other: process.env.E2E_PASSWORD || 'demo12345' }
@@ -51,6 +52,18 @@ const dialog = (page) => page.locator('dialog[open]')
 const actions = (page) => page.locator('header .actions')
 const deleteButton = (page) => actions(page).locator('button.danger')
 
+/** TOTP (RFC 6238) like an authenticator app: the code for the current step plus `steps` */
+function totpCode(secret, steps = 0) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  let bits = ''
+  for (const ch of secret) bits += alphabet.indexOf(ch).toString(2).padStart(5, '0')
+  const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2)))
+  const counter = Buffer.alloc(8)
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000) + steps))
+  const h = createHmac('sha1', key).update(counter).digest()
+  const o = h[h.length - 1] & 15
+  return String((h.readUInt32BE(o) & 0x7fffffff) % 1e6).padStart(6, '0')
+}
 test.describe('accessibility', () => {
   // WCAG 2.1 A/AA checks (axe-core) on the main screens, in both themes; serious and critical findings fail
   for (const theme of ['light', 'dark']) {
@@ -88,6 +101,72 @@ test.describe('sign-in', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(list(page)).toBeVisible()
     await expect(page.getByText('Recently viewed')).toBeVisible()
+  })
+})
+
+test.describe('two-factor sign-in', () => {
+  test('set up with the app, then sign in with password and code', async ({ as }) => {
+    const user = await as('lschmidt')
+    await user.goto('/account')
+    await user.getByRole('button', { name: 'Set up' }).click()
+    await expect(user.getByRole('img', { name: 'QR code for the authenticator app' })).toBeVisible()
+    const secret = (await user.locator('code').first().textContent()).trim()
+    await user.getByLabel('Code from the app').fill(totpCode(secret))
+    await user.locator('#totp-pw').fill(process.env.E2E_PASSWORD || 'demo12345')
+    await user.getByRole('button', { name: 'Switch on' }).click()
+    await expect(user.getByText('Keep these recovery codes safe')).toBeVisible()
+    const recovery = (await user.locator('.codes code').allTextContents()).map((c) => c.trim())
+    expect(recovery).toHaveLength(8)
+    try {
+      const page = await as(null)
+      await page.goto('/')
+      await page.locator('#u').fill('lschmidt')
+      await page.locator('#p').fill(process.env.E2E_PASSWORD || 'demo12345')
+      await page.getByRole('button', { name: 'Sign in' }).click()
+      await expect(page.getByText('Enter the code from your authenticator app')).toBeVisible()
+      await page.locator('#c').fill('000000')
+      await page.getByRole('button', { name: 'Sign in' }).click()
+      await expect(page.getByRole('alert')).toHaveText('The code is not correct')
+      await page.locator('#c').fill(totpCode(secret, 1)) // the next step: the setup already used the current one
+      await page.getByRole('button', { name: 'Sign in' }).click()
+      await expect(page.getByRole('listbox')).toBeVisible()
+    } finally {
+      await user.api('post', '/api/me/totp', { action: 'disable', code: recovery[0] })
+    }
+  })
+})
+
+test.describe('two-factor policy', () => {
+  test('required for everyone: setup right after sign-in, then the app', async ({ as }) => {
+    const admin = await as('admin')
+    await admin.api('put', '/api/admin/settings', { totp_required: 'all' })
+    // the admin is affected as well: it sets up its own two-factor sign-in through the API
+    const { secret: adminSecret } = await admin.api('post', '/api/me/totp', { action: 'setup' })
+    const adminCodes = (await admin.api('post', '/api/me/totp', { action: 'confirm', code: totpCode(adminSecret), password: PW.admin })).recovery
+    let recovery = []
+    try {
+      const page = await as('lschmidt')
+      await page.goto('/')
+      await expect(page.getByRole('heading', { name: 'Set up two-factor sign-in' })).toBeVisible()
+      await page.getByRole('button', { name: 'Set up' }).click()
+      const secret = (await page.locator('code').first().textContent()).trim()
+      await page.getByLabel('Code from the app').fill(totpCode(secret))
+      await page.locator('#totp-pw').fill(PW.other)
+      await page.getByRole('button', { name: 'Switch on' }).click()
+      await expect(page.getByText('Keep these recovery codes safe')).toBeVisible()
+      recovery = (await page.locator('.codes code').allTextContents()).map((c) => c.trim())
+      await page.getByRole('button', { name: 'Saved them' }).click()
+      await expect(page.getByRole('listbox')).toBeVisible()
+    } finally {
+      await admin.api('put', '/api/admin/settings', { totp_required: 'none' })
+      await admin.api('post', '/api/me/totp', { action: 'disable', code: adminCodes[0] })
+      if (recovery.length) {
+        const user = await as(null)
+        await user.api('get', '/api/session')
+        await user.api('post', '/api/login', { username: 'lschmidt', password: PW.other, code: recovery[0] })
+        await user.api('post', '/api/me/totp', { action: 'disable', code: recovery[1] })
+      }
+    }
   })
 })
 

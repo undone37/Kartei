@@ -4,6 +4,7 @@
   import AdvancedFilter from './components/AdvancedFilter.svelte'
   import Combobox from './components/Combobox.svelte'
   import Login from './components/Login.svelte'
+  import TotpRequired from './components/TotpRequired.svelte'
   import RecordForm from './components/RecordForm.svelte'
   import ProposalPage from './components/ProposalPage.svelte'
   import PhoneList from './components/PhoneList.svelte'
@@ -228,6 +229,8 @@
   <div class="boot"><div class="spinner"></div></div>
 {:else if store.status === 'login'}
   <Login />
+{:else if store.status === 'totp'}
+  <TotpRequired />
 {:else}
   <div class="app">
     <header class="top">

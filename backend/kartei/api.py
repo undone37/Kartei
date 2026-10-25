@@ -21,7 +21,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from . import adsync, audit, batch, exports, gdpr, graph, handover, importer, ldapusers, relaypush, reviews
+from . import adsync, audit, batch, exports, gdpr, graph, handover, importer, ldapusers, relaypush, reviews, totp
 from .msg import msg
 from .net import client_ip
 from .models import (ROLE_RANK, USER_TYPES, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind, Profile,
@@ -57,6 +57,8 @@ def needs(min_rank):
             request.rank = rank_of(request.user)
             if request.rank < min_rank:
                 return err("forbidden", 403)
+            if fn.__name__ not in ("my_totp", "update_me") and totp_due(request.user):  # set up the required 2FA first
+                return err("totp_setup_required", 403)
             request.json = {}
             if request.body and request.content_type == "application/json":
                 try:
@@ -140,12 +142,23 @@ def ser_record(r, fields):
         "reviewed_by__username": rel(r.reviewed_by if r.reviewed_by_id else None)}, _keys(fields))
 
 
+def totp_policy(u):
+    """Two-factor sign-in is required for this user (Settings.totp_required: none / admins / all)."""
+    need = Settings.get().totp_required
+    return need == "all" or (need == "admins" and rank_of(u) == 2)
+
+
+def totp_due(u):
+    """Required but not set up yet: the user can't do anything else until it is."""
+    return totp_policy(u) and not profile_of(u).totp_secret_enc
+
+
 def ser_user(u):
     p = profile_of(u)
     return {"id": u.id, "username": u.username, "first_name": u.first_name, "last_name": u.last_name,
             "email": u.email, "role": Role.ADMIN if u.is_superuser else p.role, "language": p.language,
-            "source": p.source, "is_active": u.is_active, "is_superuser": u.is_superuser,
-            "last_login": u.last_login.isoformat() if u.last_login else None}
+            "source": p.source, "is_active": u.is_active, "is_superuser": u.is_superuser, "totp": bool(p.totp_secret_enc),
+            "totp_due": totp_due(u), "last_login": u.last_login.isoformat() if u.last_login else None}
 
 
 def visible_fields(rank):
@@ -189,10 +202,109 @@ def login_view(request):
     if user is None or not user.is_active:
         cache.set(key, cache.get(key, 0) + 1, 15 * 60)
         return err("invalid_credentials", 401)
+    p = profile_of(user)
+    if p.totp_secret_enc:  # two-factor sign-in: the code from the authenticator app (or a recovery code) as well
+        if not str(body.get("code") or "").strip():
+            return err("totp_required", 401)
+        if totp_locked(p):
+            return err("too_many_attempts", 429)
+        if not _second_factor(user, p, str(body["code"])):
+            cache.set(key, cache.get(key, 0) + 1, 15 * 60)
+            return err("invalid_code", 401)
     cache.delete(key)
     login(request, user)
     profile_of(user)
     return JsonResponse({"user": ser_user(user)})
+
+
+TOTP_MAX_FAILURES, TOTP_LOCK = 5, timedelta(minutes=15)
+
+
+def totp_locked(p):
+    return p.totp_failures >= TOTP_MAX_FAILURES and p.totp_failed_at and p.totp_failed_at > timezone.now() - TOTP_LOCK
+
+
+def _second_factor(user, p, code):
+    """Check a TOTP code (each step only once) or use up a recovery code. Under a row lock, so parallel requests
+    can't use one code twice; 5 wrong codes in a row block the check for 15 minutes (in the database, for all workers)."""
+    with transaction.atomic():
+        p = Profile.objects.select_for_update().get(pk=p.pk)
+        if totp_locked(p):
+            return False
+        if (step := totp.verify(p.totp_secret, code, p.totp_last_counter)) is not None:
+            p.totp_last_counter, p.totp_failures = step, 0
+            p.save(update_fields=["totp_last_counter", "totp_failures"])
+            return True
+        h = totp.hash_recovery(code)
+        if h in p.totp_recovery:
+            p.totp_recovery, p.totp_failures = [x for x in p.totp_recovery if x != h], 0
+            p.save(update_fields=["totp_recovery", "totp_failures"])
+            audit.log(user, "update", "user", user.id, user.username, {"totp_recovery_used": [None, len(p.totp_recovery)]})
+            return True
+        p.totp_failures, p.totp_failed_at = p.totp_failures + 1, timezone.now()
+        p.save(update_fields=["totp_failures", "totp_failed_at"])
+        return False
+
+
+@needs(READ)
+def my_totp(request):
+    """Two-factor sign-in for the signed-in user. action: setup (new secret, kept in the session until confirmed),
+    confirm (code → on, returns recovery codes once), recovery (code → new recovery codes), disable (code → off)."""
+    b, u, p = request.json, request.user, profile_of(request.user)
+    action = b.get("action")
+    if action in ("setup", "confirm") and p.totp_secret_enc:  # replacing an active secret needs disabling (with a code) first
+        return err("totp_already_on", 409)
+    if action == "setup":
+        secret = totp.new_secret()
+        request.session["totp_pending"] = secret
+        return JsonResponse({"secret": secret, "uri": totp.uri(secret, u.username)})
+    if action == "confirm":
+        # the password as well: a session alone (e.g. on an unlocked computer) must not be able to lock the owner out
+        if authenticate(request, username=u.username, password=str(b.get("password") or "")) != u:
+            return err("validation", fields={"password": "invalid"})
+        secret = request.session.get("totp_pending", "")
+        step = totp.verify(secret, b.get("code"))
+        if step is None:
+            return err("validation", fields={"code": "invalid_code"})
+        codes, hashes = totp.new_recovery_codes()
+        p.totp_secret, p.totp_last_counter, p.totp_recovery = secret, step, hashes
+        p.save()
+        del request.session["totp_pending"]
+        audit.log(u, "update", "user", u.id, u.username, {"totp": [False, True]})
+        return JsonResponse({"user": ser_user(u), "recovery": codes})
+    if action in ("recovery", "disable"):
+        if not p.totp_secret_enc:
+            return err("not_found", 404)
+        if action == "disable" and totp_policy(u):
+            return err("totp_policy", 409)
+        if totp_locked(p):
+            return err("too_many_attempts", 429)
+        if not _second_factor(u, p, str(b.get("code") or "")):
+            return err("validation", fields={"code": "invalid_code"})
+        if action == "recovery":
+            codes, p.totp_recovery = totp.new_recovery_codes()
+            p.save(update_fields=["totp_recovery"])
+            audit.log(u, "update", "user", u.id, u.username, {"totp_recovery_new": [None, len(codes)]})
+            return JsonResponse({"recovery": codes})
+        p.totp_secret, p.totp_last_counter, p.totp_recovery = "", None, []
+        p.save()
+        audit.log(u, "update", "user", u.id, u.username, {"totp": [True, False]})
+        return JsonResponse({"user": ser_user(u)})
+    return err("invalid", 400)
+
+
+@needs(ADMIN)
+def user_totp_reset(request, pk):
+    """An admin switches off a user's two-factor sign-in (lost phone); the user can set it up again."""
+    u = User.objects.filter(pk=pk).first()
+    if not u:
+        return err("not_found", 404)
+    p = profile_of(u)
+    if p.totp_secret_enc:
+        p.totp_secret, p.totp_last_counter, p.totp_recovery = "", None, []
+        p.save()
+        audit.log(request.user, "update", "user", u.id, u.username, {"totp": [True, False]})
+    return JsonResponse(ser_user(u))
 
 
 def logout_view(request):
@@ -1389,7 +1501,7 @@ def user_delete(request, pk):
 
 # ---------------------------------------------------------------- admin: settings
 
-SETTINGS_ATTRS = ["default_language", "base_url", "trash_days", "purge_anonymize", "export_interval_minutes", "ldap_uri",
+SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days", "purge_anonymize", "export_interval_minutes", "ldap_uri",
                   "ldap_start_tls", "ldap_ca_cert", "ldap_bind_dn", "ldap_user_base", "ldap_user_filter",
                   "ldap_group_admin", "ldap_group_maintainer", "ldap_group_read", "carddav_enabled",
                   "carddav_username", "graph_enabled", "graph_tenant_id", "graph_client_id", "graph_group_id",
@@ -1471,6 +1583,8 @@ def settings_put(request):
         errors["export_interval_minutes"] = "too_small"
     if s.ldap_user_filter and "%(user)s" not in s.ldap_user_filter:
         errors["ldap_user_filter"] = "missing_user_placeholder"
+    if s.totp_required not in ("none", "admins", "all"):
+        errors["totp_required"] = "invalid"
     if not str(s.graph_folder).strip():
         errors["graph_folder"] = "required"
     if s.graph_enabled and not (s.graph_tenant_id and s.graph_client_id and s.graph_group_id

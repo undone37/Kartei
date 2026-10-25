@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowRightLeft, KeyRound, Plus, Trash2 } from '@lucide/svelte'
+  import { ArrowRightLeft, KeyRound, Plus, ShieldOff, Trash2 } from '@lucide/svelte'
   import Combobox from '../components/Combobox.svelte'
   import { ApiError, del, get, patch, post } from '../lib/api'
   import { store } from '../lib/store.svelte'
@@ -80,6 +80,15 @@
     }
   }
 
+  async function resetTotp(u: User) {
+    const name = [u.first_name, u.last_name].join(' ').trim() || u.username
+    const ok = await confirmDialog({ title: t('totp.reset_title', { name }), message: t('totp.reset_text', { name }),
+                                     confirmLabel: t('totp.reset'), danger: true })
+    if (!ok) return
+    await post(`/api/admin/users/${u.id}/totp-reset`).catch(() => toast(t('err.generic'), { kind: 'error' }))
+    load()
+  }
+
   async function remove(u: User) {
     const name = [u.first_name, u.last_name].join(' ').trim() || u.username
     const ok = await confirmDialog({ title: t('users.delete_title', { name }), message: t('users.delete_text'),
@@ -122,6 +131,7 @@
     {#each users as u (u.id)}
       <tr>
         <td><strong>{u.username}</strong>{#if u.id === store.user?.id} <span class="badge">{t('users.you')}</span>{/if}
+          {#if u.totp} <span class="badge ok" title={t('totp.title')}>{t('totp.badge')}</span>{/if}
           {#if !u.is_active && u.refs} <span class="badge warn" title={t('handover.pending_hint')}>{t('handover.pending', { n: u.refs })}</span>{/if}</td>
         <td>{[u.first_name, u.last_name].join(' ')}</td>
         <td><span class="badge">{u.source === 'ldap' ? 'LDAP' : t('users.local')}</span></td>
@@ -144,6 +154,7 @@
           {:else}
             {#if u.refs}<button class="btn sm icon ghost" title={t('handover.button')} aria-label={`${t('handover.button')}: ${u.username}`} onclick={() => openHandover(u)}><ArrowRightLeft size={14} /></button>{/if}
             {#if u.source === 'local'}<button class="btn sm icon ghost" title={t('users.set_pw')} onclick={() => { pwFor = u.id; newPw = '' }}><KeyRound size={14} /></button>{/if}
+            {#if u.totp && u.id !== store.user?.id}<button class="btn sm icon ghost" title={t('totp.reset')} aria-label={t('totp.reset')} onclick={() => resetTotp(u)}><ShieldOff size={14} /></button>{/if}
             {#if u.id !== store.user?.id}<button class="btn sm icon ghost danger" title={t('common.delete')} aria-label={t('common.delete')} onclick={() => remove(u)}><Trash2 size={14} /></button>{/if}
           {/if}
         </td>
