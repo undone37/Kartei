@@ -60,6 +60,14 @@ const SHOTS = [
   { name: 'merge', user: 'admin', path: '/duplicates', steps: open('a[href^="/duplicates/"]') },
   { name: 'trash', user: 'mmuster', path: '/trash' },
   { name: 'phonelist', user: 'mmuster', path: '/phonelist' },
+  { name: 'vcard-import', user: 'mmuster', path: '/import/vcard', steps: async (p) => {
+      const vcf = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lehmann;Jonas;;;', 'ORG:Musterfirma Energie AG;Vertrieb', 'TITLE:Vertrieb',
+        'EMAIL;TYPE=WORK:jonas.lehmann@musterfirma.example', 'TEL;TYPE=WORK:+49 511 1000-88', 'TEL;TYPE=CELL:+49 170 5550188',
+        'item1.TEL:+49 511 1000-89', 'item1.X-ABLabel:Pager', 'END:VCARD',
+        'BEGIN:VCARD', 'VERSION:3.0', 'N:Albers;Paula;;;', 'ORG:Albers Consulting', 'END:VCARD'].join('\r\n')
+      await p.locator('input[type=file]').setInputFiles({ name: 'kontakte.vcf', mimeType: 'text/vcard', buffer: Buffer.from(vcf) })
+      await wait(500)
+    } },
   { name: 'account', user: 'kkramer', path: '/account' },
   { name: 'mobile', user: 'kkramer', path: '/', viewport: { width: 390, height: 844 } },
   { name: 'mobile-contact', user: 'kkramer', path: (h) => `/person/${h.person}`, viewport: { width: 390, height: 844 } },

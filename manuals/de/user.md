@@ -326,6 +326,19 @@ Sobald ein Bearbeiter entschieden hat, verschwindet der Vorschlag aus der Liste;
 
 Die **Firma** einer Person wählst du, indem du einen Teil des Namens tippst (*Firma suchen …*). Für einen neuen Mitarbeiter einer Firma geht es noch schneller: Firma öffnen, Reiter **Personen**, **Person bei dieser Firma anlegen** – die Firma ist dann schon eingetragen.
 
+### Aus vCard importieren {#aus-vcard-importieren}
+
+Kontakte, die als vCard (`.vcf`) kommen – etwa im Anhang einer E-Mail, vom Handy oder aus Outlook exportiert –, musst du nicht abtippen:
+
+1. Klick oben rechts auf **Neu** und wähle **Aus vCard importieren …**.
+2. Zieh die `.vcf`-Datei auf das Feld oder klick darauf, um sie auszuwählen (mehrere Dateien oder eine Datei mit mehreren Karten gehen auch). Alternativ fügst du den vCard-Text ein.
+3. Jede Karte öffnet sich als **ausgefülltes Formular für einen neuen Kontakt** (*Kontakt 1 von 3*): Namen, Firma, Funktion, Telefonnummern, E-Mail-Adressen, Adresse, Geburtstag und Foto landen in den Feldern mit der passenden vCard-Zuordnung. Kennt Kartei die Firma schon, wird sie verknüpft, und es erscheinen wie gewohnt der Hinweis auf Dubletten und *Angaben von … übernehmen*.
+4. Prüf und ergänze die Angaben und klick auf **Anlegen** – oder **Überspringe** die Karte.
+
+![Kontakt aus einer vCard importieren](../img/de/vcard-import.png)
+
+Werte ohne passendes Feld (z. B. eine Pager-Nummer) stehen über dem Formular, damit du sie bei Bedarf von Hand übernimmst. Mit der Rolle *Nur Lesen* werden aus den Karten stattdessen [Vorschläge](#neuen-kontakt-vorschlagen).
+
 ### Angaben von der Firma übernehmen
 
 Sobald eine Person eine Firma hat, bietet Kartei an, Angaben der Firma zu übernehmen, etwa Webseite, Adresse oder internen Ansprechpartner: **Angaben von … übernehmen**.
