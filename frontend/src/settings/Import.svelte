@@ -14,7 +14,7 @@
     kind: { column: string; company_prefix: string; person_prefix: string }
   }
   interface Preview {
-    headers: string[]; samples: string[][]; rows: number; mapping: Mapping
+    headers: string[]; samples: string[][]; rows: number; mapping: Mapping; guessed: string[]
     fields: { key: string; label: L10n; applies_to: Side | 'both' }[]
   }
 
@@ -107,7 +107,8 @@
       <tbody>
         {#each preview.headers as h, i (h)}
           <tr>
-            <td><strong>{h}</strong></td>
+            <td><strong>{h}</strong>
+              {#if preview.guessed.includes(h)}<span class="badge warn" title={t('import.guessed_hint')}>{t('import.guessed')}</span>{/if}</td>
             <td class="muted sample">{preview.samples.map((r) => r[i]).filter(Boolean).slice(0, 2).join(' · ')}</td>
             {#each ['person', 'company'] as const as side}
               <td><Combobox options={targets[side]} value={mapping.columns[h][side] || null} placeholder={t('import.ignore')}

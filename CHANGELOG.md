@@ -7,6 +7,11 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 ### Added
 
 - **Personal Outlook folders:** besides the folder with all contacts, each user can get two folders of their own in their mailbox: contacts they are responsible for, and contacts listing them as internal contact. Turn them on by naming them in *Settings → Outlook / Exchange*.
+- **CSV import, matching by content:** columns whose header matches no field get a field picked from their values: email, phone, web address, date, select options or Kartei users. These suggestions are marked *by content* so you can check them.
+
+### Changed
+
+- **CSV import, kind column:** a column named *Type*/*Art* is preselected only if at least half of its values are person/company kinds; otherwise any column holding them is picked.
 
 ## [0.3.1-beta] – 2026-10-25
 

@@ -632,7 +632,7 @@ Die Tabelle zeigt für jede Spalte die Überschrift, Beispiele aus den ersten Ze
 | *Als neues Textfeld anlegen* | ✓ | ✓ |
 | *(ignorieren)* | ✓ | ✓ |
 
-Kartei schlägt für jede Spalte ein Ziel vor: zuerst gängige Namen der Stammdaten (z. B. `Vorname`/`First name`, `Firma`/`Company`, `ID`), dann das Feld, dessen Schlüssel, Bezeichnung oder **Import-Spaltennamen** zur Überschrift passen (Groß-/Kleinschreibung, Akzente und Satzzeichen zählen nicht). Prüf den Vorschlag; leer heißt, die Spalte wird ignoriert.
+Kartei schlägt für jede Spalte ein Ziel vor: zuerst gängige Namen der Stammdaten (z. B. `Vorname`/`First name`, `Firma`/`Company`, `ID`), dann das Feld, dessen Schlüssel, Bezeichnung oder **Import-Spaltennamen** zur Überschrift passen (Groß-/Kleinschreibung, Akzente und Satzzeichen zählen nicht). Passt kein Name, schaut Kartei auf die Werte und nimmt das erste noch freie Feld, dessen Typ passt: E-Mail-Adressen, Telefonnummern (beginnend mit `0`, `+` oder `(`), Webadressen, Datumsangaben, Optionen eines Auswahlfelds oder Kartei-Benutzer. Solche Spalten sind mit *nach Inhalt* markiert. Prüf den Vorschlag; leer heißt, die Spalte wird ignoriert.
 
 *Als neues Textfeld anlegen* legt beim Import ein Textfeld mit der Spaltenüberschrift als Bezeichnung (und als Import-Spaltenname) an. Typ und Einstellungen passt du danach unter *Felder* an.
 
@@ -642,7 +642,7 @@ Kartei schlägt für jede Spalte ein Ziel vor: zuerst gängige Namen der Stammda
 
 Kartei bestimmt die Art jeder Zeile in dieser Reihenfolge:
 
-1. **Spalte mit der Art:** Ist sie gesetzt, bedeuten Werte wie `Person`/`Kontakt`/`Contact` Person und `Firma`/`Company`/`Organisation` Firma. Andere Werte ergeben einen Hinweis, dann greifen die nächsten Regeln. Eine Spalte namens `Art`, `Typ` oder `Type` wird vorausgewählt.
+1. **Spalte mit der Art:** Ist sie gesetzt, bedeuten Werte wie `Person`/`Kontakt`/`Contact` Person und `Firma`/`Company`/`Organisation` Firma. Andere Werte ergeben einen Hinweis, dann greifen die nächsten Regeln. Eine Spalte namens `Art`, `Typ` oder `Type` wird vorausgewählt, wenn mindestens die Hälfte ihrer Werte solche Arten sind; sonst eine Spalte, deren Werte fast alle Arten sind.
 2. **ID-Präfixe:** *ID beginnt mit … → Firma* und *ID beginnt mit … → Person* prüfen die Spalte, die der *Alt-ID* zugeordnet ist, z. B. `F-` und `P-`.
 3. **Sonst:** Zeilen mit Nachname sind Personen; Zeilen ohne Nachname, aber mit Firmenname sind Firmen.
 

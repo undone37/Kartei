@@ -632,7 +632,7 @@ For every column, the table shows the header, examples from the first rows and t
 | *Create as new text field* | ✓ | ✓ |
 | *(ignore)* | ✓ | ✓ |
 
-Kartei suggests a target for each column: common names of the core data (e.g. `Vorname`/`First name`, `Firma`/`Company`, `ID`), then the field whose key, label or **import column names** match the header (case, accents and punctuation are ignored). Check the suggestion; empty means the column is ignored.
+Kartei suggests a target for each column: common names of the core data (e.g. `Vorname`/`First name`, `Firma`/`Company`, `ID`), then the field whose key, label or **import column names** match the header (case, accents and punctuation are ignored). For columns no name matches, Kartei looks at the values and picks the first field not used yet whose type fits: email addresses, phone numbers (starting with `0`, `+` or `(`), web addresses, dates, options of a select field, or Kartei users. These columns are marked *by content*. Check the suggestion; empty means the column is ignored.
 
 *Create as new text field* creates a text field named after the column header when the import runs (with the header as import column name). Change its type and settings afterwards under *Fields* if needed.
 
@@ -642,7 +642,7 @@ Kartei suggests a target for each column: common names of the core data (e.g. `V
 
 Kartei decides the kind of each row in this order:
 
-1. **Column with the kind:** if set, values like `Person`/`Kontakt`/`Contact` mean person and `Firma`/`Company`/`Organisation` mean company. Other values produce a warning and fall back to the next rules. A column named `Type`, `Art` or `Kind` is preselected.
+1. **Column with the kind:** if set, values like `Person`/`Kontakt`/`Contact` mean person and `Firma`/`Company`/`Organisation` mean company. Other values produce a warning and fall back to the next rules. A column named `Type`, `Art` or `Kind` is preselected if at least half of its values are such kinds; otherwise any column whose values are almost all kinds.
 2. **ID prefixes:** *ID starts with … → company* and *ID starts with … → person* look at the column mapped to *Legacy ID*, e.g. `F-` and `P-`.
 3. **Otherwise:** rows with a last name are persons; rows without a last name but with a company name are companies.
 

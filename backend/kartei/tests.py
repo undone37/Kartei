@@ -1432,6 +1432,24 @@ class CsvReadTests(ApiTestBase):
         self.assertIn("import_excel", self.preview(b"PK\x03\x04rest", status=400)["detail"])
         self.assertIn("import_unreadable", self.preview(b'A;B\n"x;y\n' + b"z" * 20 * 1024 * 1024, status=400)["detail"])
 
+    def test_columns_guessed_from_content(self):
+        csv_ = ("ID;Vorname;Nachname;Typ;Satzart;Kontakt;Durchwahl;Nr2;Netz;Geb;Gruss;Wer;Plz2\n"
+                "X-1;Anna;Bär;X-1;Person;anna@x.de;0511 1234567;0170 7654321;www.x.de;01.02.1990;Frau;maintainer;30159\n"
+                "X-2;;;X-2;Firma;info@y.de;+49 511 99999;0171 1111111;https://y.de;1995-03-04;Herr;maintainer;30160\n")
+        p = self.preview(csv_.encode())
+        cols = p["mapping"]["columns"]
+        self.assertEqual(p["mapping"]["kind"]["column"], "Satzart")  # "Typ" holds IDs, not kinds
+        self.assertEqual(cols["Kontakt"], {"person": "field:email", "company": "field:company_email"})
+        self.assertEqual(cols["Durchwahl"], {"person": "field:phone_work", "company": "field:company_phone"})
+        self.assertEqual(cols["Nr2"]["person"], "field:mobile")  # the next free phone field
+        self.assertEqual(cols["Netz"], {"person": "field:website", "company": "field:website"})
+        self.assertEqual(cols["Geb"], {"person": "field:birthday", "company": ""})
+        self.assertEqual(cols["Gruss"]["person"], "field:salutation")
+        self.assertEqual(cols["Wer"], {"person": "field:internal_contact", "company": "field:internal_contact"})
+        for h in ("Typ", "Plz2", "Satzart"):
+            self.assertEqual(cols[h], {"person": "", "company": ""}, h)
+        self.assertEqual(p["guessed"], ["Kontakt", "Durchwahl", "Nr2", "Netz", "Geb", "Gruss", "Wer"])
+
     def test_large_upload(self):
         rows = "".join(f"Max{i};Muster{i};m{i}@example.com;{'x' * 120}\n" for i in range(80000))  # ~12 MB
         self.assertEqual(len(self.preview(("Vorname;Nachname;E-Mail;Notiz\n" + rows).encode())["headers"]), 4)
