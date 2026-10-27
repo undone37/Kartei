@@ -1,11 +1,12 @@
 <script lang="ts">
   import { Download, Upload } from '@lucide/svelte'
   import Combobox from '../components/Combobox.svelte'
-  import { ApiError, api, downloadJson, readJson } from '../lib/api'
+  import FieldEditor from './FieldEditor.svelte'
+  import { ApiError, api, downloadJson, get, readJson } from '../lib/api'
   import { store } from '../lib/store.svelte'
   import { L, t, terr, tmsg } from '../lib/i18n.svelte'
   import { toast } from '../lib/toast.svelte'
-  import type { L10n } from '../lib/types'
+  import type { Field, FieldType, L10n, Option, Section } from '../lib/types'
 
   type Side = 'person' | 'company'
   interface Mapping {
@@ -15,6 +16,7 @@
   }
   interface Preview {
     headers: string[]; samples: string[][]; rows: number; mapping: Mapping; guessed: string[]
+    new_fields: Record<string, { type: FieldType; options: Option[] }>
     fields: { key: string; label: L10n; applies_to: Side | 'both' }[]
   }
 
@@ -25,6 +27,29 @@
   let busy = $state(false)
   let error = $state('')
   let dragging = $state(false)
+  // "new field" opens the regular field editor; the created field becomes the column's target
+  let creating = $state<{ header: string; side: Side } | null>(null)
+  let editorData = $state<{ fields: Field[]; sections: Section[]; targets: string[] } | null>(null)
+
+  async function newField(header: string, side: Side) {
+    editorData = await get<{ fields: Field[]; sections: Section[]; vcard_targets: string[] }>('/api/admin/fields')
+      .then((r) => ({ fields: r.fields, sections: r.sections, targets: r.vcard_targets }))
+    creating = { header, side }
+  }
+
+  function created(f?: Field) {
+    if (f && creating && preview && mapping) {
+      preview.fields = [...preview.fields, { key: f.key, label: f.label, applies_to: f.applies_to }]
+      mapping.columns[creating.header][creating.side] = `field:${f.key}`
+      result = null
+      store.sync()
+    }
+    creating = null
+  }
+
+  async function sectionAdded() {
+    editorData!.sections = (await get<{ sections: Section[] }>('/api/admin/fields')).sections
+  }
 
   const fail = (e: unknown) =>
     (error = e instanceof ApiError ? (e.body?.detail ? tmsg(e.body.detail) : terr(e.code)) : t('err.generic'))
@@ -34,7 +59,7 @@
       .filter((f) => f.applies_to === side || f.applies_to === 'both')
       .map((f) => ({ value: `field:${f.key}`, label: L(f.label), hint: f.key }))
     const common = [{ value: 'core:legacy_id', label: t('calc.legacy_id') }]
-    const make = [{ value: 'new', label: t('import.new_field') }]
+    const make = [{ value: 'new', label: t('import.new_field') }]  // opens the field editor (see newField)
     return {
       person: [...common, { value: 'core:first_name', label: t('core.first_name') }, { value: 'core:last_name', label: t('core.last_name') },
         { value: 'core:company', label: t('import.company_link') }, ...make, ...fields('person')],
@@ -83,6 +108,7 @@
   }
 </script>
 
+<div class="layout" class:has-editor={creating}>
 <div class="card box">
   <p>{t('import.hint')}</p>
   <label class="drop" class:on={dragging}
@@ -102,7 +128,7 @@
         <input type="file" accept=".json,application/json" hidden onchange={(e) => { loadMapping(e.currentTarget.files?.[0]); e.currentTarget.value = '' }} /></label>
     </div>
     <p class="hint">{t('import.mapping_hint')}</p>
-    <table class="grid">
+    <div class="scroll"><table class="grid">
       <thead><tr><th>{t('import.column')}</th><th>{t('import.sample')}</th><th>{t('import.person_target')}</th><th>{t('import.company_target')}</th></tr></thead>
       <tbody>
         {#each preview.headers as h, i (h)}
@@ -112,12 +138,12 @@
             <td class="muted sample">{preview.samples.map((r) => r[i]).filter(Boolean).slice(0, 2).join(' · ')}</td>
             {#each ['person', 'company'] as const as side}
               <td><Combobox options={targets[side]} value={mapping.columns[h][side] || null} placeholder={t('import.ignore')}
-                            onchange={(v) => { mapping!.columns[h][side] = v ?? ''; result = null }} /></td>
+                            onchange={(v) => { if (v === 'new') return newField(h, side); mapping!.columns[h][side] = v ?? ''; result = null }} /></td>
             {/each}
           </tr>
         {/each}
       </tbody>
-    </table>
+    </table></div>
 
     <h3>{t('import.kind')}</h3>
     <div class="row3">
@@ -156,8 +182,20 @@
     </div>
   {/if}
 </div>
+{#if creating && editorData && preview}
+  {#key creating}
+    <FieldEditor field={null} all={editorData.fields} sections={editorData.sections} targets={editorData.targets}
+                 draft={{ label: { de: creating.header, en: creating.header }, applies_to: creating.side,
+                          import_aliases: [creating.header], ...preview.new_fields[creating.header] }}
+                 onsaved={created} onsection={sectionAdded} oncancel={() => (creating = null)} />
+  {/key}
+{/if}
+</div>
 
 <style>
+  .layout { display: grid; grid-template-columns: minmax(0, 1040px); gap: 20px; align-items: start; }
+  .layout.has-editor { grid-template-columns: minmax(0, 1fr) 420px; }
+  @media (max-width: 1100px) { .layout.has-editor { grid-template-columns: 1fr; } }
   .box { max-width: 1040px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
   p { margin: 0; color: var(--muted); }
   .hint { margin-top: -8px; }
@@ -165,6 +203,7 @@
   .head { display: flex; align-items: center; gap: 6px; }
   .spacer { flex: 1; }
   .sample { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
   .grid td { vertical-align: middle; }
   .grid td:nth-child(n + 3) { min-width: 220px; }
   .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }

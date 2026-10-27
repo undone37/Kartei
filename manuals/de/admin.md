@@ -629,12 +629,14 @@ Die Tabelle zeigt für jede Spalte die Überschrift, Beispiele aus den ersten Ze
 | *Firma (Verknüpfung über den Namen)* | ✓ | – |
 | *Name* | – | ✓ |
 | ein Feld (nur Felder, die für die Art gelten) | ✓ | ✓ |
-| *Als neues Textfeld anlegen* | ✓ | ✓ |
+| *Neues Feld anlegen …* | ✓ | ✓ |
 | *(ignorieren)* | ✓ | ✓ |
 
 Kartei schlägt für jede Spalte ein Ziel vor: zuerst gängige Namen der Stammdaten (z. B. `Vorname`/`First name`, `Firma`/`Company`, `ID`), dann das Feld, dessen Schlüssel, Bezeichnung oder **Import-Spaltennamen** zur Überschrift passen (Groß-/Kleinschreibung, Akzente und Satzzeichen zählen nicht). Passt kein Name, schaut Kartei auf die Werte und nimmt das erste noch freie Feld, dessen Typ passt: E-Mail-Adressen, Telefonnummern (beginnend mit `0`, `+` oder `(`), Webadressen, Datumsangaben, Optionen eines Auswahlfelds oder Kartei-Benutzer. Solche Spalten sind mit *nach Inhalt* markiert. Prüf den Vorschlag; leer heißt, die Spalte wird ignoriert.
 
-*Als neues Textfeld anlegen* legt beim Import ein Textfeld mit der Spaltenüberschrift als Bezeichnung (und als Import-Spaltenname) an. Typ und Einstellungen passt du danach unter *Felder* an.
+*Neues Feld anlegen …* öffnet neben der Zuordnung denselben Feldeditor wie unter *Felder*. Vorbelegt sind die Spaltenüberschrift als Bezeichnung und Import-Spaltenname, die gewählte Seite unter *Gilt für* und ein Typ, den Kartei aus den Werten ableitet: E-Mail, Telefon, URL, Datum, langer Text (Zeilenumbrüche), Ganz- oder Dezimalzahl (ohne führende Nullen, PLZ bleiben Text) oder Einfach-/Mehrfachauswahl mit den gefundenen Werten als Optionen, wenn sich wenige Werte wiederholen. Pass alles an (Abschnitt, Sichtbarkeit, vCard-Zuordnung, …) und speichere: Das Feld wird sofort angelegt und ist dann das Ziel der Spalte.
+
+![Neues Feld aus dem Import](../img/de/import-new-field.png)
 
 *Zuordnung exportieren* lädt die Zuordnung (samt Regeln für die Art) als JSON herunter; *Zuordnung importieren* lädt sie für die nächste Datei mit denselben Spalten wieder.
 

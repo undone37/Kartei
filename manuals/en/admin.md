@@ -629,12 +629,14 @@ For every column, the table shows the header, examples from the first rows and t
 | *Company (linked by name)* | ✓ | – |
 | *Name* | – | ✓ |
 | a field (only fields that apply to the kind) | ✓ | ✓ |
-| *Create as new text field* | ✓ | ✓ |
+| *New field …* | ✓ | ✓ |
 | *(ignore)* | ✓ | ✓ |
 
 Kartei suggests a target for each column: common names of the core data (e.g. `Vorname`/`First name`, `Firma`/`Company`, `ID`), then the field whose key, label or **import column names** match the header (case, accents and punctuation are ignored). For columns no name matches, Kartei looks at the values and picks the first field not used yet whose type fits: email addresses, phone numbers (starting with `0`, `+` or `(`), web addresses, dates, options of a select field, or Kartei users. These columns are marked *by content*. Check the suggestion; empty means the column is ignored.
 
-*Create as new text field* creates a text field named after the column header when the import runs (with the header as import column name). Change its type and settings afterwards under *Fields* if needed.
+*New field …* opens the same field editor as under *Fields*, next to the mapping. It is prefilled with the column header as label and import column name, the side you picked under *Applies to*, and a type suggested from the values: email, phone, URL, date, long text (line breaks), whole or decimal number (no leading zeros, so postcodes stay text), or a select/multiselect with the values found as options when a few values repeat. Adjust everything (section, visibility, vCard mapping, …) and save: the field is created right away and becomes the column's target.
+
+![New field from the import](../img/en/import-new-field.png)
 
 *Export mapping* downloads the mapping (including the kind rules) as JSON; *Import mapping* loads it again for the next file with the same columns.
 

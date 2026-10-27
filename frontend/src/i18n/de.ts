@@ -301,7 +301,7 @@ export default {
   'import.person_target': "bei Personen",
   'import.company_target': "bei Firmen",
   'import.ignore': "(ignorieren)",
-  'import.new_field': "Als neues Textfeld anlegen",
+  'import.new_field': "Neues Feld anlegen …",
   'import.company_link': "Firma (Verknüpfung über den Namen)",
   'import.kind': "Person oder Firma?",
   'import.kind_column': "Spalte mit der Art",

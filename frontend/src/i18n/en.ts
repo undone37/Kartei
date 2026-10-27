@@ -301,7 +301,7 @@ export default {
   'import.person_target': "for people",
   'import.company_target': "for companies",
   'import.ignore': "(ignore)",
-  'import.new_field': "Create as new text field",
+  'import.new_field': "New field …",
   'import.company_link': "Company (linked by name)",
   'import.kind': "Person or company?",
   'import.kind_column': "Column with the kind",

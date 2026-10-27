@@ -1450,6 +1450,20 @@ class CsvReadTests(ApiTestBase):
             self.assertEqual(cols[h], {"person": "", "company": ""}, h)
         self.assertEqual(p["guessed"], ["Kontakt", "Durchwahl", "Nr2", "Netz", "Geb", "Gruss", "Wer"])
 
+    def test_new_field_types(self):
+        from .importer import new_field
+        self.assertEqual(new_field(["a@x.de", "b@y.de"])["type"], "email")
+        self.assertEqual(new_field(["zwei\nZeilen", "x"])["type"], "longtext")
+        self.assertEqual(new_field(["12", "-3"])["type"], "integer")
+        self.assertEqual(new_field(["1,5", "2"])["type"], "decimal")
+        self.assertEqual(new_field(["01234", "30159"])["type"], "text")  # leading zero: a postcode, not a number
+        self.assertEqual(new_field(["Gold", "Silber", "Gold", "Gold"]),
+                         {"type": "select", "options": [{"value": v, "de": v, "en": v} for v in ("Gold", "Silber")]})
+        self.assertEqual(new_field(["A, B", "B"])["type"], "multiselect")
+        self.assertEqual(new_field(["Freitext eins", "Freitext zwei"])["type"], "text")
+        p = self.preview("Name;Rabatt\nx;5\ny;7\n".encode())
+        self.assertEqual(p["new_fields"]["Rabatt"]["type"], "integer")
+
     def test_large_upload(self):
         rows = "".join(f"Max{i};Muster{i};m{i}@example.com;{'x' * 120}\n" for i in range(80000))  # ~12 MB
         self.assertEqual(len(self.preview(("Vorname;Nachname;E-Mail;Notiz\n" + rows).encode())["headers"]), 4)

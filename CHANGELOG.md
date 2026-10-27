@@ -8,6 +8,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 - **Personal Outlook folders:** besides the folder with all contacts, each user can get two folders of their own in their mailbox: contacts they are responsible for, and contacts listing them as internal contact. Turn them on by naming them in *Settings → Outlook / Exchange*.
 - **CSV import, matching by content:** columns whose header matches no field get a field picked from their values: email, phone, web address, date, select options or Kartei users. These suggestions are marked *by content* so you can check them.
+- **CSV import, new fields:** *New field …* opens the regular field editor next to the mapping, prefilled with the column header and a type suggested from the values (with options for repeating values). Section, visibility and everything else are set there; the field is created on save and becomes the column's target. Saved mappings with the old "new" target still work and now get the suggested type too.
 
 ### Changed
 

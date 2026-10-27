@@ -87,6 +87,11 @@ def read_csv(raw):
     return list(reader.fieldnames), rows
 
 
+def _values(rows, h):
+    """Non-empty values of a column in the first rows, for guessing."""
+    return [v.strip() for r in rows[:SAMPLE] if (v := r.get(h)) and v.strip()]
+
+
 def _mostly(values, test, share=0.8):
     return sum(bool(test(v)) for v in values) >= share * len(values)
 
@@ -101,6 +106,31 @@ def _fits(values, field, users):
     test = {"email": EMAIL_RE.match, "url": URL_RE.match, "date": DATE_RE.match,
             "phone": lambda v: PHONE_RE.match(v) and sum(c.isdigit() for c in v) >= 6}.get(field.type)
     return bool(test) and _mostly(values, test)
+
+
+def new_field(values):
+    """Type (and options) for a new field holding these values; text when nothing fits."""
+    if not values:
+        return {"type": "text", "options": []}
+    opts = lambda vs: [{"value": v, "de": v, "en": v} for v in sorted(set(vs), key=str.casefold)]
+    if any("\n" in v for v in values):
+        return {"type": "longtext", "options": []}
+    for t, test in (("email", EMAIL_RE.match), ("url", URL_RE.match), ("date", DATE_RE.match),
+                    ("phone", lambda v: PHONE_RE.match(v) and sum(c.isdigit() for c in v) >= 6)):
+        if _mostly(values, test):
+            return {"type": t, "options": []}
+    if all(re.fullmatch(r"-?(0|[1-9]\d{0,14})", v) for v in values):  # leading zeros (postcodes) stay text
+        return {"type": "integer", "options": []}
+    if all(re.fullmatch(r"-?(0|[1-9]\d{0,14})[.,]\d+", v) or re.fullmatch(r"-?(0|[1-9]\d{0,14})", v) for v in values):
+        return {"type": "decimal", "options": []}
+    # ponytail: few short repeating values make a select; tune the 20/40 limits if real files disagree
+    parts = [p for v in values for p in _split_multi(v)]
+    short = all(len(p) <= 40 for p in parts)
+    if short and len(set(parts)) <= 20 and any(len(_split_multi(v)) > 1 for v in values):
+        return {"type": "multiselect", "options": opts(parts)}
+    if short and len(set(values)) <= 20 and len(values) >= 2 * len(set(values)):
+        return {"type": "select", "options": opts(values)}
+    return {"type": "text", "options": []}
 
 
 def suggest(headers, fields, rows=(), guessed=None):
@@ -121,7 +151,7 @@ def suggest(headers, fields, rows=(), guessed=None):
                 core = ""
             pair[side] = core or next((f"field:{f.key}" for f, ns in names if f.applies(side) and n in ns), "")
         columns[h] = pair
-    sample = {h: [v.strip() for r in rows[:SAMPLE] if (v := r.get(h)) and v.strip()] for h in headers}
+    sample = {h: _values(rows, h) for h in headers}
     is_kind = lambda h, share=0.8: sample[h] and _mostly(sample[h], lambda v: norm(v) in KIND_VALUES, share)
     # a name match needs half its values to be kinds (an "Art" column holding IDs is not one); without rows it's kept
     kind_col = next((h for h in headers if norm(h) in KIND_HEADERS and (not rows or is_kind(h, 0.5))), "") or \
@@ -147,7 +177,8 @@ def preview(raw, fields):
     guessed = set()
     mapping = suggest(headers, fields, rows, guessed)
     return {"headers": headers, "samples": [[r.get(h) or "" for h in headers] for r in rows[:5]], "rows": len(rows),
-            "mapping": mapping, "guessed": [h for h in headers if h in guessed]}
+            "mapping": mapping, "guessed": [h for h in headers if h in guessed],
+            "new_fields": {h: new_field(_values(rows, h)) for h in headers}}
 
 
 def _resolve(headers, rows, fields, mapping):
@@ -172,8 +203,9 @@ def _resolve(headers, rows, fields, mapping):
     return m
 
 
-def _new_fields(m, fields, user):
-    """'new' targets: one text field per header, applying to the sides that chose it."""
+def _new_fields(m, rows, fields, user):
+    """'new' targets: one field per header with the type its values suggest, applying to the sides that chose it.
+    The SPA creates fields in the field editor instead; this serves saved mappings and the command line."""
     for h, pair in m["columns"].items():
         sides = [s for s in SIDES if pair[s] == "new"]
         if not sides:
@@ -183,8 +215,9 @@ def _new_fields(m, fields, user):
         while key in fields:
             key, i = f"{base}_{i}", i + 1
         order = (FieldDef.objects.order_by("-order").values_list("order", flat=True).first() or 0) + 10
+        spec = new_field(_values(rows, h))
         f = FieldDef.objects.create(key=key, label_de=h[:100] or key, label_en=h[:100] or key, order=order,
-                                    applies_to=sides[0] if len(sides) == 1 else "both", import_aliases=[h])
+                                    applies_to=sides[0] if len(sides) == 1 else "both", import_aliases=[h], **spec)
         fields[key] = f
         audit.log(user, "create", "field", f.id, f.label_de, {"key": [None, key], "label_de": [None, f.label_de]})
         for s in sides:
@@ -219,7 +252,7 @@ def import_csv(raw, mapping=None, user=None, dry_run=True):
     with transaction.atomic():
         fields = {f.key: f for f in FieldDef.objects.all()}
         m = _resolve(headers, rows, fields, mapping)
-        _new_fields(m, fields, user)
+        _new_fields(m, rows, fields, user)
         cols, rule = m["columns"], m["kind"]
         cols_of = lambda side, target: [h for h in headers if cols[h][side] == target]
         id_cols = list(dict.fromkeys(cols_of("person", "core:legacy_id") + cols_of("company", "core:legacy_id")))

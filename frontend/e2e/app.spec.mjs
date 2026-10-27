@@ -270,6 +270,34 @@ test.describe('CSV import', () => {
     await expect(admin.locator('label.drop')).toContainText('kontakte.csv')
     await expect(admin.getByText('Jürgen').first()).toBeVisible()
   })
+
+  test('"New field …" opens the field editor prefilled from the column; the new field becomes the target', async ({ as }) => {
+    const admin = await as('admin')
+    await admin.goto('/settings/import')
+    const csv = 'Vorname;Nachname;E2E Stufe\nA;Eins;Gold\nB;Zwei;Silber\nC;Drei;Gold\nD;Vier;Gold\n'
+    const dt = await admin.evaluateHandle((text) => {
+      const d = new DataTransfer()
+      d.items.add(new File([text], 'stufen.csv', { type: 'text/csv' }))
+      return d
+    }, csv)
+    await admin.locator('label.drop').dispatchEvent('drop', { dataTransfer: dt })
+    const person = admin.getByRole('row').filter({ hasText: 'E2E Stufe' }).getByRole('combobox').first()
+    await person.click()
+    await person.fill('New field')
+    await admin.getByRole('option', { name: 'New field …' }).click()
+    await expect(admin.locator('#type')).toHaveValue('select') // guessed from the values
+    await admin.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(admin.locator('#type')).toHaveCount(0)
+    const { fields } = await admin.api('get', '/api/admin/fields')
+    const f = fields.find((x) => x.label.de === 'E2E Stufe')
+    try {
+      expect([f.type, f.applies_to, f.import_aliases, f.options.map((o) => o.value)]).toEqual(['select', 'person', ['E2E Stufe'], ['Gold', 'Silber']])
+      await admin.getByRole('button', { name: 'Dry run' }).click()
+      await expect(admin.getByText('4 rows read')).toBeVisible()
+    } finally {
+      await admin.api('delete', `/api/admin/fields/${f.id}`)
+    }
+  })
 })
 
 test.describe('roles', () => {
