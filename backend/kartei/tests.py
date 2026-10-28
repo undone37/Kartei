@@ -380,6 +380,12 @@ class AdminApiTests(ApiTestBase):
         self.assertNotIn("geheim", json.dumps(list(AuditEntry.objects.values_list("changes", flat=True))))
         r = self.j("put", "/api/admin/settings", {"graph_enabled": True, "graph_tenant_id": "t"}, status=400)
         self.assertEqual(r["fields"], {"graph_enabled": "graph_incomplete"})
+        r = self.j("put", "/api/admin/settings", {"graph_folder_responsible": " kartei "}, status=400)
+        self.assertEqual(r["fields"], {"graph_folder_responsible": "duplicate"})
+        self.j("put", "/api/admin/settings", {"graph_folder_responsible": " Meine ", "graph_folder_internal": "Mine"})
+        self.assertEqual(Settings.get().graph_folder_responsible, "Meine")
+        r = self.j("put", "/api/admin/settings", {"graph_folder_responsible": "mine "}, status=400)
+        self.assertEqual(r["fields"], {"graph_folder_internal": "duplicate"})
         s = self.j("put", "/api/admin/settings", {"graph_enabled": True, "graph_tenant_id": "t", "graph_client_id": "c",
                                                   "graph_group_id": "g", "graph_client_secret": "graphpw"})
         self.assertTrue(s["graph_client_secret_set"])
@@ -1189,6 +1195,31 @@ class GraphSyncTests(TestCase):
         st = graph.run()
         self.assertIn("@graph_no_records", st["error"])
         self.assertEqual(len(self.fake.contacts("u1")), 3)  # untouched
+
+    def test_personal_folders(self):
+        FieldDef.objects.create(key="owner", label_de="Zuständig", label_en="Owner", type="user", applies_to="both")
+        FieldDef.objects.create(key="internal", label_de="Intern", label_en="Internal", type="users", applies_to="both")
+        User.objects.create(username="anna", email="A@x.de")  # mailbox u1 by mail
+        User.objects.create(username="b")  # mailbox u2 by the local part
+        Record.objects.filter(pk=self.person.pk).update(data={**self.person.data, "owner": "anna", "internal": ["b"]})
+        Record.objects.filter(pk=self.company.pk).update(data={**self.company.data, "internal": ["anna", "b"]})
+        s = Settings.get()
+        s.graph_folder_responsible, s.graph_folder_internal = "Meine", "Intern"
+        s.save()
+        self.assertEqual(graph.run()["failed"], [])
+        folder = lambda u, n: sorted(c["displayName"] for (uu, _), d in self.fake.folders.items()
+                                     if uu == u and d["name"] == n for c in d["contacts"].values())
+        self.assertEqual(len(folder("u1", "Kartei")), 3)
+        self.assertEqual(folder("u1", "Meine"), ["Alexander Meier"])
+        self.assertEqual(folder("u1", "Intern"), ["ACME GmbH"])
+        self.assertEqual(folder("u2", "Meine"), [])
+        self.assertEqual(folder("u2", "Intern"), ["ACME GmbH", "Alexander Meier"])
+        Record.objects.filter(pk=self.company.pk).update(data={})  # no longer an internal contact
+        graph.run()
+        self.assertEqual(folder("u1", "Intern"), [])
+        del self.fake.users["u1"]  # leaver: all three folders go
+        graph.run()
+        self.assertEqual([d["name"] for (u, _), d in self.fake.folders.items() if u == "u1"], [])
 
     def test_photos(self):
         jpeg = b"\xff\xd8\xff" + b"x" * 50

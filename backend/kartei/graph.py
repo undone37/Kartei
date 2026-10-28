@@ -13,6 +13,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
+from django.contrib.auth.models import User
 from django.core.mail.backends.base import BaseEmailBackend
 from django.utils import timezone
 
@@ -168,9 +169,28 @@ def contact(r, fields, names=None):
 # ---------------------------------------------------------------- sync
 
 def mailboxes(c, group_id):
-    """{user id: mail} for all (nested) user members of the group that have a mailbox address."""
-    members = c.get_all(f"/groups/{quote(group_id)}/transitiveMembers?$select=id,mail&$top=999")
-    return {m["id"]: m["mail"] for m in members if m.get("@odata.type") == "#microsoft.graph.user" and m.get("mail")}
+    """{user id: member} for all (nested) user members of the group that have a mailbox address."""
+    members = c.get_all(f"/groups/{quote(group_id)}/transitiveMembers?$select=id,mail,userPrincipalName&$top=999")
+    return {m["id"]: m for m in members if m.get("@odata.type") == "#microsoft.graph.user" and m.get("mail")}
+
+
+def kartei_users():
+    """{lowercased email, username: username} of active users, to find a mailbox's Kartei user."""
+    out = {}
+    for name, email in User.objects.filter(is_active=True).values_list("username", "email"):
+        out[name.lower()] = name
+        if email:
+            out.setdefault(email.lower(), name)
+    return out
+
+
+def owner(member, users):
+    """Kartei username of a mailbox: matched by mail, UPN, or the UPN/mail local part (an AD account name)."""
+    keys = [member.get("mail", ""), member.get("userPrincipalName") or ""]
+    for k in keys + [k.split("@")[0] for k in keys]:
+        if k and k.lower() in users:
+            return users[k.lower()]
+    return None
 
 
 def _folder(c, user, name, create=True):
@@ -244,20 +264,36 @@ def _sync(s):
     boxes = mailboxes(c, s.graph_group_id)
     if not boxes:
         raise GraphError(msg("graph_group_empty"))
+    # personal folders: single-user fields mean "responsible", multi-user fields "internal contact" (like the app's lists)
+    keys = lambda t: list(FieldDef.objects.filter(type=t, archived=False).values_list("key", flat=True))
+    personal = [(name, ks, t) for name, ks, t in ((s.graph_folder_responsible, keys("user"), "user"),
+                                                  (s.graph_folder_internal, keys("users"), "users")) if name and ks]
+    users = kartei_users() if personal else {}
     out = {"mailboxes": len(boxes), "created": 0, "updated": 0, "deleted": 0, "photos": 0, "failed": []}
-    for user, mail in boxes.items():
-        try:
-            counts, failed = sync_mailbox(c, user, s.graph_folder, wanted)
-        except GraphError as e:
-            counts, failed = {}, [str(e)]
-        for k, n in counts.items():
-            out[k] += n
-        out["failed"] += [f"{mail}: {f}" for f in failed]
+    for user, member in boxes.items():
+        jobs = [(s.graph_folder, wanted)]
+        # ponytail: a mailbox without a Kartei user gets no personal folders; earlier ones stay until it leaves the group
+        if name := owner(member, users):
+            for folder, ks, t in personal:
+                mine = (lambda d: any(d.get(k) == name for k in ks)) if t == "user" else \
+                    (lambda d: any(name in (d.get(k) or []) for k in ks))
+                jobs.append((folder, {uid: w for uid, w in wanted.items() if mine(w[3].data or {})}))
+        for folder, want in jobs:
+            try:
+                counts, failed = sync_mailbox(c, user, folder, want)
+            except GraphError as e:
+                counts, failed = {}, [str(e)]
+            for k, n in counts.items():
+                out[k] += n
+            out["failed"] += [f"{member['mail']}: {f}" for f in failed]
     keep = set(boxes)
-    for user in set(s.graph_mailboxes) - keep:  # left the group: remove the folder
+    # ponytail: folders of a renamed or cleared setting stay behind (found by name), like a renamed main folder
+    names = [n for n in (s.graph_folder, s.graph_folder_responsible, s.graph_folder_internal) if n]
+    for user in set(s.graph_mailboxes) - keep:  # left the group: remove the folders
         try:
-            if fid := _folder(c, user, s.graph_folder, create=False):
-                c.call("DELETE", f"/users/{user}/contactFolders/{fid}")
+            for name in names:
+                if fid := _folder(c, user, name, create=False):
+                    c.call("DELETE", f"/users/{user}/contactFolders/{fid}")
         except GraphError as e:
             keep.add(user)  # retry next run
             out["failed"].append(f"{user}: {e}")
@@ -291,7 +327,7 @@ def test(s):
         boxes = mailboxes(c, s.graph_group_id)
     except GraphError as e:
         return {"error": str(e)}
-    return {"ok": True, "mailboxes": len(boxes), "sample": sorted(boxes.values())[:5]}
+    return {"ok": True, "mailboxes": len(boxes), "sample": sorted(m["mail"] for m in boxes.values())[:5]}
 
 
 # ---------------------------------------------------------------- mail

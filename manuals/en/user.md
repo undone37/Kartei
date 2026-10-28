@@ -570,7 +570,7 @@ The shortcuts don't work while you are typing in a field (except <kbd>Ctrl</kbd>
 
 If your organization uses it, Kartei contacts can also appear in your phone's address book, so incoming calls show the caller's name. Your IT department or administrator sets this up:
 
-- **Outlook app (iPhone and Android):** if your organization uses Microsoft 365, Kartei puts the contacts into a folder in your mailbox. In the Outlook app, turn on *Save contacts* for your account (*Settings* → account → *Save contacts*) so they are stored on the phone.
+- **Outlook app (iPhone and Android):** if your organization uses Microsoft 365, Kartei puts the contacts into a folder in your mailbox. If your admin turned them on, two more folders hold only your own contacts: the ones you are responsible for and the ones listing you as internal contact. In the Outlook app, turn on *Save contacts* for your account (*Settings* → account → *Save contacts*) so they are stored on the phone.
 - **CardDAV account (iPhone):** an alternative, e.g. for phones without a personal mailbox. Your administrator gives you the server address and login. The contacts appear as a separate address book and are read-only on the phone.
 
 Only fields visible to everyone are synced. Changes are made in Kartei, not on the phone; they reach the phone at the next sync.

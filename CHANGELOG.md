@@ -4,6 +4,10 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- **Personal Outlook folders:** besides the folder with all contacts, each user can get two folders of their own in their mailbox: contacts they are responsible for, and contacts listing them as internal contact. Turn them on by naming them in *Settings → Outlook / Exchange*.
+
 ## [0.3.1-beta] – 2026-10-25
 
 Bug-fix release: the CSV import works with real-world files and accepts drag and drop, and server errors are logged again.

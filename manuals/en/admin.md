@@ -884,7 +884,7 @@ Test-ApplicationAccessPolicy -AppId <client-id> -Identity someone@example.de
 ### Configure Kartei
 
 1. *Settings → Outlook / Exchange*: enter *Tenant ID*, *Application (client) ID*, *Client secret* and *Group ID (object ID of the Entra group)*. The secret is stored encrypted; the field stays empty after saving.
-2. Optionally change the *Contact folder name*.
+2. Optionally change the *Contact folder name (all contacts)*. To also give every user personal folders, enter names under *Folder: my contacts (responsible)* and *Folder: my internal contacts* (empty = off).
 3. *Save & test*: Kartei signs in and lists the group members with a mailbox (*Sign-in successful – n mailboxes in the group*, plus up to five addresses). Nothing is written.
 4. Tick *Outlook sync enabled* and click *Save* (only possible when all four values are filled in).
 5. *Sync now* starts the first run. *Last run* shows mailboxes, new, changed and removed contacts, photos and duration, plus failures.
@@ -900,9 +900,14 @@ On the phone (iPhone or Android), users install the Outlook app, sign in with th
 - Photos are synced too.
 - The folder belongs to Kartei: contacts that users add there themselves are removed at the next run.
 - Members who leave the group lose the folder at the next run.
+- **Personal folders** exist only in the user's own mailbox, so nobody else sees them:
+  - *my contacts*: contacts where the user is entered in a single-user field (the responsible person);
+  - *my internal contacts*: contacts where the user is entered in a multi-user field.
+
+  Kartei matches a mailbox to a Kartei user by email address, UPN, or the part before the `@` (the AD account name). Mailboxes without a matching Kartei user get only the folder with all contacts.
 - Throttling by Microsoft is handled with automatic retries; a large first run can take a while.
 
-> Warning: If you rename the *Contact folder name*, Kartei creates a new folder and leaves the old one in the mailboxes. Choose the name before the first sync.
+> Warning: If you rename a folder or clear a personal folder's name, Kartei creates a new folder and leaves the old one in the mailboxes. Choose the name before the first sync.
 {: .warn}
 
 ## Reviews

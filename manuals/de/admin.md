@@ -884,7 +884,7 @@ Test-ApplicationAccessPolicy -AppId <client-id> -Identity jemand@example.de
 ### Kartei einrichten
 
 1. *Einstellungen → Outlook / Exchange*: *Mandanten-ID (Tenant)*, *Anwendungs-ID (Client)*, *Geheimer Clientschlüssel* und *Gruppen-ID (Objekt-ID der Entra-Gruppe)* eintragen. Der Schlüssel wird verschlüsselt gespeichert; das Feld bleibt nach dem Speichern leer.
-2. Trag bei Bedarf unter *Name des Kontaktordners* einen anderen Ordnernamen ein.
+2. Trag bei Bedarf unter *Name des Kontaktordners (alle Kontakte)* einen anderen Ordnernamen ein. Sollen alle Benutzer zusätzlich persönliche Ordner bekommen, trag Namen unter *Ordner: meine Kontakte (zuständig)* und *Ordner: meine internen Kontakte* ein (leer = aus).
 3. *Speichern & testen*: Kartei meldet sich an und ermittelt die Gruppenmitglieder mit Postfach (*Anmeldung erfolgreich – n Postfächer in der Gruppe*, dazu bis zu fünf Adressen). Es wird nichts geschrieben.
 4. *Outlook-Sync aktiv* anhaken und *Speichern* (geht nur, wenn alle vier Werte ausgefüllt sind).
 5. *Jetzt synchronisieren* startet den ersten Lauf. *Letzter Lauf* zeigt Postfächer, neue, geänderte und entfernte Kontakte, Fotos und Dauer sowie Fehler.
@@ -900,9 +900,14 @@ Auf dem Telefon (iPhone oder Android) installieren die Benutzer die Outlook-App,
 - Fotos werden mit übertragen.
 - Der Ordner gehört Kartei: Kontakte, die Benutzer dort selbst anlegen, werden beim nächsten Lauf entfernt.
 - Wer die Gruppe verlässt, verliert den Ordner beim nächsten Lauf.
+- **Persönliche Ordner** liegen nur im eigenen Postfach, niemand sonst sieht sie:
+  - *meine Kontakte*: Kontakte, bei denen der Benutzer in einem Einzel-Benutzerfeld steht (zuständige Person);
+  - *meine internen Kontakte*: Kontakte, bei denen der Benutzer in einem Mehrfach-Benutzerfeld steht.
+
+  Kartei ordnet ein Postfach über E-Mail-Adresse, UPN oder den Teil vor dem `@` (AD-Kontoname) einem Kartei-Benutzer zu. Postfächer ohne passenden Kartei-Benutzer bekommen nur den Ordner mit allen Kontakten.
 - Drosselungen durch Microsoft fängt Kartei mit automatischen Wiederholungen ab; ein großer erster Lauf kann etwas dauern.
 
-> Achtung: Änderst du später den Ordnernamen (*Name des Kontaktordners*), legt Kartei einen neuen Ordner an und lässt den alten in den Postfächern liegen. Leg den Namen vor dem ersten Sync fest.
+> Achtung: Änderst du später einen Ordnernamen oder leerst den Namen eines persönlichen Ordners, legt Kartei einen neuen Ordner an und lässt den alten in den Postfächern liegen. Leg den Namen vor dem ersten Sync fest.
 {: .warn}
 
 ## Prüfung

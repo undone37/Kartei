@@ -108,6 +108,8 @@ class Settings(models.Model):
     graph_client_secret_enc = models.TextField(blank=True)
     graph_group_id = models.CharField(max_length=64, blank=True)  # Entra group whose members get the folder
     graph_folder = models.CharField(max_length=100, default="Kartei")
+    graph_folder_responsible = models.CharField(max_length=100, blank=True)  # per user: contacts they're responsible for
+    graph_folder_internal = models.CharField(max_length=100, blank=True)  # per user: contacts listing them internally
     graph_mailboxes = models.JSONField(default=list, blank=True)  # user ids synced last run, to clean up leavers
     graph_status = models.JSONField(default=dict, blank=True)  # last run, written by the exporter
     graph_sync_requested = models.DateTimeField(null=True, blank=True)  # "sync now"; the exporter polls it
