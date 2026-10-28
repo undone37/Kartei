@@ -4,6 +4,12 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.4.0-beta] – 2026-10-28
+
+Outlook gets personal contact folders, and the CSV import needs much less manual mapping. It suggests fields from column values and creates new fields in the regular field editor.
+
+**Upgrading:** make a backup, then pull the new image or rebuild. One database migration (`0007_graph_personal_folders`) runs automatically when the container starts. Nothing needs to be configured: the personal Outlook folders stay off until you name them in *Settings → Outlook / Exchange*.
+
 ### Added
 
 - **Personal Outlook folders:** besides the folder with all contacts, each user can get two folders of their own in their mailbox: contacts they are responsible for, and contacts listing them as internal contact. Turn them on by naming them in *Settings → Outlook / Exchange*.
@@ -101,7 +107,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.3.1-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.4.0-beta...HEAD
+[0.4.0-beta]: https://github.com/undone37/Kartei/compare/v0.3.1-beta...v0.4.0-beta
 [0.3.1-beta]: https://github.com/undone37/Kartei/compare/v0.3.0-beta...v0.3.1-beta
 [0.3.0-beta]: https://github.com/undone37/Kartei/compare/v0.2.0-beta...v0.3.0-beta
 [0.2.0-beta]: https://github.com/undone37/Kartei/compare/v0.1.0-beta...v0.2.0-beta
