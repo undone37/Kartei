@@ -80,6 +80,14 @@ const SHOTS = [
       await p.locator('input[type=file]').setInputFiles({ name: 'kontakte.vcf', mimeType: 'text/vcard', buffer: Buffer.from(vcf) })
       await wait(500)
     } },
+  { name: 'import-new-field', user: 'admin', path: '/settings/import', steps: async (p) => {
+      const csv = 'Vorname;Nachname;E-Mail;Kundenstufe\nJonas;Lehmann;jonas@musterfirma.example;Gold\n' +
+        'Paula;Albers;paula@albers.example;Silber\nEva;Huber;eva@huber.example;Gold\nTom;Berg;tom@berg.example;Gold\n'
+      await p.locator('label.drop input[type=file]').setInputFiles({ name: 'kontakte.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) })
+      const box = p.getByRole('row').filter({ hasText: 'Kundenstufe' }).getByRole('combobox').first()
+      await box.click(); await box.fill('…')
+      await p.getByRole('option', { name: /Neues Feld|New field/ }).click(); await wait(500)
+    } },
   { name: 'account', user: 'kkramer', path: '/account' },
   { name: 'account-totp', user: 'kkramer', path: '/account', steps: async (p) => {
       await p.locator('section.card').last().locator('.btn.primary').click(); await wait(600)

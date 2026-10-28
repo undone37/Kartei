@@ -9,11 +9,13 @@
   import type { Field, FieldType, Section } from '../lib/types'
 
   interface Props {
-    field: Field | null; all: Field[]; sections: Section[]; targets: string[]; onsaved: () => void; oncancel: () => void
+    field: Field | null; all: Field[]; sections: Section[]; targets: string[]; onsaved: (saved?: Field) => void; oncancel: () => void
+    /** prefill for a new field (the CSV import passes label, type, options and import column name) */
+    draft?: Partial<Field>
     /** a section was created from the picker */
     onsection: () => void
   }
-  let { field, all, sections, targets, onsaved, oncancel, onsection }: Props = $props()
+  let { field, all, sections, targets, onsaved, oncancel, onsection, draft }: Props = $props()
 
   const TYPES: FieldType[] = ['text', 'longtext', 'integer', 'decimal', 'select', 'multiselect', 'phone', 'email', 'url', 'date', 'checkbox', 'user', 'users', 'contact']
   const initial = untrack(() => field) // editor is keyed per field by its parent
@@ -21,6 +23,7 @@
     label: { de: '', en: '' }, applies_to: 'person', type: 'text', options: [], open_options: false, quick_filter: false, required: false, min: null, max: null,
     decimals: 2, section: null, visible_to: 'read', editable_by: 'maintainer', searchable: true,
     vcard: '', vcard_label: '', copy_from: null, regex: '', help: { de: '', en: '' }, import_aliases: [],
+    ...untrack(() => draft),
   } as unknown as Field)
   let errors = $state<Record<string, string>>({})
 
@@ -68,10 +71,9 @@
   async function save() {
     errors = {}
     try {
-      if (field) await patch(`/api/admin/fields/${field.id}`, d)
-      else await post('/api/admin/fields', d)
+      const saved = field ? await patch<Field>(`/api/admin/fields/${field.id}`, d) : await post<Field>('/api/admin/fields', d)
       toast(t('fields.saved'))
-      onsaved()
+      onsaved(saved)
     } catch (e) {
       if (e instanceof ApiError && e.code === 'validation') errors = e.fields
       else toast(e instanceof ApiError ? terr(e.code) : t('err.generic'), { kind: 'error' })
