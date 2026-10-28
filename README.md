@@ -39,7 +39,7 @@ cp .env.example .env        # set SECRET_KEY, POSTGRES_PASSWORD, ADMIN_USERNAME/
 docker compose up -d --build
 ```
 
-Instead of building, you can use the released images: set `KARTEI_IMAGE=ghcr.io/undone37/kartei:0.3.1-beta` in `.env`, then `docker compose pull && docker compose up -d --no-build` (relay: `RELAY_IMAGE=ghcr.io/undone37/kartei-relay:0.3.1-beta`).
+Instead of building, you can use the released images: set `KARTEI_IMAGE=ghcr.io/undone37/kartei:0.4.0-beta` in `.env`, then `docker compose pull && docker compose up -d --no-build` (relay: `RELAY_IMAGE=ghcr.io/undone37/kartei-relay:0.4.0-beta`).
 
 To use a dedicated PostgreSQL server or cluster instead of the bundled database container, set `DATABASE_URL` and use `compose.external-db.yaml`; the administrator manual (Installation) has the details.
 
