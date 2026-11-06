@@ -156,6 +156,18 @@ class LogFormatTests(SimpleTestCase):
         self.assertEqual(syslog.frame(b"abc", "tcp"), b"3 abc")
         self.assertEqual(syslog.frame(b"abc", "udp"), b"abc")
 
+    def test_failures_are_warnings_and_saving_applies_at_once(self):
+        from . import audit
+        with self.assertLogs("kartei.audit", "INFO") as cm:
+            audit.emit(AuditEntry(action="login_failed", target_type="session", changes={}))
+            audit.emit(AuditEntry(action="login", target_type="session", changes={}))
+        self.assertEqual([r.levelname for r in cm.records], ["WARNING", "INFO"])
+        sender = syslog.Sender()
+        sender.cfg = {"enabled": False}
+        with mock.patch.object(syslog.Handler, "sender", sender):
+            syslog.reload(Settings(syslog_enabled=True, syslog_host="siem"))
+        self.assertTrue(sender.cfg["enabled"])
+
     def test_sender_filters_and_drops_when_full(self):
         sender = syslog.Sender()
         sender.cfg = {"enabled": True, "content": "audit"}

@@ -204,7 +204,8 @@ class Handler(logging.Handler):
             self.handleError(record)
 
 
-def reload():
-    """After the admin saved the settings: this process picks them up at once (others within a minute)."""
+def reload(s):
+    """After the admin saved the settings: this process uses them at once (other processes within a minute)."""
     if Handler.sender:
+        Handler.sender.cfg = config(s)
         Handler.sender.reload()

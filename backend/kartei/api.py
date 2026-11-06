@@ -1722,7 +1722,7 @@ def settings_put(request):
     if errors:
         return err("validation", fields=errors)
     s.save()
-    syslog.reload()
+    syslog.reload(s)
     if change := audit.diff(before, _settings_snapshot(s)):
         audit.log(request.user, "update", "settings", 1, "settings", change)
     if any(a.startswith("scim_group_") for a in change or {}):

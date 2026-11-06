@@ -106,7 +106,7 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
   background: var(--panel-2); color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em;
 }
 .badge.ok { background: var(--ok-soft); color: var(--ok); }
-.badge.err { background: var(--danger-soft); color: var(--danger); }
+.badge.err { background: var(--danger-soft); color: light-dark(#b91c1c, #f87171); } /* darker red: 4.5:1 on the soft background */
 .badge.warn { background: var(--warn-soft); color: var(--warn); }
 
 table.grid { width: 100%; border-collapse: collapse; }

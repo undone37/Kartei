@@ -70,7 +70,7 @@ test.describe('accessibility', () => {
     test(`main screens have no serious accessibility problems (${theme})`, async ({ as }) => {
       const opts = { colorScheme: theme }
       const pages = [[null, '/'], ['mmuster', '/'], ['mmuster', 'person'], ['mmuster', '/new/person'], ['mmuster', '/phonelist'],
-        ['mmuster', '/account'], ['admin', '/settings/fields'], ['admin', '/settings/users'], ['admin', '/settings/api']]
+        ['mmuster', '/account'], ['admin', '/settings/fields'], ['admin', '/settings/users'], ['admin', '/settings/api'], ['admin', '/settings/monitoring']]
       const found = []
       for (const [user, path] of pages) {
         const page = await as(user, opts)
@@ -315,7 +315,7 @@ test.describe('roles', () => {
 
   test('every settings tab opens for the admin', async ({ as }) => {
     const page = await as('admin')
-    for (const tab of ['fields', 'users', 'ldap', 'sso', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'audit']) {
+    for (const tab of ['fields', 'users', 'ldap', 'sso', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'monitoring', 'audit']) {
       await page.goto(`/settings/${tab}`)
       await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
     }
@@ -358,6 +358,38 @@ test.describe('webhooks', () => {
       await dialog(page).getByRole('button', { name: 'Delete' }).click()
       await expect(row).toHaveCount(0)
     }
+  })
+})
+
+test.describe('monitoring and sign-in audit', () => {
+  test('an admin generates a monitoring token and sees the status of the checks', async ({ as }) => {
+    const page = await as('admin')
+    await page.goto('/settings/monitoring')
+    await expect(page.getByRole('cell', { name: 'Database' })).toBeVisible()
+    await page.getByRole('button', { name: /Generate (new )?token/ }).click()
+    await expect(page.getByText(/^kmon_/)).toBeVisible()
+    await page.getByLabel('Allowed addresses').fill('10.0.5.20\nkein-netz')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('Not an IP address or network: kein-netz')).toBeVisible()
+    await page.getByLabel('Allowed addresses').fill('')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('Not an IP address or network')).toHaveCount(0)
+  })
+
+  test('a failed sign-in shows up under Sign-ins in the audit log, with its reason', async ({ as }) => {
+    const anon = await as(null)
+    await anon.goto('/')
+    await anon.getByRole('button', { name: 'English' }).click()
+    await anon.locator('#u').fill('e2e-intruder')
+    await anon.locator('#p').fill('wrong-password')
+    await anon.getByRole('button', { name: 'Sign in' }).click()
+    await expect(anon.getByRole('alert')).toBeVisible()
+    const admin = await as('admin')
+    await admin.goto('/settings/audit')
+    await admin.locator('.toolbar select').selectOption('session')
+    const row = admin.getByRole('row').filter({ hasText: 'e2e-intruder' }).first()
+    await expect(row).toContainText('Sign-in failed')
+    await expect(row).toContainText('Wrong user name or password')
   })
 })
 

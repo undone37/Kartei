@@ -28,8 +28,8 @@
   }
   refresh()
 
-  const origin = location.origin
-  const statusUrl = `${origin}/api/monitoring/status`
+  const origin = $derived((s?.base_url || location.origin).replace(/\/$/, ''))
+  const statusUrl = $derived(`${origin}/api/monitoring/status`)
   const copy = (v: string) => navigator.clipboard.writeText(v).then(() => toast(t('view.copied')))
   const age = (sec: number | null) => sec == null ? '—' : sec < 120 ? `${sec} s` : sec < 7200 ? `${Math.round(sec / 60)} min` : `${Math.round(sec / 3600)} h`
   const checkName = (n: string) => {

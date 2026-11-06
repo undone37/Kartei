@@ -43,6 +43,8 @@ Instead of building, you can use the released images: set `KARTEI_IMAGE=ghcr.io/
 
 To use a dedicated PostgreSQL server or cluster instead of the bundled database container, set `DATABASE_URL` and use `compose.external-db.yaml`; the administrator manual (Installation) has the details.
 
+Logs are JSON lines. To forward the container logs to a SIEM via syslog, add `compose.logging.yaml` (Fluent Bit); Kartei sends its audit events to syslog itself (*Settings → Monitoring & logging*), where the health and status endpoints for monitoring systems are set up too.
+
 Kartei listens on port 8000; put a TLS reverse proxy in front of it. On the first start it creates the database, a few starter fields (`examples/fields-default.json`) and the admin account from `.env`. Everything else is configured in the browser under *Settings*; the administrator manual walks through it.
 
 ### Optional: CardDAV relay in the DMZ
