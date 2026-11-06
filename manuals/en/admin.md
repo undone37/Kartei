@@ -243,35 +243,35 @@ You reach the admin area through the user menu → *Settings*.
 
 3. Check that `web` is healthy again: `docker compose ps`. Migrations run automatically when `web` starts; `exporter` waits for it.
 
-### Backup
+### Backup {#backup}
 
-Back up the database daily from a host cron job, plus `.env` once (it holds `SECRET_KEY`):
+Kartei backs up its database itself: every day at the time set under *Settings → Backup* (default 02:30), kept for the days set there (default 14; the newest backup always stays). The database contains everything: contacts, photos, fields, users, settings, history and audit log. Export files can be recreated at any time with *Run now*.
 
-```sh
-# crontab of root, e.g. at 02:15
-15 2 * * * cd /opt/kartei && docker compose exec -T db pg_dump -U kartei kartei | gzip > /backup/kartei-$(date +\%F).sql.gz
-```
+![Backup tab](../img/en/settings-backup.png)
 
-The database contains everything: contacts, photos, fields, users, settings, history and audit log. Export files can be recreated at any time with *Run now*.
+- **Where:** the `exporter` writes the files (`kartei-<date>-<time>.dump`, PostgreSQL's compressed custom format) to `/backup`. By default that is the Docker volume `backups`, which works without further setup but lives on the same disk as the database. Better: a directory on other storage, e.g. a NAS mount, set as `BACKUP_HOST_DIR` in `.env` (owner uid 1000: `chown 1000 /mnt/backup/kartei`). Don't use the export share: everyone who reads exports would get the whole database.
+- **Checked:** every file is read back (`pg_restore --list`) before it counts. *Test restore* restores the newest backup into a scratch database (`kartei_restore_test`), counts contacts, fields, users and audit entries, compares them with the live database and deletes the scratch database again. With a dedicated PostgreSQL server, the database user needs the right to create databases for this (`CREATEDB`).
+- **Watched:** the [monitoring status](#monitoring) reports `backup` as *warn* after 26 hours without a backup and *crit* after 50 hours or on an error, and `restore_test` as *warn* when the last test failed.
+- **Back up now** writes one immediately (also with the daily backup switched off).
+- **Also back up `.env` once** (it holds `SECRET_KEY`), and copy the backup directory off the host if it isn't already on other storage.
 
-With a [dedicated PostgreSQL server](#dedicated-postgresql), back up the database with your usual PostgreSQL tooling, or with a client container (its version must be at least the server's):
+Kartei doesn't encrypt the files; protect the backup directory like the database itself.
 
-```sh
-docker run --rm postgres:18 pg_dump "postgres://kartei:PASSWORD@pg.example.de:5432/kartei?sslmode=require" | gzip > /backup/kartei-$(date +%F).sql.gz
-```
+With a [dedicated PostgreSQL server](#dedicated-postgresql), the built-in backup works the same way (the `exporter` connects with `DATABASE_URL`). You can also use your usual PostgreSQL tooling instead and switch the daily backup off.
 
 ### Restore
+
+Restore a backup with the `pg_restore` in Kartei's image. This works for the bundled database and a dedicated server alike:
 
 ```sh
 cd /opt/kartei
 docker compose stop web exporter
-docker compose exec -T db dropdb -U kartei kartei
-docker compose exec -T db createdb -U kartei -O kartei kartei
-gunzip -c /backup/kartei-2026-10-24.sql.gz | docker compose exec -T db psql -q -U kartei -d kartei
+docker compose run --rm --no-deps exporter \
+  sh -c 'pg_restore --clean --if-exists --no-owner --dbname="$DATABASE_URL" /backup/kartei-20261107-023000.dump'
 docker compose start web exporter
 ```
 
-Use the same `.env` (same `SECRET_KEY`) as the system the backup came from.
+`docker compose run --rm --no-deps exporter ls -l /backup` lists the available files. Use the same `.env` (same `SECRET_KEY`) as the system the backup came from. Older backups made with a cron job (`.sql.gz`) are restored as before: `gunzip -c file.sql.gz | docker compose exec -T db psql -q -U kartei -d kartei` into an empty database.
 
 ### Logs
 

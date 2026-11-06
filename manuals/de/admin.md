@@ -243,35 +243,35 @@ In die Administration kommst du über das Benutzermenü → *Einstellungen*.
 
 3. Prüf mit `docker compose ps`, ob `web` wieder „healthy“ ist. Die Migrationen laufen beim Start von `web` automatisch; `exporter` wartet darauf.
 
-### Sicherung
+### Sicherung {#sicherung}
 
-Sichere die Datenbank täglich per Cronjob auf dem Host, dazu einmalig die `.env` (sie enthält den `SECRET_KEY`):
+Kartei sichert seine Datenbank selbst: jeden Tag zur Uhrzeit unter *Einstellungen → Sicherung* (Standard 02:30), aufbewahrt für die dort eingestellten Tage (Standard 14; die neueste Sicherung bleibt immer). Die Datenbank enthält alles: Kontakte, Fotos, Felder, Benutzer, Einstellungen, Verlauf und Protokoll. Die Exportdateien lassen sich jederzeit mit *Jetzt ausführen* neu erzeugen.
 
-```sh
-# crontab von root, z. B. um 02:15
-15 2 * * * cd /opt/kartei && docker compose exec -T db pg_dump -U kartei kartei | gzip > /backup/kartei-$(date +\%F).sql.gz
-```
+![Reiter Sicherung](../img/de/settings-backup.png)
 
-Die Datenbank enthält alles: Kontakte, Fotos, Felder, Benutzer, Einstellungen, Verlauf und Protokoll. Die Exportdateien lassen sich jederzeit mit *Jetzt ausführen* neu erzeugen.
+- **Wohin:** Der `exporter` schreibt die Dateien (`kartei-<Datum>-<Uhrzeit>.dump`, das komprimierte Custom-Format von PostgreSQL) nach `/backup`. Standardmäßig ist das das Docker-Volume `backups`. Das funktioniert ohne weitere Einrichtung, liegt aber auf derselben Platte wie die Datenbank. Besser: ein Verzeichnis auf anderem Speicher, z. B. ein NAS-Mount, als `BACKUP_HOST_DIR` in der `.env` (Eigentümer uid 1000: `chown 1000 /mnt/backup/kartei`). Nimm nicht die Export-Freigabe: Wer Exporte lesen darf, bekäme die ganze Datenbank.
+- **Geprüft:** Jede Datei wird zurückgelesen (`pg_restore --list`), bevor sie zählt. *Wiederherstellung testen* spielt die neueste Sicherung in eine Testdatenbank (`kartei_restore_test`) ein, zählt Kontakte, Felder, Benutzer und Protokolleinträge, vergleicht sie mit der laufenden Datenbank und löscht die Testdatenbank wieder. Bei einem eigenen PostgreSQL-Server braucht der Datenbankbenutzer dafür das Recht, Datenbanken anzulegen (`CREATEDB`).
+- **Überwacht:** Der [Monitoring-Status](#monitoring) meldet `backup` als *warn* nach 26 Stunden ohne Sicherung und als *crit* nach 50 Stunden oder bei einem Fehler, `restore_test` als *warn*, wenn der letzte Test fehlgeschlagen ist.
+- **Jetzt sichern** schreibt sofort eine Sicherung (auch bei ausgeschalteter täglicher Sicherung).
+- **Sichere einmalig auch die `.env`** (sie enthält den `SECRET_KEY`) und kopiere das Sicherungsverzeichnis vom Host weg, falls es nicht ohnehin auf anderem Speicher liegt.
 
-Mit einem [eigenen PostgreSQL-Server](#eigener-postgresql-server) sicherst du die Datenbank mit euren üblichen PostgreSQL-Werkzeugen oder mit einem Client-Container (seine Version muss mindestens der des Servers entsprechen):
+Kartei verschlüsselt die Dateien nicht; schütze das Sicherungsverzeichnis wie die Datenbank selbst.
 
-```sh
-docker run --rm postgres:18 pg_dump "postgres://kartei:PASSWORT@pg.example.de:5432/kartei?sslmode=require" | gzip > /backup/kartei-$(date +%F).sql.gz
-```
+Mit einem [eigenen PostgreSQL-Server](#eigener-postgresql-server) funktioniert die eingebaute Sicherung genauso (der `exporter` verbindet sich über `DATABASE_URL`). Du kannst stattdessen auch eure üblichen PostgreSQL-Werkzeuge nehmen und die tägliche Sicherung ausschalten.
 
 ### Wiederherstellung
+
+Eine Sicherung spielst du mit dem `pg_restore` aus dem Kartei-Image zurück. Das geht für die mitgelieferte Datenbank und einen eigenen Server gleichermaßen:
 
 ```sh
 cd /opt/kartei
 docker compose stop web exporter
-docker compose exec -T db dropdb -U kartei kartei
-docker compose exec -T db createdb -U kartei -O kartei kartei
-gunzip -c /backup/kartei-2026-10-24.sql.gz | docker compose exec -T db psql -q -U kartei -d kartei
+docker compose run --rm --no-deps exporter \
+  sh -c 'pg_restore --clean --if-exists --no-owner --dbname="$DATABASE_URL" /backup/kartei-20261107-023000.dump'
 docker compose start web exporter
 ```
 
-Verwende dieselbe `.env` (denselben `SECRET_KEY`) wie das System, von dem die Sicherung stammt.
+`docker compose run --rm --no-deps exporter ls -l /backup` listet die vorhandenen Dateien. Verwende dieselbe `.env` (denselben `SECRET_KEY`) wie das System, von dem die Sicherung stammt. Ältere Sicherungen aus einem Cronjob (`.sql.gz`) spielst du wie bisher ein: `gunzip -c datei.sql.gz | docker compose exec -T db psql -q -U kartei -d kartei` in eine leere Datenbank.
 
 ### Logs
 

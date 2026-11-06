@@ -1271,4 +1271,8 @@ export default {
   'backup.restore_hint': "The restore test restores the newest backup into a scratch database, counts contacts, fields, users and audit entries (restored / now), and deletes it again. How to restore for real is described in the administrator manual (Backup).",
   'audit.label.backup': "Backup",
   'audit.label.restore_test': "Restore test",
+  'backup.t.kartei_record': "Contacts",
+  'backup.t.kartei_fielddef': "Fields",
+  'backup.t.auth_user': "Users",
+  'backup.t.kartei_auditentry': "Audit entries",
 } as Record<string, string>

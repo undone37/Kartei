@@ -1271,4 +1271,8 @@ export default {
   'backup.restore_hint': "Der Wiederherstellungstest spielt die neueste Sicherung in eine Testdatenbank ein, zählt Kontakte, Felder, Benutzer und Protokolleinträge (wiederhergestellt / jetzt) und löscht sie wieder. Wie man wirklich wiederherstellt, steht im Administratorhandbuch (Sicherung).",
   'audit.label.backup': "Sicherung",
   'audit.label.restore_test': "Wiederherstellungstest",
+  'backup.t.kartei_record': "Kontakte",
+  'backup.t.kartei_fielddef': "Felder",
+  'backup.t.auth_user': "Benutzer",
+  'backup.t.kartei_auditentry': "Protokolleinträge",
 } as Record<string, string>

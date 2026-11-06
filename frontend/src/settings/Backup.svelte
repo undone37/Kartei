@@ -94,7 +94,7 @@
           {#if s.restore_test_status.error}<strong>{t('backup.restore_failed')}:</strong> {s.restore_test_status.error}
           {:else}
             {t('backup.restore_ok', { at: dateTime(s.restore_test_status.at), file: s.restore_test_status.file })}
-            <span class="hint">{Object.entries(s.restore_test_status.tables ?? {}).map(([k, [a, b]]: [string, any]) => `${k.replace(/^(kartei|auth)_/, '')}: ${a} / ${b}`).join(' · ')}</span>
+            <span class="hint">{Object.entries(s.restore_test_status.tables ?? {}).map(([k, [a, b]]: [string, any]) => `${t(`backup.t.${k}`)}: ${a} / ${b}`).join(' · ')}</span>
           {/if}
         </div>
       {/if}

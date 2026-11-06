@@ -70,7 +70,7 @@ test.describe('accessibility', () => {
     test(`main screens have no serious accessibility problems (${theme})`, async ({ as }) => {
       const opts = { colorScheme: theme }
       const pages = [[null, '/'], ['mmuster', '/'], ['mmuster', 'person'], ['mmuster', '/new/person'], ['mmuster', '/phonelist'],
-        ['mmuster', '/account'], ['admin', '/settings/fields'], ['admin', '/settings/users'], ['admin', '/settings/api'], ['admin', '/settings/monitoring']]
+        ['mmuster', '/account'], ['admin', '/settings/fields'], ['admin', '/settings/users'], ['admin', '/settings/api'], ['admin', '/settings/monitoring'], ['admin', '/settings/backup']]
       const found = []
       for (const [user, path] of pages) {
         const page = await as(user, opts)
@@ -315,7 +315,7 @@ test.describe('roles', () => {
 
   test('every settings tab opens for the admin', async ({ as }) => {
     const page = await as('admin')
-    for (const tab of ['fields', 'users', 'ldap', 'sso', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'monitoring', 'audit']) {
+    for (const tab of ['fields', 'users', 'ldap', 'sso', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'backup', 'monitoring', 'audit']) {
       await page.goto(`/settings/${tab}`)
       await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
     }
