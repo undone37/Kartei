@@ -4,6 +4,18 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.5.0-beta] – 2026-11-06
+
+Kartei can now be monitored and audited like any other production service. There are health and status endpoints for Checkmk, Zabbix and PRTG, sign-ins appear in the audit log, logs are JSON, and audit events and container logs can go to a SIEM via syslog. In the contact view, a click on a tag filters the list.
+
+**Upgrading:**
+- **Before:** make a backup.
+- **Update:** pull the new image or rebuild, and also take the new `compose.yaml`, whose healthcheck now uses `/healthz`. One database migration (`0008_observability`) runs automatically when the container starts.
+- **Defaults:** nothing needs to be configured. Monitoring access, syslog and the Fluent Bit overlay stay off until you set them up.
+- **Two things change by default:**
+  - Logs are JSON lines; set `LOG_FORMAT=text` if a tool expects plain lines.
+  - Sign-in entries in the audit log are deleted after 90 days (*Settings → Monitoring & logging*).
+
 ### Added
 
 - **Click to filter:** a click on a tag in a contact's details (multiple selections such as keywords, the internal contact, internal contacts) filters the list for every contact with that value; the contact stays open. Ctrl/⌘-click adds the value to the current filters. The field filters are part of the address (`?f.<field>=<value>`): a filtered list can be bookmarked or shared, and Back undoes the last filter. The active filter chip shows the value instead of a count.
@@ -144,7 +156,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.4.0-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.5.0-beta...HEAD
+[0.5.0-beta]: https://github.com/undone37/Kartei/compare/v0.4.0-beta...v0.5.0-beta
 [0.4.0-beta]: https://github.com/undone37/Kartei/compare/v0.3.1-beta...v0.4.0-beta
 [0.3.1-beta]: https://github.com/undone37/Kartei/compare/v0.3.0-beta...v0.3.1-beta
 [0.3.0-beta]: https://github.com/undone37/Kartei/compare/v0.2.0-beta...v0.3.0-beta
