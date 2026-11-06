@@ -224,6 +224,12 @@
         <input id="base" class="input" bind:value={s.base_url} placeholder="https://kartei.example.de" />
         <p class="hint">{t('general.base_url_hint')}</p>
       </div>
+      <div>
+        <label class="label" for="mapurl">{t('general.map_url')}</label>
+        <input id="mapurl" class="input mono" bind:value={s.map_url} placeholder="https://www.google.com/maps/search/?api=1&query={'{address}'}" />
+        <p class="hint">{t('general.map_url_hint')}</p>
+        {#if errors.map_url}<div class="error-text">{terr(errors.map_url)}</div>{/if}
+      </div>
       <div class="row2">
         <div>
           <label class="label" for="trash">{t('general.trash_days')}</label>

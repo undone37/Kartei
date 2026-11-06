@@ -7,6 +7,8 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 ### Added
 
 - **Nightly security scan:** OWASP ZAP scans a running Kartei every night: the web app signed in as a read-only user (passive), and the REST API with a read token (active). High-risk findings fail the run, and the reports are attached. `.zap/scan.sh` runs it locally.
+- **Share a contact:** a QR-code button in the contact header opens a window with the contact as a QR code (iPhone or Android flavour, without photo) to scan with a phone's camera, and *Download vCard*. It replaces the download icon.
+- **Map link:** a pin next to a street opens the address in a map service. The link template is a setting under *General* (default Google Maps; empty = off). Kartei only builds the link.
 - **Nightly images:** `ghcr.io/undone37/kartei:nightly` and `kartei-relay:nightly` are built from `main` every night when it has changed, plus `:sha-<commit>` per build, for amd64 and arm64. The user menu shows the version as `nightly-<date>-<commit>`. They are for testing only, not releases.
 
 ### Security

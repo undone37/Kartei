@@ -74,6 +74,8 @@ class Settings(models.Model):
     # two-factor sign-in is required for: nobody (voluntary), admins, or everyone
     totp_required = models.CharField(max_length=6, choices=[(v, v) for v in ("none", "admins", "all")], default="none")
     base_url = models.URLField(blank=True)
+    # address link in the contact view; {address} = street, postcode city, country (URL-encoded). Empty = no link
+    map_url = models.CharField(max_length=300, blank=True, default="https://www.google.com/maps/search/?api=1&query={address}")
     trash_days = models.PositiveIntegerField(default=0)  # 0 = recycle bin is never purged
     purge_anonymize = models.BooleanField(default=True)  # purging also removes values and name from the history (GDPR)
     audit_signin_days = models.PositiveIntegerField(default=90)  # sign-in entries (with IPs) kept this long; 0 = forever

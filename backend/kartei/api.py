@@ -401,7 +401,7 @@ def bootstrap(request):
     records = ser_records(Record.objects.filter(deleted_at__isnull=True), fields)
     s, users = Settings.get(), user_options()
     return JsonResponse({"cursor": now.isoformat(), "user": ser_user(request.user),
-                         "default_language": s.default_language,
+                         "default_language": s.default_language, "map_url": s.map_url,
                          "fields": [ser_field(f, users) for f in fields], "sections": sections_list(),
                          "records": records, **workflow(request),
                          **dashboard_prefs(request)})
@@ -419,7 +419,7 @@ def changes(request):
     cut = since - timedelta(seconds=5)
     changed = ser_records(Record.objects.filter(Q(updated_at__gte=cut) | Q(reviewed_at__gte=cut)), fields)
     return JsonResponse({
-        "cursor": now.isoformat(), "user": ser_user(request.user), "default_language": s.default_language,
+        "cursor": now.isoformat(), "user": ser_user(request.user), "default_language": s.default_language, "map_url": s.map_url,
         "fields": [ser_field(f, users) for f in fields], "sections": sections_list(),
         "records": [r for r in changed if not r["deleted_at"]],
         "deleted": [r["uid"] for r in changed if r["deleted_at"]],
@@ -1590,6 +1590,7 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
                   "review_remind_days", "proposal_notify", "proposal_notify_to",
                   "ad_enabled", "ad_ou", "ad_bind_dn", "ad_kinds", "ad_columns", "ad_max_shrink_percent"]
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
+SETTINGS_ATTRS += ["map_url"]
 SETTINGS_ATTRS += ["audit_signin_days", "monitoring_allowlist", "syslog_enabled", "syslog_host", "syslog_port",
                    "syslog_protocol", "syslog_ca_cert", "syslog_tls_verify", "syslog_facility", "syslog_content"]
 SETTINGS_ATTRS += ["mail_templates", "mail_transport", "mail_graph_sender"]
@@ -1668,6 +1669,9 @@ def settings_put(request):
     for a in ("trash_days", "export_interval_minutes", "audit_signin_days"):
         if not isinstance(getattr(s, a), int) or getattr(s, a) < 0:
             errors[a] = "invalid_number"
+    s.map_url = str(s.map_url or "").strip()
+    if s.map_url and not (re.fullmatch(r"https?://\S+", s.map_url) and "{address}" in s.map_url):
+        errors["map_url"] = "map_url_invalid"
     if not re.fullmatch(r"\+[1-9]\d{0,3}", str(s.phone_country_code)):
         errors["phone_country_code"] = "invalid"
     if s.export_interval_minutes == 0:

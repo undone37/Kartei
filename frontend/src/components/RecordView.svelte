@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { ClipboardCheck, Copy, Download, FileText, ExternalLink, Info, Mail, Pencil, Phone, Star, Trash2, UserPlus, ArrowLeft } from '@lucide/svelte'
+  import { ClipboardCheck, Copy, FileText, ExternalLink, Info, Mail, MapPin, Pencil, Phone, QrCode, Star, Trash2, UserPlus, ArrowLeft } from '@lucide/svelte'
+  import ShareDialog from './ShareDialog.svelte'
   import ReviewPanel from './ReviewPanel.svelte'
   import BatchPanel from './BatchPanel.svelte'
   import { untrack } from 'svelte'
@@ -19,6 +20,17 @@
   // onfilter: a click on a tag-like value (multi-select, users) filters the list for it; add: Ctrl/⌘-click adds it to the filter
   let { rec, editing = $bindable(false), onfilter }: { rec: Rec; editing?: boolean; onfilter?: (key: string, value: string, add: boolean) => void } = $props()
   const one = (f: Field, x: string) => fmt(f, isMulti(f) ? [x] : x)
+  let sharing = $state(false)
+
+  /** map link for a street field: the address parts are the fields mapped to the same vCard address (work or home) */
+  function mapHref(f: Field): string | null {
+    const where = f.vcard?.match(/^adr_(work|home)_street$/)?.[1]
+    if (!where || !store.mapUrl) return null
+    const part = (p: string) => store.fields.filter((x) => x.vcard === `adr_${where}_${p}` && !isEmpty(rec.data[x.key]))
+      .map((x) => String(rec.data[x.key])).join(' ')
+    const address = [part('street'), [part('zip'), part('city')].filter(Boolean).join(' '), part('country')].filter(Boolean).join(', ')
+    return store.mapUrl.replaceAll('{address}', encodeURIComponent(address))
+  }
   let tab = $state<'details' | 'persons' | 'history'>('details')
   // edit form that proposes (new or own pending proposal) or adjusts a proposal before applying it
   let proposing = $state<{ mode: 'propose' | 'adjust'; proposal: Proposal | null } | null>(null)
@@ -167,13 +179,15 @@
           <button class="btn icon" onclick={requestReview} title={t('review.request')}><ClipboardCheck size={15} /></button>
           <a class="btn icon" href="/report/{rec.uid}" title={t('report.button')} aria-label={t('report.button')}><FileText size={15} /></a>
         {/if}
-        <a class="btn icon" href="/{rec.kind}/{rec.uid}.vcf" download title={t('view.vcard')}><Download size={15} /></a>
+        <button class="btn icon" onclick={() => (sharing = true)} title={t('share.title')} aria-label={t('share.title')}><QrCode size={15} /></button>
         {#if store.canEdit}
           <button class="btn icon danger" onclick={remove} title={t('common.delete')}><Trash2 size={15} /></button>
         {/if}
       </div>
     {/if}
   </header>
+
+  {#if sharing}<ShareDialog {rec} onclose={() => (sharing = false)} />{/if}
 
   {#if editing || proposing}
     <RecordForm {rec} kind={rec.kind} mode={proposing?.mode ?? 'edit'} proposal={proposing?.proposal ?? null} onclose={closeEdit} />
@@ -224,6 +238,9 @@
                     <span class="tags">{#each fmt(f, v).split(', ') as tag}<span class="tag">{tag}</span>{/each}</span>
                   {:else if f.type === 'longtext'}
                     <span class="long">{v}</span>
+                  {:else if mapHref(f)}
+                    <span>{fmt(f, v)}</span>
+                    <a class="map" href={mapHref(f)} target="_blank" rel="noopener noreferrer" title={t('view.map')} aria-label={t('view.map')}><MapPin size={13} /></a>
                   {:else}
                     <span class:tabular={f.type === 'integer' || f.type === 'decimal'}>{fmt(f, v)}</span>
                   {/if}
@@ -282,6 +299,7 @@
   .info { display: inline-flex; margin-left: 4px; color: var(--faint); vertical-align: -1px; cursor: help; }
   dd { margin: 0; display: flex; align-items: center; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
   dd a { display: inline-flex; align-items: center; gap: 5px; }
+  .map { display: inline-flex; vertical-align: middle; margin-left: 4px; color: var(--accent-text); }
   .copy { border: 0; background: none; padding: 2px; color: var(--faint); cursor: pointer; opacity: 0; transition: opacity 0.12s; border-radius: 4px; }
   .row:hover .copy, .copy:focus-visible { opacity: 1; }
   .copy:hover { color: var(--text); background: var(--panel-2); }

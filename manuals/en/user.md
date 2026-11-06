@@ -223,8 +223,10 @@ The header shows the name, job title and, for persons, a link to the company. Th
 | Star | **Add to favorites** / **Remove from favorites** |
 | **Edit** | opens the form (**Maintainers**, also <kbd>E</kbd>) |
 | **Propose change** and trash can | propose a change or deletion (Read only) |
-| Download | **Download vCard**, e.g. to import the contact into another program |
+| QR code | **Share contact**: shows the contact as a QR code (choose *iPhone* or *Android*). Scan it with a phone's camera to save the contact there. **Download vCard** saves it as a file, e.g. to import it into another program. |
 | Red trash can | **Delete**: moves the contact to the recycle bin (**Maintainers**) |
+
+![Sharing a contact](../img/en/share.png)
 
 ### Details
 
@@ -233,6 +235,7 @@ The **Details** tab lists all filled-in fields, grouped into sections. Empty fie
 - Phone numbers and email addresses are links: a click starts a call (e.g. via your softphone or on the phone) or opens a new email.
 - The copy button next to a phone number or email address copies it to the clipboard.
 - Websites open in a new tab.
+- The pin next to a street (**Show on map**) opens the address in a map service in a new tab; your administrator chooses which one.
 - Fields with a small **i** have a help text; hover over the icon to read it.
 - For linked persons (e.g. *Managing director*), the name is a link to that person.
 
