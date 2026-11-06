@@ -1,0 +1,4 @@
+# ZAP rule overrides for .zap/scan.sh: <rule id> TAB <IGNORE|WARN|FAIL> TAB <name: reason>.
+# Every finding is reported; only high-risk ones fail the scan. Ignore a rule only with a reason.
+40018	IGNORE	SQL Injection (generic boolean): false positive. The rate limiter answers part of the attack requests with 429, so true/false payloads differ. Kartei builds no SQL from input (Django ORM only); the PostgreSQL time-based rule 40022 stays active.
+10010	IGNORE	Cookie No HttpOnly Flag: only csrftoken, which the SPA must read to send X-CSRFToken (Django CSRF design); the session cookie is HttpOnly.

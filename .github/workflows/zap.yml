@@ -1,0 +1,32 @@
+# Dynamic security scan (OWASP ZAP) of Kartei built from main: the web app signed in as a read-only user (baseline,
+# passive) and the REST API from docs/openapi.yaml with a read token (active). See .zap/scan.sh; overrides with reasons
+# in .zap/rules.tsv. Fails on findings of high risk; the HTML/JSON reports are attached to the run.
+name: Security scan (ZAP)
+
+on:
+  schedule:
+    - cron: "43 3 * * *"   # after the nightly images
+  workflow_dispatch:
+  pull_request:
+    paths: [".zap/**", ".github/workflows/zap.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zap:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - run: .zap/scan.sh
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: zap-reports
+          path: .zap/reports/*.html
+          if-no-files-found: ignore

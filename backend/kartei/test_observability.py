@@ -259,3 +259,14 @@ class SyslogSocketTests(SimpleTestCase):
         free.close()
         self.assertTrue(syslog.send_test(self.settings("tcp", closed)))
         self.assertEqual(syslog.send_test(Settings(syslog_host="")), "syslog_no_host")
+
+
+class SecurityHeaderTests(ApiTestBase):
+    def test_headers_on_api_and_app(self):
+        for url in ("/api/session", "/healthz"):
+            r = self.client.get(url)
+            self.assertIn("default-src 'self'", r["Content-Security-Policy"])
+            self.assertIn("frame-ancestors 'none'", r["Content-Security-Policy"])
+            self.assertNotIn("unsafe-inline", r["Content-Security-Policy"].split("script-src")[1].split(";")[0])
+            self.assertEqual(r["Cross-Origin-Resource-Policy"], "same-origin")
+            self.assertIn("camera=()", r["Permissions-Policy"])
