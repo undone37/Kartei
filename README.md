@@ -4,6 +4,10 @@
 
 Kartei is a contact directory for persons and companies. It suits organizations that want one well-kept source of contact data for people, phones, email clients and other systems.
 
+**Manuals online:** [undone37.github.io/Kartei](https://undone37.github.io/Kartei/) (English and German)
+
+![Kartei in the browser: the contact list with search and filters on the left, a person's details on the right (demo data)](manuals/img/en/person.png)
+
 - **Your own fields:** admins define the fields: types, options, validation, visibility per role and vCard mapping. Field sets and import mappings are plain JSON files.
 - **Fast:**
   - the whole visible directory is held in the browser
@@ -25,12 +29,12 @@ Kartei is a contact directory for persons and companies. It suits organizations 
 
 | | English | Deutsch |
 |---|---|---|
-| User manual (Read only, Maintainer) | [manuals/en/user.md](manuals/en/user.md) | [manuals/de/user.md](manuals/de/user.md) |
-| Administrator manual | [manuals/en/admin.md](manuals/en/admin.md) | [manuals/de/admin.md](manuals/de/admin.md) |
+| User manual (Read only, Maintainer) | [online](https://undone37.github.io/Kartei/en/user.html) · [source](manuals/en/user.md) | [online](https://undone37.github.io/Kartei/de/user.html) · [Quelle](manuals/de/user.md) |
+| Administrator manual | [online](https://undone37.github.io/Kartei/en/admin.html) · [source](manuals/en/admin.md) | [online](https://undone37.github.io/Kartei/de/admin.html) · [Quelle](manuals/de/admin.md) |
 | REST API (read and write, for other systems) | [docs/API.md](docs/API.md), [docs/openapi.yaml](docs/openapi.yaml) | |
 | Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | |
 
-The `manuals/` folder can be published with GitHub Pages: see the *Documentation* workflow in `.github/workflows/pages.yml`. Every [release](https://github.com/undone37/Kartei/releases) has the manuals attached as PDF; `cd frontend && npm run manuals-pdf` builds them locally into `dist/` (needs pandoc and poppler-utils).
+The manuals are published at [undone37.github.io/Kartei](https://undone37.github.io/Kartei/) by the *Documentation* workflow (`.github/workflows/pages.yml`) with every release. Every [release](https://github.com/undone37/Kartei/releases) has the manuals attached as PDF; `cd frontend && npm run manuals-pdf` builds them locally into `dist/` (needs pandoc and poppler-utils).
 
 ## Quick start with Docker
 
