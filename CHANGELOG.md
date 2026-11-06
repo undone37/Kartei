@@ -6,7 +6,16 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- **Nightly security scan:** OWASP ZAP scans a running Kartei every night: the web app signed in as a read-only user (passive), and the REST API with a read token (active). High-risk findings fail the run, and the reports are attached. `.zap/scan.sh` runs it locally.
 - **Nightly images:** `ghcr.io/undone37/kartei:nightly` and `kartei-relay:nightly` are built from `main` every night when it has changed, plus `:sha-<commit>` per build, for amd64 and arm64. The user menu shows the version as `nightly-<date>-<commit>`. They are for testing only, not releases.
+
+### Security
+
+- **Security headers on every response, static files included:**
+  - Content-Security-Policy: scripts only from Kartei itself (the one inline theme script allowed by its hash), no framing, no plugins.
+  - Permissions-Policy: no camera, microphone or location.
+  - Cross-Origin-Resource-Policy: `same-origin`.
+- **Static files:** no longer sent with `Access-Control-Allow-Origin: *`.
 
 ## [0.5.0-beta] – 2026-11-06
 

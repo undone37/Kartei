@@ -3,7 +3,7 @@
 #   1. baseline scan of the web app, signed in as a read-only demo user (spider + passive checks)
 #   2. API scan of /api/v1 from docs/openapi.yaml with a read token (active attacks; writes are refused with 403)
 # Reports land in .zap/reports/. Fails if ZAP finds anything of high risk.
-# Runs in GitHub Actions (.github/workflows/zap.yml) and locally in a clean checkout without .env (Docker, curl, jq, bc).
+# Runs in GitHub Actions (.github/workflows/zap.yml) and locally in a clean checkout without .env (Docker, curl, jq).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -69,7 +69,7 @@ zap zap-api-scan.py -t /zap/wrk/openapi.yaml -f openapi -I -c rules.tsv -r api.h
 
 ignored=$(awk -F'\t' '$2 == "IGNORE" {print $1}' .zap/rules.tsv | jq -R . | jq -sc .)
 high=$(jq --argjson ign "$ignored" '[.site[].alerts[] | select(.riskcode == "3" and (.pluginid | IN($ign[]) | not))] | length' \
-  "$WRK/baseline.json" "$WRK/api.json" | paste -sd+ | bc)
+  "$WRK/baseline.json" "$WRK/api.json" | jq -s add)
 jq -r '.site[].alerts[] | "\(.riskdesc)\t\(.name)\t\(.count) x"' "$WRK/baseline.json" "$WRK/api.json" | sort -u
 if (( high > 0 )); then
   echo "ZAP found $high alert(s) of high risk, see $WRK/*.html" >&2
