@@ -361,6 +361,26 @@ test.describe('webhooks', () => {
   })
 })
 
+test.describe('share and map', () => {
+  test('the share dialog shows the contact as a QR code and offers the vCard; the address links to the map', async ({ as }) => {
+    const page = await as('mmuster')
+    const r = (await page.records()).find((x) => x.kind === 'person' && x.data.work_street && x.data.work_city)
+    await page.goto(`/person/${r.uid}`)
+    const map = page.getByRole('link', { name: 'Show on map' })
+    await expect(map).toHaveAttribute('href', new RegExp(`^https://www\\.google\\.com/maps/search/\\?api=1&query=.*${encodeURIComponent(r.data.work_city)}`))
+    await expect(map).toHaveAttribute('target', '_blank')
+    await page.getByRole('button', { name: 'Share contact' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Share contact' })
+    await expect(dialog.locator('.qr svg')).toBeVisible()
+    await expect(dialog.getByRole('link', { name: 'Download vCard' })).toHaveAttribute('href', `/person/${r.uid}.vcf?flavour=ios`)
+    await dialog.getByRole('button', { name: 'Android' }).click()
+    await expect(dialog.getByRole('link', { name: 'Download vCard' })).toHaveAttribute('href', `/person/${r.uid}.vcf?flavour=android`)
+    await expect(dialog.locator('.qr svg')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+  })
+})
+
 test.describe('click to filter', () => {
   test('a tag or the responsible person filters the list; Ctrl-click adds; the URL keeps it; Back undoes it', async ({ as }) => {
     const page = await as('mmuster')

@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.http import FileResponse, HttpResponse, HttpResponseNotFound, HttpResponsePermanentRedirect
 from django.views.decorators.cache import never_cache
@@ -32,14 +34,22 @@ def service_worker(request):
 
 
 def vcf(request, kind, uid):
-    """The SOURCE: link in every vCard. Session login required; fields filtered by the user's role."""
+    """The SOURCE: link in every vCard. Session login required; fields filtered by the user's role.
+    ?qr=1: without photo and shown inline (the share dialog turns it into a QR code); ?flavour=ios|android picks the
+    phone flavour instead of the browser's."""
     if not request.user.is_authenticated:
         return spa(request)  # SPA shows login, then reloads this URL
     r = Record.objects.filter(uid=uid, kind=kind, deleted_at__isnull=True).select_related("company").first()
     if not r:
         return HttpResponseNotFound()
-    body = render(r, visible_fields(rank_of(request.user)), flavour_for(request.META.get("HTTP_USER_AGENT")),
-                  Settings.get().base_url, ref_names())
+    flavour = request.GET.get("flavour")
+    if flavour not in ("ios", "android"):
+        flavour = flavour_for(request.META.get("HTTP_USER_AGENT"))
+    qr = request.GET.get("qr") == "1"
+    body = render(r, visible_fields(rank_of(request.user)), flavour, Settings.get().base_url, ref_names(), photo=not qr)
+    if qr:  # a scanning phone needs neither Kartei's UID nor the source link: a smaller, easier to scan code
+        body = re.sub(r"(?m)^(UID|SOURCE):.*\r\n(?: .*\r\n)*", "", body)
     resp = HttpResponse(body, content_type="text/vcard; charset=utf-8")
-    resp["Content-Disposition"] = f'attachment; filename="{r.display_name or r.uid}.vcf"'.encode("ascii", "replace").decode()
+    if not qr:
+        resp["Content-Disposition"] = f'attachment; filename="{r.display_name or r.uid}.vcf"'.encode("ascii", "replace").decode()
     return resp

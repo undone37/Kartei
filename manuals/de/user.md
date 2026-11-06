@@ -223,8 +223,10 @@ Oben stehen Name, Position und bei Personen ein Link zur Firma. Die Knöpfe rech
 | Stern | **Zu Favoriten hinzufügen** / **Aus Favoriten entfernen** |
 | **Bearbeiten** | öffnet das Formular (**Bearbeiter**, auch <kbd>E</kbd>) |
 | **Änderung vorschlagen** und Papierkorb | Änderung oder Löschung vorschlagen (Nur Lesen) |
-| Download | **vCard herunterladen**, z. B. um den Kontakt in ein anderes Programm zu übernehmen |
+| QR-Code | **Kontakt teilen**: zeigt den Kontakt als QR-Code (*iPhone* oder *Android* wählen). Mit der Kamera eines Telefons scannen, um ihn dort zu speichern. **vCard herunterladen** speichert ihn als Datei, z. B. um ihn in ein anderes Programm zu übernehmen. |
 | Roter Papierkorb | **Löschen**: verschiebt den Kontakt in den Papierkorb (**Bearbeiter**) |
+
+![Kontakt teilen](../img/de/share.png)
 
 ### Details
 
@@ -233,6 +235,7 @@ Der Reiter **Details** zeigt alle ausgefüllten Felder, in Abschnitte gegliedert
 - Telefonnummern und E-Mail-Adressen sind Links: Ein Klick startet einen Anruf (z. B. über dein Softphone oder auf dem Handy) bzw. eine neue E-Mail.
 - Der Kopieren-Knopf neben Telefonnummer oder E-Mail-Adresse legt sie in die Zwischenablage.
 - Webseiten öffnen sich in einem neuen Tab.
+- Die Stecknadel neben einer Straße (**Auf Karte zeigen**) öffnet die Adresse in einem Kartendienst in einem neuen Tab; welchen, legt deine Administration fest.
 - Felder mit einem kleinen **i** haben einen Hilfetext – fahr mit der Maus über das Symbol.
 - Bei verknüpften Personen (z. B. *Geschäftsführer*) ist der Name ein Link zur Person.
 

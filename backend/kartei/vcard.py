@@ -68,8 +68,9 @@ def collect(record_data, fields, names=None):
     return got
 
 
-def render(record, fields, flavour, base_url="", names=None):
-    """record: kartei.Record (or duck-type); fields: FieldDefs visible to the CardDAV user."""
+def render(record, fields, flavour, base_url="", names=None, photo=True):
+    """record: kartei.Record (or duck-type); fields: FieldDefs visible to the CardDAV user.
+    photo=False leaves out photo/logo (QR codes hold about 2 KB)."""
     ios = flavour == "ios"
     g = collect(record.data or {}, fields, names)
     one = lambda t: " ".join(v for v, _ in g.get(t, []))
@@ -99,7 +100,7 @@ def render(record, fields, flavour, base_url="", names=None):
                 lines.append(f"X-PRONUNCIATION-{prop}-NAME:{esc(v)}")
     if v := one("title"):
         lines.append(f"TITLE:{esc(v)}")
-    if record.image:
+    if record.image and photo:
         prop = "LOGO" if company else "PHOTO"
         typ = "PNG" if record.image_type == "png" else "JPEG"
         lines.append(f"{prop};ENCODING=BASE64;TYPE={typ}:{base64.b64encode(bytes(record.image)).decode()}")

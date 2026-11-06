@@ -113,6 +113,8 @@ const SHOTS = [
       }
     }, steps: async (p) => {
       await p.locator('.toolbar select').selectOption('session'); await wait(500) } },
+  { name: 'share', user: 'mmuster', path: (h) => `/person/${h.person}`, steps: async (p) => {
+      await p.locator('header .actions button:has(svg.lucide-qr-code)').click(); await wait(800) } },
   { name: 'account', user: 'kkramer', path: '/account' },
   { name: 'account-totp', user: 'kkramer', path: '/account', steps: async (p) => {
       await p.locator('section.card').last().locator('.btn.primary').click(); await wait(600)

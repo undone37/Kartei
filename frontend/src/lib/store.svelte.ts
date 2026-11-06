@@ -14,6 +14,7 @@ interface Snapshot {
   cursor: string
   user: User
   defaultLang: Lang
+  mapUrl?: string
   fields: Field[]
   sections?: Section[]
   records: Rec[]
@@ -30,6 +31,8 @@ class Store {
   /** running version and source code (user menu), from the session */
   about = $state.raw<{ version: string; source: string } | null>(null)
   defaultLang = $state<Lang>('de')
+  /** address link template from the settings ({address}); '' = no link */
+  mapUrl = $state('')
   /** "Sign in with Microsoft" is offered (from the session) */
   sso = $state(false)
   ssoLabel = $state('') // login button text set by the admin; '' = default
@@ -133,6 +136,7 @@ class Store {
     this.cursor = s.cursor
     this.user = s.user
     this.defaultLang = s.defaultLang
+    this.mapUrl = s.mapUrl ?? ''
     this.fields = s.fields
     this.sections = s.sections ?? []
     this.records = s.records
@@ -202,6 +206,7 @@ class Store {
           this.prefs(ch)
           this.user = ch.user
           this.defaultLang = ch.default_language
+          this.mapUrl = ch.map_url ?? ''
           this.cursor = ch.cursor
           this.applyLang()
           this.offline = false
@@ -213,6 +218,7 @@ class Store {
       this.cursor = b.cursor
       this.user = b.user
       this.defaultLang = b.default_language
+      this.mapUrl = b.map_url ?? ''
       this.fields = b.fields
       this.sections = b.sections ?? []
       this.records = b.records
@@ -248,7 +254,7 @@ class Store {
       if (!this.user) return
       const snap: Snapshot = {
         username: this.user.username, cursor: this.cursor, user: $state.snapshot(this.user) as User,
-        defaultLang: this.defaultLang, fields: this.fields, sections: this.sections, records: this.records,
+        defaultLang: this.defaultLang, mapUrl: this.mapUrl, fields: this.fields, sections: this.sections, records: this.records,
         reviews: this.reviews, proposals: this.proposals,
         recent: this.recent, favorites: this.favorites, filters: this.filters,
       }
