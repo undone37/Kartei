@@ -1,0 +1,2 @@
+# ZAP rule overrides for .zap/scan.sh: <rule id> TAB <IGNORE|WARN|FAIL> TAB <name / reason>.
+# Every finding is reported; only high-risk ones fail the scan. Ignore a rule only with a reason.
