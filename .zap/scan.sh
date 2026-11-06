@@ -67,7 +67,9 @@ cp .zap/rules.tsv "$WRK/rules.tsv"
 zap zap-baseline.py -t http://web:8000/ -j -I -c rules.tsv -r baseline.html -J baseline.json -z "$(header Cookie "sessionid=$SESSION")"
 zap zap-api-scan.py -t /zap/wrk/openapi.yaml -f openapi -I -c rules.tsv -r api.html -J api.json -z "$(header Authorization "Bearer $TOKEN")"
 
-high=$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' "$WRK/baseline.json" "$WRK/api.json" | paste -sd+ | bc)
+ignored=$(awk -F'\t' '$2 == "IGNORE" {print $1}' .zap/rules.tsv | jq -R . | jq -sc .)
+high=$(jq --argjson ign "$ignored" '[.site[].alerts[] | select(.riskcode == "3" and (.pluginid | IN($ign[]) | not))] | length' \
+  "$WRK/baseline.json" "$WRK/api.json" | paste -sd+ | bc)
 jq -r '.site[].alerts[] | "\(.riskdesc)\t\(.name)\t\(.count) x"' "$WRK/baseline.json" "$WRK/api.json" | sort -u
 if (( high > 0 )); then
   echo "ZAP found $high alert(s) of high risk, see $WRK/*.html" >&2

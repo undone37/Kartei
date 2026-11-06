@@ -38,6 +38,7 @@ if sys.argv[1:2] == ["test"]:
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "kartei.net.security_headers",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.gzip.GZipMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -88,6 +89,7 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
 WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: "/assets/" in url  # vite hashes these
+WHITENOISE_ALLOW_ALL_ORIGINS = False  # no Access-Control-Allow-Origin: * on static files; the app is same-origin
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # CSV imports
