@@ -1237,4 +1237,5 @@ export default {
   'audit.reason.sso_unknown_user': "Unknown user (single sign-on)",
   'audit.reason.sso_ambiguous': "Ambiguous user (single sign-on)",
   'msg.syslog_no_host': "Enter the syslog host first.",
+  'view.filter_by': "Filter the list: {field} = {value} (Ctrl/⌘-click: add to the filter)",
 } as Record<string, string>

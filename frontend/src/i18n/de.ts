@@ -1237,4 +1237,5 @@ export default {
   'audit.reason.sso_unknown_user': "Unbekannter Benutzer (Single Sign-on)",
   'audit.reason.sso_ambiguous': "Benutzer nicht eindeutig (Single Sign-on)",
   'msg.syslog_no_host': "Erst den Syslog-Host eintragen.",
+  'view.filter_by': "Liste filtern: {field} = {value} (Strg/⌘-Klick: zum Filter hinzufügen)",
 } as Record<string, string>

@@ -6,6 +6,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- **Click to filter:** a click on a tag in a contact's details (multiple selections such as keywords, the internal contact, internal contacts) filters the list for every contact with that value; the contact stays open. Ctrl/⌘-click adds the value to the current filters. The field filters are part of the address (`?f.<field>=<value>`): a filtered list can be bookmarked or shared, and Back undoes the last filter. The active filter chip shows the value instead of a count.
 - **Monitoring endpoints:**
   - `/healthz` and `/readyz` (HTTP 503 when the database is unreachable or not migrated).
   - `/api/monitoring/status` reports:

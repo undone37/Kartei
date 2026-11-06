@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import logo from './assets/logo.svg'
   import { Bookmark, Building2, ChevronDown, Copy, Download, FileUp, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, Printer, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
   import AdvancedFilter from './components/AdvancedFilter.svelte'
@@ -29,12 +30,20 @@
   import { matcher } from './lib/search'
   import { setTheme, theme } from './lib/theme.svelte'
   import { isMulti, isSingle, type Kind, type ListState, type Rec } from './lib/types'
+  import { fmt } from './lib/format'
 
   store.start()
 
   let query = $state('')
   let kind = $state<'all' | Kind>('all')
-  let filters = $state<Record<string, string[]>>({})
+  // field filters live in the URL too (?f.<field>=<value>), so a filtered list can be bookmarked and Back undoes a filter
+  const fromUrl = (search: string) => {
+    const out: Record<string, string[]> = {}
+    for (const [k, v] of new URLSearchParams(search)) if (k.startsWith('f.')) (out[k.slice(2)] ??= []).push(v)
+    return out
+  }
+  const urlOf = (fs: Record<string, string[]>) => JSON.stringify(Object.entries(fs).filter(([, v]) => v.length).sort())
+  let filters = $state<Record<string, string[]>>(fromUrl(location.search))
   let adv = $state<Group>(emptyGroup())
   type Scope = 'all' | 'responsible' | 'internal' | 'review' | 'proposals'
   // the review mail links to /?list=review
@@ -107,6 +116,41 @@
     review: reviewUids.size,
     proposals: proposalCount,
   })
+
+  $effect(() => { // Back/Forward: the URL's filters win
+    const f = fromUrl(route.search)
+    if (urlOf(f) !== untrack(() => urlOf(filters))) filters = f
+  })
+  $effect(() => { // a filter changed here: a new history entry
+    const key = urlOf(filters)
+    untrack(() => {
+      if (key === urlOf(fromUrl(location.search))) return
+      const p = new URLSearchParams([...new URLSearchParams(location.search)].filter(([k]) => !k.startsWith('f.')))
+      for (const [k, vs] of Object.entries(filters)) for (const v of vs) p.append(`f.${k}`, v)
+      go(location.pathname + (p.size ? `?${p}` : ''), false, false)
+    })
+  })
+
+  /** a value clicked in a contact: the list shows every contact with it (the contact stays open, except on phones).
+   *  add (Ctrl/⌘-click): add it to the current filters instead, or take it out again */
+  function filterBy(key: string, value: string, add = false) {
+    if (add) {
+      const cur = filters[key] ?? []
+      filters = { ...filters, [key]: cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value] }
+      return
+    }
+    filters = { [key]: [value] }
+    adv = emptyGroup()
+    query = ''
+    kind = 'all'
+    scope = 'all'
+    if (matchMedia('(max-width: 860px)').matches) go('/')
+  }
+  const chipValues = (key: string, vals: string[]) => {
+    const f = store.fields.find((f) => f.key === key)
+    if (!f || vals.length > 2) return String(vals.length)
+    return vals.map((v) => fmt(f, isMulti(f) ? [v] : v)).join(', ')
+  }
 
   const results = $derived.by(() => {
     const match = matcher(query)
@@ -324,7 +368,7 @@
               {/if}
               {#each activeFilters as [key, vals] (key)}
                 {@const f = store.fields.find((f) => f.key === key)}
-                <span class="tag">{f ? L(f.label) : key}: {vals.length}
+                <span class="tag">{f ? L(f.label) : key}: {chipValues(key, vals)}
                   <button aria-label={t('common.remove')} onclick={() => (filters[key] = [])}><X size={11} /></button></span>
               {/each}
             </div>
@@ -357,7 +401,7 @@
       <main class="pane scroll">
         {#if view.name === 'record'}
           {#if current}
-            {#key current.uid}<RecordView rec={current} bind:editing />{/key}
+            {#key current.uid}<RecordView rec={current} bind:editing onfilter={filterBy} />{/key}
           {:else}
             <Missing uid={view.uid} />
           {/if}

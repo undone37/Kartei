@@ -132,6 +132,11 @@ The funnel button next to **Companies** (**Field filter**) opens the field filte
 
 Active filters appear as small tags below the buttons. Click the **×** on a tag to remove that filter, or **Reset filters** in the filter menu to remove all of them.
 
+**From a contact:** in a contact's details, values shown as tags can be clicked: keywords and other multiple selections, the internal contact and the internal contacts. A click shows every contact with that value in the list. It replaces the current search and filters, and the contact stays open. The filter appears as a tag above the list (e.g. *Keywords: Customer*); its **×** removes it.
+
+- **Ctrl-click** (**⌘-click** on a Mac) adds the value to the current filters instead, e.g. *Customer* and the internal contact *Kim Kramer*. Ctrl-click a value that is already filtered to take it out again.
+- **The address** of the page contains the filters (`?f.keywords=Customer`). Bookmark it or send it to a colleague to open the same filtered list. The browser's **Back** button undoes the last filter.
+
 ### Advanced filter
 
 For questions the field filters can't answer, e.g. "persons in Hannover who were never reviewed" or "contacts changed in the last 30 days", use the **Advanced filter**: the button with the sliders next to the funnel.

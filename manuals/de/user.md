@@ -132,6 +132,11 @@ Der Trichter-Knopf neben **Firmen** (**Feldfilter**) öffnet die Feldfilter. Er 
 
 Aktive Filter erscheinen als kleine Schildchen unter den Knöpfen. Das **×** am Schildchen entfernt diesen Filter, **Filter zurücksetzen** im Filtermenü entfernt alle.
 
+**Aus einem Kontakt heraus:** In den Details eines Kontakts lassen sich die Werte anklicken, die als Schildchen erscheinen: Schlagworte und andere Mehrfachauswahlen, der interne Ansprechpartner und die internen Kontakte. Ein Klick zeigt in der Liste alle Kontakte mit diesem Wert. Er ersetzt die aktuelle Suche und Filter, und der Kontakt bleibt geöffnet. Der Filter erscheint als Schildchen über der Liste (z. B. *Schlagworte: Kunde*); sein **×** entfernt ihn.
+
+- **Strg-Klick** (**⌘-Klick** auf dem Mac) fügt den Wert stattdessen zu den aktuellen Filtern hinzu, z. B. *Kunde* und den internen Ansprechpartner *Kim Kramer*. Ein Strg-Klick auf einen schon gefilterten Wert nimmt ihn wieder heraus.
+- **Die Adresse** der Seite enthält die Filter (`?f.keywords=Kunde`). Als Lesezeichen oder an Kollegen geschickt öffnet sie dieselbe gefilterte Liste. Die **Zurück**-Taste des Browsers macht den letzten Filter rückgängig.
+
 ### Erweiterter Filter
 
 Für Fragen, die die Feldfilter nicht beantworten – etwa „Personen in Hannover, die noch nie geprüft wurden“ oder „Kontakte, die in den letzten 30 Tagen geändert wurden“ –, gibt es den **Erweiterten Filter**: den Knopf mit den Schiebereglern neben dem Trichter.
