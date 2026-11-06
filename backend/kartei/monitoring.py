@@ -159,6 +159,14 @@ def checks(s):
         if w.last_status.get("ok") is False:
             out.append({"name": f"webhook:{w.name}", "status": "warn", "age_s": _age(w.last_status.get("at")),
                         "detail": str(w.last_status.get("error") or w.last_status.get("code") or "")[:300]})
+    if s.backup_enabled:
+        st = s.backup_status or {}
+        age = _age(st.get("at"))
+        state = "crit" if st.get("error") or age is None or age > 50 * 3600 else "warn" if age > 26 * 3600 else "ok"
+        out.append({"name": "backup", "status": state, "age_s": age,
+                    "detail": st.get("error") or ("never run" if age is None else "last backup too old" if state != "ok" else "")})
+    if (rt := s.restore_test_status or {}).get("error"):
+        out.append({"name": "restore_test", "status": "warn", "age_s": _age(rt.get("at")), "detail": rt["error"][:300]})
     if s.syslog_enabled:
         st = s.syslog_status or {}
         failing = st.get("error") and (_age(st.get("error_at")) or 0) < 3600

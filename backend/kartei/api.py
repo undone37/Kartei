@@ -22,7 +22,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from . import (adsync, audit, batch, exports, gdpr, graph, handover, importer, ldapusers, monitoring, oidc, relaypush,
+from . import (adsync, audit, backup, batch, exports, gdpr, graph, handover, importer, ldapusers, monitoring, oidc, relaypush,
                reviews, syslog, totp)
 from .msg import msg
 from .net import client_ip
@@ -1591,6 +1591,7 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
                   "ad_enabled", "ad_ou", "ad_bind_dn", "ad_kinds", "ad_columns", "ad_max_shrink_percent"]
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
 SETTINGS_ATTRS += ["map_url"]
+SETTINGS_ATTRS += ["backup_enabled", "backup_time", "backup_keep_days"]
 SETTINGS_ATTRS += ["audit_signin_days", "monitoring_allowlist", "syslog_enabled", "syslog_host", "syslog_port",
                    "syslog_protocol", "syslog_ca_cert", "syslog_tls_verify", "syslog_facility", "syslog_content"]
 SETTINGS_ATTRS += ["mail_templates", "mail_transport", "mail_graph_sender"]
@@ -1611,6 +1612,8 @@ def ser_settings(s):
             "ad_sync_requested": s.ad_sync_requested, **relaypush.ser(s),
             "oidc_client_secret_set": bool(s.oidc_client_secret_enc), "scim_token_set": bool(s.scim_token_hash),
             "monitoring_token_set": bool(s.monitoring_token_hash), "syslog_status": s.syslog_status,
+            "backup_status": s.backup_status, "backup_requested": s.backup_requested, "backup_root": str(backup.BACKUP_ROOT),
+            "restore_test_status": s.restore_test_status, "restore_test_requested": s.restore_test_requested,
             "scim_seen_at": s.scim_seen_at.isoformat() if s.scim_seen_at else None,
             "scim_groups": [{"id": str(g.id), "name": g.display_name, "members": g.n}
                             for g in ScimGroup.objects.annotate(n=Count("members"))]}
@@ -1666,6 +1669,10 @@ def settings_put(request):
         errors["mail_templates"] = bad
     if s.default_language not in ("de", "en"):
         errors["default_language"] = "invalid"
+    if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", str(s.backup_time)):
+        errors["backup_time"] = "invalid"
+    if not isinstance(s.backup_keep_days, int) or not 1 <= s.backup_keep_days <= 365:
+        errors["backup_keep_days"] = "invalid_number"
     for a in ("trash_days", "export_interval_minutes", "audit_signin_days"):
         if not isinstance(getattr(s, a), int) or getattr(s, a) < 0:
             errors[a] = "invalid_number"
@@ -1801,6 +1808,15 @@ def ldap_test(request):
     except ldap.LDAPError as e:
         out["error"] = str(e.args[0].get("desc", e) if e.args and isinstance(e.args[0], dict) else e)
     return JsonResponse(out)
+
+
+@needs(ADMIN)
+def backup_run(request):
+    """"Back up now" (also with the daily backup switched off) or "test restore": the exporter picks it up."""
+    field = "restore_test_requested" if request.path.endswith("restore-test") else "backup_requested"
+    Settings.objects.filter(pk=1).update(**{field: timezone.now()})
+    audit.log(request.user, "sync", "settings", 1, "restore_test" if field == "restore_test_requested" else "backup")
+    return JsonResponse(ser_settings(Settings.get()))
 
 
 @needs(ADMIN)

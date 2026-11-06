@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 from django.utils import timezone
 
-from kartei import adsync, exports, gdpr, graph, ldapusers, relaypush, reviews, webhooks
+from kartei import adsync, backup, exports, gdpr, graph, ldapusers, relaypush, reviews, webhooks
 from kartei.models import AuditEntry, ExportProfile, Record, Settings
 
 log = logging.getLogger(__name__)
@@ -37,6 +37,8 @@ def tick():
         log.info("ad sync: %s", status)
     if (status := relaypush.run()) is not None:
         log.info("carddav relay push: %s", status)
+    if backup.due(s):
+        log.info("backup: %s", backup.run())
     webhooks.deliver_due()
     webhooks.cleanup()
     return s.export_interval_minutes
@@ -60,6 +62,13 @@ class Command(BaseCommand):
             while time.monotonic() < deadline:
                 time.sleep(POLL)
                 close_old_connections()
+                try:  # "back up now" and "test restore" from the settings page
+                    if Settings.objects.filter(pk=1, backup_requested__isnull=False).exists():
+                        log.info("backup (requested): %s", backup.run())
+                    if Settings.objects.filter(pk=1, restore_test_requested__isnull=False).exists():
+                        log.info("restore test: %s", backup.restore_test())
+                except Exception:
+                    log.exception("backup failed")
                 try:
                     if Settings.objects.filter(pk=1, graph_sync_requested__isnull=False).exists():
                         log.info("outlook sync (requested): %s", graph.run())
