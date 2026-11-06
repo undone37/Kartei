@@ -14,9 +14,11 @@
   import { groupFields } from '../lib/sections'
   import { toast } from '../lib/toast.svelte'
   import { confirmDialog } from '../lib/confirm.svelte'
-  import type { BatchItem, Field, Proposal, Rec } from '../lib/types'
+  import { isSingle, type BatchItem, type Field, type Proposal, type Rec } from '../lib/types'
 
-  let { rec, editing = $bindable(false) }: { rec: Rec; editing?: boolean } = $props()
+  // onfilter: a click on a choice or user value filters the list for it
+  let { rec, editing = $bindable(false), onfilter }: { rec: Rec; editing?: boolean; onfilter?: (key: string, value: string) => void } = $props()
+  const one = (f: Field, x: string) => fmt(f, isMulti(f) ? [x] : x)
   let tab = $state<'details' | 'persons' | 'history'>('details')
   // edit form that proposes (new or own pending proposal) or adjusts a proposal before applying it
   let proposing = $state<{ mode: 'propose' | 'adjust'; proposal: Proposal | null } | null>(null)
@@ -211,6 +213,13 @@
                     <a href={v} target="_blank" rel="noopener noreferrer">{String(v).replace(/^https?:\/\//, '')}<ExternalLink size={12} /></a>
                   {:else if f.type === 'contact' && store.byUid.get(v)}
                     <a href="/person/{v}">{fmt(f, v)}</a>
+                  {:else if onfilter && (isSingle(f) || isMulti(f))}
+                    <span class="tags">
+                      {#each Array.isArray(v) ? v : [v] as x (x)}
+                        <button type="button" class={isMulti(f) ? 'tag filter' : 'link filter'} onclick={() => onfilter(f.key, x)}
+                                title={t('view.filter_by', { field: L(f.label), value: one(f, x) })}>{one(f, x)}</button>
+                      {/each}
+                    </span>
                   {:else if isMulti(f)}
                     <span class="tags">{#each fmt(f, v).split(', ') as tag}<span class="tag">{tag}</span>{/each}</span>
                   {:else if f.type === 'longtext'}
@@ -278,6 +287,11 @@
   .copy:hover { color: var(--text); background: var(--panel-2); }
   .long { white-space: pre-wrap; }
   .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .filter { cursor: pointer; border: 0; font: inherit; }
+  .tag.filter { font-size: 12px; }
+  .tag.filter:hover { background: var(--accent); color: light-dark(#fff, #0f0f12); }
+  .link.filter { background: none; padding: 0; color: var(--accent-text); text-align: left; }
+  .link.filter:hover { text-decoration: underline; }
   .meta { display: flex; gap: 16px; color: var(--faint); font-size: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
   .empty { padding: 20px 0; }
   .link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; }

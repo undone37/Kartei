@@ -361,6 +361,29 @@ test.describe('webhooks', () => {
   })
 })
 
+test.describe('click to filter', () => {
+  test('a tag or the responsible person in a contact filters the list for it; the contact stays open', async ({ as }) => {
+    const page = await as('mmuster')
+    const recs = await page.records()
+    const r = recs.find((x) => x.kind === 'person' && x.data.keywords?.length && x.data.internal_contact)
+    const tag = r.data.keywords[0]
+    const owner = r.data.internal_contact
+    await page.goto(`/person/${r.uid}`)
+    await page.locator('button.tag.filter').filter({ hasText: tag }).click()
+    const withTag = recs.filter((x) => (x.data.keywords ?? []).includes(tag)).length
+    await expect(page.locator('.listbar .count')).toHaveText(`${withTag} entries`)
+    await expect(page.locator('.active .tag')).toContainText(tag)
+    await expect(page.locator('main.pane h1')).toBeVisible() // still on the contact
+    const { fields } = await page.api('get', '/api/bootstrap')
+    const label = fields.find((f) => f.key === 'internal_contact').label.en
+    await page.locator(`button.link.filter[title^="Filter the list: ${label} = "]`).click()
+    const owned = recs.filter((x) => x.data.internal_contact === owner).length
+    await expect(page.locator('.listbar .count')).toHaveText(`${owned} entries`)
+    await page.locator('.active .tag button').first().click() // remove the filter
+    await expect(page.locator('.active')).toHaveCount(0)
+  })
+})
+
 test.describe('monitoring and sign-in audit', () => {
   test('an admin generates a monitoring token and sees the status of the checks', async ({ as }) => {
     const page = await as('admin')

@@ -132,6 +132,8 @@ The funnel button next to **Companies** (**Field filter**) opens the field filte
 
 Active filters appear as small tags below the buttons. Click the **×** on a tag to remove that filter, or **Reset filters** in the filter menu to remove all of them.
 
+**From a contact:** click a tag (e.g. a keyword) or the name of a responsible person in a contact's details, and the list shows every contact with that value. The contact stays open, and the filter appears as a tag above the list (e.g. *Keywords: Customer*); its **×** removes it. This works for every selection and user field, and it replaces the current search and filters.
+
 ### Advanced filter
 
 For questions the field filters can't answer, e.g. "persons in Hannover who were never reviewed" or "contacts changed in the last 30 days", use the **Advanced filter**: the button with the sliders next to the funnel.

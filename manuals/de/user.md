@@ -132,6 +132,8 @@ Der Trichter-Knopf neben **Firmen** (**Feldfilter**) öffnet die Feldfilter. Er 
 
 Aktive Filter erscheinen als kleine Schildchen unter den Knöpfen. Das **×** am Schildchen entfernt diesen Filter, **Filter zurücksetzen** im Filtermenü entfernt alle.
 
+**Aus einem Kontakt heraus:** Klickst du in den Details eines Kontakts auf ein Schlagwort oder auf den Namen der zuständigen Person, zeigt die Liste alle Kontakte mit diesem Wert. Der Kontakt bleibt geöffnet, der Filter erscheint als Schildchen über der Liste (z. B. *Schlagworte: Kunde*); sein **×** entfernt ihn. Das geht bei allen Auswahl- und Benutzerfeldern und ersetzt die aktuelle Suche und Filter.
+
 ### Erweiterter Filter
 
 Für Fragen, die die Feldfilter nicht beantworten – etwa „Personen in Hannover, die noch nie geprüft wurden“ oder „Kontakte, die in den letzten 30 Tagen geändert wurden“ –, gibt es den **Erweiterten Filter**: den Knopf mit den Schiebereglern neben dem Trichter.

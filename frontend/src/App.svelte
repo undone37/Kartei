@@ -29,6 +29,7 @@
   import { matcher } from './lib/search'
   import { setTheme, theme } from './lib/theme.svelte'
   import { isMulti, isSingle, type Kind, type ListState, type Rec } from './lib/types'
+  import { fmt } from './lib/format'
 
   store.start()
 
@@ -107,6 +108,21 @@
     review: reviewUids.size,
     proposals: proposalCount,
   })
+
+  /** a value clicked in a contact: the list shows every contact with it (the contact stays open, except on phones) */
+  function filterBy(key: string, value: string) {
+    filters = { [key]: [value] }
+    adv = emptyGroup()
+    query = ''
+    kind = 'all'
+    scope = 'all'
+    if (matchMedia('(max-width: 860px)').matches) go('/')
+  }
+  const chipValues = (key: string, vals: string[]) => {
+    const f = store.fields.find((f) => f.key === key)
+    if (!f || vals.length > 2) return String(vals.length)
+    return vals.map((v) => fmt(f, isMulti(f) ? [v] : v)).join(', ')
+  }
 
   const results = $derived.by(() => {
     const match = matcher(query)
@@ -324,7 +340,7 @@
               {/if}
               {#each activeFilters as [key, vals] (key)}
                 {@const f = store.fields.find((f) => f.key === key)}
-                <span class="tag">{f ? L(f.label) : key}: {vals.length}
+                <span class="tag">{f ? L(f.label) : key}: {chipValues(key, vals)}
                   <button aria-label={t('common.remove')} onclick={() => (filters[key] = [])}><X size={11} /></button></span>
               {/each}
             </div>
@@ -357,7 +373,7 @@
       <main class="pane scroll">
         {#if view.name === 'record'}
           {#if current}
-            {#key current.uid}<RecordView rec={current} bind:editing />{/key}
+            {#key current.uid}<RecordView rec={current} bind:editing onfilter={filterBy} />{/key}
           {:else}
             <Missing uid={view.uid} />
           {/if}
