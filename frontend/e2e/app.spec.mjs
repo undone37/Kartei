@@ -378,6 +378,30 @@ test.describe('share and map', () => {
     await expect(dialog.locator('.qr svg')).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
+test.describe('saved filters', () => {
+  test('a maintainer shares a saved filter with one colleague; only that colleague sees it', async ({ as }) => {
+    const owner = await as('mmuster')
+    const name = `E2E Team ${Date.now()}`
+    await owner.goto('/')
+    await owner.getByRole('button', { name: 'Saved filters' }).click()
+    await owner.getByPlaceholder('Save current list as …').fill(name)
+    const share = owner.getByRole('combobox', { name: 'Share with' })
+    await share.click()
+    await share.fill('kkramer')
+    await owner.getByRole('option', { name: /Kim Kramer/ }).click()
+    await share.press('Tab') // leave the picker: its list closes and frees the Save button
+    await owner.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(owner.getByText(`Filter “${name}” saved`)).toBeVisible()
+    const mine = (await owner.api('get', '/api/bootstrap')).filters.find((f) => f.name === name)
+    try {
+      expect(mine.share).toEqual(['user:kkramer'])
+      const kim = await as('kkramer')
+      expect((await kim.api('get', '/api/bootstrap')).filters.map((f) => f.name)).toContain(name)
+      const lena = await as('lschmidt')
+      expect((await lena.api('get', '/api/bootstrap')).filters.map((f) => f.name)).not.toContain(name)
+    } finally {
+      await owner.api('delete', `/api/filters/${mine.id}`)
+    }
   })
 })
 

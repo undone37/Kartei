@@ -172,7 +172,7 @@ Brauchst du dieselbe Liste öfter, speicher sie. Ein gespeicherter Filter merkt 
 
 Einen gespeicherten Filter rufst du im selben Menü auf oder auf der Startseite unter **Gespeicherte Filter**. Dort kannst du deine eigenen Filter mit dem Stift umbenennen und mit dem Papierkorb nach einer Rückfrage löschen (ein geteilter Filter verschwindet für alle).
 
-Als Bearbeiter kannst du beim Speichern **Für alle sichtbar** ankreuzen. Der Filter steht dann allen zur Verfügung und ist mit **Geteilt** markiert.
+Als Bearbeiter kannst du einen Filter beim Speichern teilen: Unter **Teilen mit** (Standard *Nur ich*) wählst du **Alle**, eine oder mehrere Rollen (z. B. *Rolle: Nur Lesen*) oder einzelne Kolleginnen und Kollegen (zum Suchen tippen). Der Filter steht dann genau diesen Personen zur Verfügung und ist mit **Geteilt** markiert; fährst du mit der Maus darüber, siehst du, mit wem er geteilt ist (bzw. bei fremden Filtern, wer ihn geteilt hat). Ändern kannst du das später auf der Startseite über das Teilen-Symbol neben deinem Filter.
 
 ### Liste exportieren
 
@@ -203,7 +203,7 @@ Ist kein Kontakt ausgewählt, siehst du rechts deine Startseite:
 - **Datenqualität** und **Dubletten** (**Bearbeiter**): Abkürzungen zu diesen Seiten.
 - **Zuletzt angesehen:** die Kontakte, die du zuletzt geöffnet hast.
 - **Favoriten:** Kontakte, die du mit dem Stern markiert hast.
-- **Gespeicherte Filter:** deine eigenen und die für alle geteilten Filter.
+- **Gespeicherte Filter:** deine eigenen und die mit dir, deiner Rolle oder allen geteilten Filter.
 - **Letzte Änderungen** (**Bearbeiter**): die neuesten Änderungen aller Benutzer. Fahr mit der Maus über einen Eintrag, um alte und neue Werte zu sehen.
 
 ![Startseite mit der Rolle Nur Lesen](../img/de/dashboard-read.png)

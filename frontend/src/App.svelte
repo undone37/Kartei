@@ -223,14 +223,14 @@
     document.getElementById('saved-menu')?.hidePopover()
   }
   let saveName = $state('')
-  let saveShared = $state(false)
+  let saveShare = $state<string[]>([])
   async function saveFilter(e: SubmitEvent) {
     e.preventDefault()
     try {
-      await store.saveFilter(saveName, listState(), saveShared)
+      await store.saveFilter(saveName, listState(), saveShare)
       toast(t('saved.saved', { name: saveName }))
       saveName = ''
-      saveShared = false
+      saveShare = []
     } catch (err) {
       toast(err instanceof ApiError ? terr(err.code) : t('err.generic'), { kind: 'error' })
     }
@@ -448,8 +448,9 @@
       {/each}
       <form class="save" onsubmit={saveFilter}>
         <input class="input" bind:value={saveName} placeholder={t('saved.save_as')} aria-label={t('saved.save_as')} maxlength="100" />
+        {#if store.canEdit}<Combobox multiple value={saveShare} options={store.shareOptions()} label={t('saved.share_with')}
+                                     placeholder={t('saved.share_none')} onchange={(v) => (saveShare = v)} />{/if}
         <div class="save-row">
-          {#if store.canEdit}<label><input type="checkbox" bind:checked={saveShared} />{t('saved.share')}</label>{/if}
           <button class="btn sm primary" disabled={!saveName.trim()}>{t('common.save')}</button>
         </div>
       </form>
@@ -541,7 +542,6 @@
   .list-menu .none { margin: 6px 10px; }
   .save { display: grid; gap: 6px; padding: 8px 4px 2px; margin-top: 6px; border-top: 1px solid var(--border); }
   .save-row { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
-  .save-row label { display: flex; align-items: center; gap: 6px; margin-right: auto; font-size: 13px; }
   .list { flex: 1; min-height: 0; }
   .about { padding: 8px 10px 2px; border-top: 1px solid var(--border); margin-top: 4px; font-size: 12px; color: var(--muted); }
   .about a { display: inline; width: auto; padding: 0; color: var(--accent); }

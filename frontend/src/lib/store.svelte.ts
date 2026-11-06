@@ -1,6 +1,6 @@
 import { del as idbDel, get as idbGet, set as idbSet } from 'idb-keyval'
 import { ApiError, del, get, onUnauthorized, patch, post } from './api'
-import { setLang } from './i18n.svelte'
+import { setLang, t } from './i18n.svelte'
 import { buildIndex, displayName, type Indexed } from './search'
 import { RANK, type Field, type Kind, type Section, type Lang, type ListState, type Proposal, type Rec, type Review,
          type SavedFilter, type User } from './types'
@@ -46,6 +46,8 @@ class Store {
   recent = $state.raw<string[]>([])
   favorites = $state.raw<string[]>([])
   filters = $state.raw<SavedFilter[]>([])
+  /** active users a saved filter can be shared with (maintainers and admins only) */
+  shareUsers = $state.raw<{ username: string; name: string }[]>([])
   syncing = $state(false)
   offline = $state(false)
   cursor = ''
@@ -281,10 +283,18 @@ class Store {
 
   // ------------------------------------------------------------- dashboard: recent, favorites, saved filters
 
-  private prefs(s: { recent?: string[]; favorites?: string[]; filters?: SavedFilter[] }) {
+  private prefs(s: { recent?: string[]; favorites?: string[]; filters?: SavedFilter[]; share_users?: { username: string; name: string }[] }) {
     this.recent = s.recent ?? []
     this.favorites = s.favorites ?? []
     this.filters = s.filters ?? []
+    if (s.share_users) this.shareUsers = s.share_users
+  }
+
+  /** choices for sharing a saved filter: everyone, a role, or single users */
+  shareOptions() {
+    return [{ value: 'all', label: t('saved.share_all') },
+      ...(['read', 'maintainer', 'admin'] as const).map((r) => ({ value: `role:${r}`, label: t('saved.share_role', { role: t(`role.${r}`) }) })),
+      ...this.shareUsers.map((u) => ({ value: `user:${u.username}`, label: u.name, hint: u.username }))]
   }
 
   private viewTimer = 0
@@ -312,14 +322,20 @@ class Store {
     }
   }
 
-  async saveFilter(name: string, state: ListState, shared: boolean) {
-    const f = await post<SavedFilter>('/api/filters', { name, state, shared })
+  async saveFilter(name: string, state: ListState, share: string[]) {
+    const f = await post<SavedFilter>('/api/filters', { name, state, share })
     this.filters = [...this.filters, f].sort((a, b) => a.name.localeCompare(b.name))
     this.persist()
   }
 
   async renameFilter(id: number, name: string) {
     const f = await patch<SavedFilter>(`/api/filters/${id}`, { name })
+    this.filters = this.filters.map((x) => (x.id === id ? f : x))
+    this.persist()
+  }
+
+  async shareFilter(id: number, share: string[]) {
+    const f = await patch<SavedFilter>(`/api/filters/${id}`, { share })
     this.filters = this.filters.map((x) => (x.id === id ? f : x))
     this.persist()
   }

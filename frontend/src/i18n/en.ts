@@ -839,7 +839,6 @@ export default {
   'saved.title': "Saved filters",
   'saved.none': "No saved filters yet",
   'saved.save_as': "Save current list as …",
-  'saved.share': "Visible to everyone",
   'saved.shared': "Shared",
   'saved.saved': "Filter “{name}” saved",
   'saved.rename': "Rename",
@@ -1248,4 +1247,9 @@ export default {
   'general.map_url': "Map link",
   'general.map_url_hint': "Address link in the contact view; {address} is replaced by street, postcode, city and country. Kartei only builds the link, the browser opens it on click. Empty: no link.",
   'err.map_url_invalid': "Needs http(s):// and {address}",
+  'saved.share_with': "Share with",
+  'saved.share_none': "Only me",
+  'saved.share_all': "Everyone",
+  'saved.share_role': "Role: {role}",
+  'saved.shared_by': "Shared by {name}",
 } as Record<string, string>

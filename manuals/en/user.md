@@ -172,7 +172,7 @@ If you need the same list often, save it. A saved filter remembers the search te
 
 To use a saved filter, click it in the same menu or on the dashboard under **Saved filters**. On the dashboard, the pencil renames your own filters and the trash can deletes them after a confirmation (a shared filter disappears for everyone).
 
-Maintainers can tick **Visible to everyone** when saving. The filter is then offered to all users and marked **Shared**.
+Maintainers can share a filter when saving it: under **Share with** (*Only me* by default), pick **Everyone**, one or more roles (e.g. *Role: Read only*), or individual colleagues (type to search). The filter is then offered to exactly those people and marked **Shared**; hovering over the mark shows who it is shared with (or, on someone else's filter, who shared it). To change this later, click the share icon next to your own filter on the dashboard.
 
 ### Exporting a list
 
@@ -203,7 +203,7 @@ When no contact is selected, the right side shows your dashboard:
 - **Data quality** and **Duplicates** (**Maintainers**): shortcuts to these pages.
 - **Recently viewed:** the last contacts you opened.
 - **Favorites:** contacts you marked with the star.
-- **Saved filters:** your own filters and those shared with everyone.
+- **Saved filters:** your own filters and those shared with you, your role or everyone.
 - **Recent changes** (**Maintainers**): the latest changes by everyone. Hover over an entry to see the old and new values.
 
 ![Dashboard of a Read only user](../img/en/dashboard-read.png)
