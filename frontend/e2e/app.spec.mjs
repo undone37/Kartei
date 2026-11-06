@@ -362,25 +362,40 @@ test.describe('webhooks', () => {
 })
 
 test.describe('click to filter', () => {
-  test('a tag or the responsible person in a contact filters the list for it; the contact stays open', async ({ as }) => {
+  test('a tag or the responsible person filters the list; Ctrl-click adds; the URL keeps it; Back undoes it', async ({ as }) => {
     const page = await as('mmuster')
     const recs = await page.records()
     const r = recs.find((x) => x.kind === 'person' && x.data.keywords?.length && x.data.internal_contact)
     const tag = r.data.keywords[0]
     const owner = r.data.internal_contact
-    await page.goto(`/person/${r.uid}`)
-    await page.locator('button.tag.filter').filter({ hasText: tag }).click()
-    const withTag = recs.filter((x) => (x.data.keywords ?? []).includes(tag)).length
-    await expect(page.locator('.listbar .count')).toHaveText(`${withTag} entries`)
-    await expect(page.locator('.active .tag')).toContainText(tag)
-    await expect(page.locator('main.pane h1')).toBeVisible() // still on the contact
     const { fields } = await page.api('get', '/api/bootstrap')
-    const label = fields.find((f) => f.key === 'internal_contact').label.en
-    await page.locator(`button.link.filter[title^="Filter the list: ${label} = "]`).click()
-    const owned = recs.filter((x) => x.data.internal_contact === owner).length
-    await expect(page.locator('.listbar .count')).toHaveText(`${owned} entries`)
-    await page.locator('.active .tag button').first().click() // remove the filter
+    const label = (key) => fields.find((f) => f.key === key).label.en
+    const pill = (key) => page.locator(`button.tag.filter[title^="Filter the list: ${label(key)} = "]`)
+    const count = page.locator('.listbar .count')
+    await page.goto(`/person/${r.uid}`)
+    await expect(page.locator('main.pane button.filter[title*="Salutation"]')).toHaveCount(0) // single choices stay plain text
+
+    await pill('keywords').filter({ hasText: tag }).click()
+    const withTag = recs.filter((x) => (x.data.keywords ?? []).includes(tag))
+    await expect(count).toHaveText(`${withTag.length} entries`)
+    await expect(page.locator('.active .tag')).toContainText(tag)
+    await expect(page.locator('main.pane h1')).toBeVisible() // the contact stays open
+    expect(new URL(page.url()).searchParams.getAll('f.keywords')).toEqual([tag])
+
+    await pill('internal_contact').click({ modifiers: ['ControlOrMeta'] }) // adds: tag AND responsible person
+    const both = withTag.filter((x) => x.data.internal_contact === owner).length
+    await expect(count).toHaveText(`${both} entries`)
+
+    await page.reload() // the URL alone restores the filters
+    await expect(count).toHaveText(`${both} entries`)
+    await page.goBack() // undoes the Ctrl-click
+    await expect(count).toHaveText(`${withTag.length} entries`)
+
+    await pill('internal_contact').click() // a plain click replaces the filters
+    await expect(count).toHaveText(`${recs.filter((x) => x.data.internal_contact === owner).length} entries`)
+    await page.locator('.active .tag button').first().click()
     await expect(page.locator('.active')).toHaveCount(0)
+    expect(new URL(page.url()).search).toBe('')
   })
 })
 

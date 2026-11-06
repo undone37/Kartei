@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import logo from './assets/logo.svg'
   import { Bookmark, Building2, ChevronDown, Copy, Download, FileUp, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, Printer, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
   import AdvancedFilter from './components/AdvancedFilter.svelte'
@@ -35,7 +36,14 @@
 
   let query = $state('')
   let kind = $state<'all' | Kind>('all')
-  let filters = $state<Record<string, string[]>>({})
+  // field filters live in the URL too (?f.<field>=<value>), so a filtered list can be bookmarked and Back undoes a filter
+  const fromUrl = (search: string) => {
+    const out: Record<string, string[]> = {}
+    for (const [k, v] of new URLSearchParams(search)) if (k.startsWith('f.')) (out[k.slice(2)] ??= []).push(v)
+    return out
+  }
+  const urlOf = (fs: Record<string, string[]>) => JSON.stringify(Object.entries(fs).filter(([, v]) => v.length).sort())
+  let filters = $state<Record<string, string[]>>(fromUrl(location.search))
   let adv = $state<Group>(emptyGroup())
   type Scope = 'all' | 'responsible' | 'internal' | 'review' | 'proposals'
   // the review mail links to /?list=review
@@ -109,8 +117,28 @@
     proposals: proposalCount,
   })
 
-  /** a value clicked in a contact: the list shows every contact with it (the contact stays open, except on phones) */
-  function filterBy(key: string, value: string) {
+  $effect(() => { // Back/Forward: the URL's filters win
+    const f = fromUrl(route.search)
+    if (urlOf(f) !== untrack(() => urlOf(filters))) filters = f
+  })
+  $effect(() => { // a filter changed here: a new history entry
+    const key = urlOf(filters)
+    untrack(() => {
+      if (key === urlOf(fromUrl(location.search))) return
+      const p = new URLSearchParams([...new URLSearchParams(location.search)].filter(([k]) => !k.startsWith('f.')))
+      for (const [k, vs] of Object.entries(filters)) for (const v of vs) p.append(`f.${k}`, v)
+      go(location.pathname + (p.size ? `?${p}` : ''), false, false)
+    })
+  })
+
+  /** a value clicked in a contact: the list shows every contact with it (the contact stays open, except on phones).
+   *  add (Ctrl/⌘-click): add it to the current filters instead, or take it out again */
+  function filterBy(key: string, value: string, add = false) {
+    if (add) {
+      const cur = filters[key] ?? []
+      filters = { ...filters, [key]: cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value] }
+      return
+    }
     filters = { [key]: [value] }
     adv = emptyGroup()
     query = ''
