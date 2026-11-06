@@ -27,6 +27,7 @@ The machine-readable description is [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1)
 - [Recommended sync pattern](#recommended-sync-pattern)
 - [Webhooks](#webhooks)
 - [User provisioning (SCIM 2.0)](#user-provisioning-scim-20)
+- [Monitoring](#monitoring)
 
 ## Authentication
 
@@ -571,3 +572,45 @@ curl -H "Authorization: Bearer $SCIM_TOKEN" -H "Content-Type: application/scim+j
   https://kartei.example.com/scim/v2/Users
 ```
 
+## Monitoring
+
+Health and status for monitoring systems. These endpoints are separate from the contact API: API tokens don't work here, and the monitoring token reads no contacts. Setup and examples for Checkmk, Zabbix and PRTG are in the administrator manual (*Monitoring and logging*).
+
+| Endpoint | Access | Answer |
+|---|---|---|
+| `GET /healthz` | open | `200 {"status": "ok"}` while the web process runs |
+| `GET /readyz` | open | `200 {"status": "ok"}` when the database is reachable and migrated, else `503 {"status": "fail"}` |
+| `GET /api/monitoring/status` | monitoring token **and** an allowed client address | checks and metrics; `?format=prtg` for PRTG |
+
+- **Authentication:** `Authorization: Bearer kmon_…`. An admin generates the token under *Settings → Monitoring & logging*; it is shown once, and Kartei stores only its SHA-256. The client address must also be in the list of allowed addresses or networks there.
+- **Errors:** a missing or wrong token gives `401` (with `WWW-Authenticate: Bearer`), an address that isn't allowed gives `403`. The body is `{"error": "unauthenticated"}` or `{"error": "forbidden"}`, with no further detail.
+
+```sh
+curl -H "Authorization: Bearer $MONITORING_TOKEN" https://kartei.example.com/api/monitoring/status
+```
+
+```json
+{
+  "status": "warn",
+  "version": "0.5.0-beta",
+  "at": "2026-11-06T14:40:00+00:00",
+  "seconds": 0.041,
+  "checks": [
+    {"name": "database", "status": "ok", "detail": "", "age_s": null},
+    {"name": "exporter", "status": "ok", "detail": "", "age_s": 42},
+    {"name": "export:Telefonbuch", "status": "warn", "detail": "…", "age_s": 11000},
+    {"name": "outlook", "status": "ok", "detail": "", "age_s": 610}
+  ],
+  "metrics": {
+    "persons": 1840, "companies": 412, "recycle_bin": 3, "users_active": 25, "users_read": 18, "users_maintainer": 5,
+    "users_admin": 2, "reviews_open": 46, "proposals_pending": 4, "logins_1h": 7, "logins_24h": 61,
+    "login_failures_1h": 0, "login_failures_24h": 2, "auth_failures_24h": 0, "audit_entries_24h": 334,
+    "syslog_sent": 1203, "syslog_dropped": 0
+  }
+}
+```
+
+- `status` is the worst of all checks: `ok`, `warn` or `crit`. Checks appear only for what is set up, e.g. `outlook` only with the Outlook sync on, and `export:<name>` for each automatic export.
+- `age_s` is the number of seconds since the last run or heartbeat. It is `null` where it doesn't apply.
+- `metrics` keys are stable. `users_<role>` appear only for roles that have users.
+- `?format=prtg` returns `{"prtg": {"result": [{"channel", "value", …}], "text"}}` for PRTG's *HTTP Data Advanced* sensor. Each check becomes a channel with the value 0 (ok), 1 (warn) or 2 (crit), and each metric becomes its own channel.

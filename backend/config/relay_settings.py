@@ -41,6 +41,9 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024  # one push request; Kartei sends
 
 LOGGING = {
     "version": 1,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "disable_existing_loggers": False,
+    "formatters": {"json": {"()": "kartei.logs.JsonFormatter"}},  # JSON lines like Kartei's (LOG_FORMAT=text: plain)
+    "handlers": {"console": {"class": "logging.StreamHandler",
+                             **({"formatter": "json"} if os.environ.get("LOG_FORMAT", "text" if DEBUG else "json") == "json" else {})}},
     "root": {"handlers": ["console"], "level": os.environ.get("LOG_LEVEL", "INFO")},
 }

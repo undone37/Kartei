@@ -113,6 +113,8 @@ export interface AuditEntry {
   target_label: string
   kind?: 'person' | 'company' | null
   changes: Record<string, [any, any]>
+  /** client address; only in the admin audit log */
+  ip?: string | null
 }
 
 export const RANK: Record<Role, number> = { read: 0, maintainer: 1, admin: 2 }

@@ -1,0 +1,40 @@
+# Container logs of web, exporter and db to a SIEM via syslog (RFC 5424; Kartei's lines are JSON).
+# Settings in .env (see .env.example, SIEM_*). Start with:
+#   docker compose -f compose.yaml -f compose.logging.yaml up -d
+# (or COMPOSE_FILE=compose.yaml:compose.logging.yaml in .env). `docker logs` keeps working (Docker's dual logging).
+# Kartei's audit events are sent by Kartei itself (Settings -> Monitoring & logging) and skipped here by default.
+services:
+  fluent-bit:
+    image: fluent/fluent-bit:5.1.5
+    restart: unless-stopped
+    command: ["/fluent-bit/bin/fluent-bit", "-c", "/fluent-bit/etc/kartei.yaml"]
+    environment:
+      SIEM_HOST: ${SIEM_HOST:?set SIEM_HOST in .env}
+      SIEM_PORT: ${SIEM_PORT:-514}
+      SIEM_MODE: ${SIEM_MODE:-udp}                       # udp, tcp or tls
+      SIEM_TLS: ${SIEM_TLS:-off}                         # on together with SIEM_MODE=tls
+      SIEM_TLS_VERIFY: ${SIEM_TLS_VERIFY:-on}
+      SIEM_CA_FILE: ${SIEM_CA_FILE:-/etc/ssl/certs/ca-certificates.crt}
+      SIEM_HOSTNAME: ${SIEM_HOSTNAME:-kartei}
+      SIEM_FACILITY: ${SIEM_FACILITY:-16}                # 16 = local0
+      SIEM_SKIP_LOGGERS: ${SIEM_SKIP_LOGGERS:-^kartei\.audit$}
+    volumes:
+      - ./logging/fluent-bit.yaml:/fluent-bit/etc/kartei.yaml:ro
+      - ${SIEM_CA_HOST_FILE:-/dev/null}:/fluent-bit/etc/siem-ca.pem:ro   # own CA: SIEM_CA_FILE=/fluent-bit/etc/siem-ca.pem
+    ports:
+      - "127.0.0.1:24224:24224"   # the Docker daemon delivers the container logs here
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+
+  web:
+    logging: &fluent
+      driver: fluentd
+      options:
+        fluentd-address: 127.0.0.1:24224
+        fluentd-async: "true"       # containers start even while Fluent Bit is down; lines are buffered
+        tag: "kartei.{{.Name}}"
+  exporter:
+    logging: *fluent
+  db:
+    logging: *fluent

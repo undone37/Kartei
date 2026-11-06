@@ -148,6 +148,48 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+  /monitoring/status:
+    servers:
+      - url: https://kartei.example.com/api
+    get:
+      summary: Monitoring status (checks and metrics)
+      description: |
+        Needs the monitoring token (Settings → Monitoring & logging) *and* a client address from the allowed list
+        there. API tokens are not accepted. See API.md, section Monitoring.
+      security:
+        - monitoring: []
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema: { type: string, enum: [prtg] }
+          description: "`prtg`: the same data as channels for PRTG's HTTP Data Advanced sensor"
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MonitoringStatus" }
+        "401": { description: "Missing or wrong monitoring token", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "403": { description: "Client address not allowed", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  /healthz:
+    servers:
+      - url: https://kartei.example.com
+    get:
+      summary: Liveness (no database check)
+      security: []
+      responses:
+        "200": { description: The web process runs, content: { application/json: { example: { status: ok } } } }
+  /readyz:
+    servers:
+      - url: https://kartei.example.com
+    get:
+      summary: Readiness (database reachable and migrated)
+      security: []
+      responses:
+        "200": { description: Ready, content: { application/json: { example: { status: ok } } } }
+        "503": { description: Not ready, content: { application/json: { example: { status: fail } } } }
+
 webhooks:
   contactEvent:
     post:
@@ -173,6 +215,10 @@ webhooks:
 
 components:
   securitySchemes:
+    monitoring:
+      type: http
+      scheme: bearer
+      description: Monitoring token (starts with `kmon_`), generated under Settings → Monitoring & logging.
     bearer:
       type: http
       scheme: bearer
@@ -206,6 +252,27 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
   schemas:
+    MonitoringStatus:
+      type: object
+      required: [status, version, at, checks, metrics]
+      properties:
+        status: { type: string, enum: [ok, warn, crit], description: The worst of all checks }
+        version: { type: string }
+        at: { type: string, format: date-time }
+        seconds: { type: number, description: Time taken to collect the status }
+        checks:
+          type: array
+          items:
+            type: object
+            required: [name, status, detail, age_s]
+            properties:
+              name: { type: string, examples: [database, exporter, "export:Telefonbuch", outlook, active_directory, carddav_relay, ldap_users, "webhook:Intranet", syslog, export_disk] }
+              status: { type: string, enum: [ok, warn, crit] }
+              detail: { type: string }
+              age_s: { type: [integer, "null"], description: Seconds since the last run or heartbeat }
+        metrics:
+          type: object
+          additionalProperties: { type: integer }
     FullList:
       type: object
       required: [cursor, full, contacts]

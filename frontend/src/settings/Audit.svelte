@@ -31,7 +31,7 @@
 <div class="toolbar">
   <select class="select" bind:value={type} onchange={() => load()}>
     <option value="">{t('audit.all_types')}</option>
-    {#each ['record', 'proposal', 'field', 'section', 'user', 'settings', 'export', 'token', 'webhook', 'group'] as ty}<option value={ty}>{t(`audit.type.${ty}`)}</option>{/each}
+    {#each ['record', 'proposal', 'field', 'section', 'user', 'settings', 'export', 'token', 'webhook', 'group', 'session'] as ty}<option value={ty}>{t(`audit.type.${ty}`)}</option>{/each}
   </select>
   <input class="input" placeholder={t('audit.search')} bind:value={q} oninput={() => { clearTimeout(timer); timer = setTimeout(() => load(), 250) }} />
 </div>
@@ -43,7 +43,7 @@
       {@const o = auditObject(e, fields)}
       <tr>
         <td class="nowrap muted tabular">{dateTime(e.at)}</td>
-        <td title={e.user}>{store.userName(e.user)}</td>
+        <td title={e.user}>{store.userName(e.user)}{#if e.ip}<div class="hint tabular">{e.ip}</div>{/if}</td>
         <td><span class="badge">{t(`audit.${e.action}`)}</span></td>
         <td>
           {#if o.href}<a href={o.href}>{o.name}</a>{:else}{o.name}{/if}

@@ -4,6 +4,42 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- **Monitoring endpoints:**
+  - `/healthz` and `/readyz` (HTTP 503 when the database is unreachable or not migrated).
+  - `/api/monitoring/status` reports:
+    - the database
+    - the exporter heartbeat
+    - every enabled export, sync and webhook
+    - the syslog sender and free space on `/export`
+    - metrics such as contacts, users, open reviews, sign-ins and failed sign-ins
+  - The status endpoint needs a monitoring token *and* an allowed client address.
+  - It answers as JSON for Checkmk and Zabbix, or with `?format=prtg` for PRTG.
+- **New tab *Settings → Monitoring & logging*:** live status, token, allowed addresses, syslog and sign-in retention.
+- **Sign-ins in the audit log:**
+  - sign-in with its method (password, LDAP, single sign-on)
+  - sign-out
+  - failed sign-in with its reason
+  - refused CardDAV and API access, logged once per address and 15 minutes
+  - denied access to admin and maintainer functions
+  - New area filter *Sign-ins*.
+  - Every audit entry now records the client IP; only admins see it.
+  - Sign-in entries are deleted after 90 days (configurable; 0 = keep).
+- **Syslog to the SIEM:**
+  - Kartei sends every audit event as RFC 5424 syslog over UDP, TCP or TLS, with the JSON log line as message.
+  - Contacts: only the names of the changed fields.
+  - Failures have severity *warning*.
+  - Optionally also application warnings and errors.
+  - Configured in the web UI, with a test event.
+- **Container logs to the SIEM:** the optional overlay `compose.logging.yaml` runs Fluent Bit and forwards the logs of web, exporter and db as syslog. It's configured in `.env` and skips the audit events Kartei already sends.
+
+### Changed
+
+- **JSON logs:** the application and gunicorn's request log write one JSON object per line. `LOG_FORMAT=text` restores plain lines.
+- **Healthchecks:** the compose healthchecks use `/healthz`, and the relay has its own.
+- **Contrast:** red badges have more contrast (WCAG AA).
+
 ## [0.4.0-beta] – 2026-10-28
 
 Outlook gets personal contact folders, and the CSV import needs much less manual mapping. It suggests fields from column values and creates new fields in the regular field editor.

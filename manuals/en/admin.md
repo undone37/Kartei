@@ -283,11 +283,12 @@ docker compose logs --since 1h exporter
 
 The `exporter` writes one line per export, sync and user import. Their results are also shown in the respective settings tab (*Last run*).
 
+Log lines are JSON, one object per line (`ts`, `level`, `logger`, `msg`, plus details such as `http` for requests or `audit` for audit events), so log shippers and SIEMs can parse them. For plain text lines set `LOG_FORMAT=text` in `.env`; `LOG_LEVEL` (default `INFO`) sets the detail. To forward logs to a SIEM, see [Monitoring and logging](#monitoring).
+
 ### Health check
 
-- `docker compose ps` shows the health of `web` (it polls `/api/session` every 10 seconds) and of `db`.
-- For external monitoring, check `https://kartei.example.de/api/session` (HTTP 200 without sign-in).
-- `exporter` has no health check. Watch the status of the exports (*Settings → Exports*, column *Last run*) and of the syncs.
+- `docker compose ps` shows the health of `web` (it polls `/healthz` every 10 seconds) and of `db`.
+- For external monitoring use `/readyz` and the detailed status, see [Monitoring and logging](#monitoring).
 
 ### Command line
 
@@ -1126,7 +1127,7 @@ Instead of asking Kartei every few minutes, other systems can be notified right 
 
 ![Audit log tab](../img/en/settings-audit.png)
 
-- **Filter** by area: *All areas*, *Contact*, *Field*, *User*, *Settings*, *Export*, *API token*.
+- **Filter** by area: *All areas*, *Contact*, *Field*, *User*, *Settings*, *Export*, *API token*, *Sign-ins*.
 - **Search** in object names and usernames (*Search object or user …*).
 - 100 entries are loaded at a time; *Load older* loads more.
 
@@ -1140,10 +1141,117 @@ What is logged:
 | Settings | every change (passwords and secrets masked as `***`), new CardDAV password, *Sync now*, review starts, phone-number conversion |
 | Export | changes to export profiles, and every list export by a user (with row count) |
 | API token | create (with permission), revoke |
+| Sign-ins | sign-in (with method: password, LDAP, single sign-on), sign-out, failed sign-in (with reason), refused CardDAV or API access, denied access to an admin or maintainer function |
 
-Not logged: sign-ins, and the individual runs of exports and syncs (their result is shown in the respective tab and in the `exporter` log). Automatic actions appear as user *system*, changes through a write token as `api:<token name>`.
+Every entry also records the client's IP address; only admins see it, in the *User* column.
+
+![Sign-ins in the audit log](../img/en/audit-signins.png)
+
+Sign-in entries contain IP addresses and are deleted after the days set under *Settings → Monitoring & logging → Keep sign-in entries* (default 90; 0 = forever). A failed CardDAV or API access is logged once per address and 15 minutes, so a phone with an old password doesn't fill the log. All other entries are kept.
+
+Not logged: the individual runs of exports and syncs (their result is shown in the respective tab, in the `exporter` log and in the [monitoring status](#monitoring)). Automatic actions appear as user *system*, changes through a write token as `api:<token name>`. To send the audit log to a SIEM, see [Syslog to the SIEM](#monitoring).
 
 Each contact also has its own history tab, see the [user manual](user.html).
+
+## Monitoring and logging {#monitoring}
+
+*Settings → Monitoring & logging* shows the state of Kartei and its background jobs, gives monitoring systems access to it, and sends audit events to your SIEM.
+
+![Monitoring & logging tab](../img/en/settings-monitoring.png)
+
+### Endpoints
+
+| Address | Access | Answer |
+|---|---|---|
+| `/healthz` | open | `{"status": "ok"}`: the web process runs (no database check). For container and load-balancer checks. |
+| `/readyz` | open | `{"status": "ok"}` (HTTP 200) when the database is reachable and migrated, else `{"status": "fail"}` with HTTP **503**. |
+| `/api/monitoring/status` | token **and** allowed address | all checks and metrics as JSON; `?format=prtg` in the format of PRTG's *HTTP Data Advanced* sensor |
+
+The detailed status needs both:
+
+1. **Token:** *Generate token* shows it once (`kmon_…`); send it as `Authorization: Bearer kmon_…`. *Generate new token* replaces it.
+2. **Allowed addresses:** one IP address or network per line, e.g. `10.0.5.20` or `10.0.6.0/24`. Empty means nobody. Behind the reverse proxy the address is taken from `X-Forwarded-For` (see [Security](#security)).
+
+Missing or wrong token: HTTP 401; address not allowed: HTTP 403. Neither answer says more.
+
+```sh
+curl -H "Authorization: Bearer kmon_…" https://kartei.example.de/api/monitoring/status
+```
+
+```json
+{"status": "warn", "version": "0.5.0-beta", "at": "…",
+ "checks": [{"name": "database", "status": "ok", "detail": "", "age_s": null},
+            {"name": "exporter", "status": "ok", "detail": "", "age_s": 42},
+            {"name": "export:Telefonbuch", "status": "warn", "detail": "…", "age_s": 11000}],
+ "metrics": {"persons": 1840, "companies": 412, "login_failures_1h": 0, "…": 0}}
+```
+
+`status` is the worst of all checks: `ok`, `warn` or `crit`.
+
+| Check | warn | crit |
+|---|---|---|
+| `database` | – | not reachable, or migrations pending |
+| `exporter` | no heartbeat for 2 export intervals | no heartbeat for 3 intervals, or never |
+| `export:<name>` (automatic exports) | not run for 3 intervals | last run failed (e.g. the shrink guard stopped it) |
+| `outlook`, `active_directory`, `carddav_relay` (when enabled) | not run for 3 intervals | last run failed |
+| `ldap_users` (daily import) | not run for 3 days | last run failed |
+| `webhook:<name>` | last delivery failed | – |
+| `syslog` (when enabled) | – | sending failed within the last hour |
+| `export_disk` | under 10 % free on `/export` | under 5 % free |
+
+Metrics: contacts (`persons`, `companies`, `recycle_bin`), active users per role, open reviews and proposals, sign-ins and failed sign-ins in the last hour and day, refused CardDAV/API access, audit entries per day, and the syslog counters.
+
+**Examples:**
+
+- **Checkmk:** a *Check HTTP web service* rule for `/readyz` (expects 200), and one for the status URL with the header `Authorization: Bearer kmon_…` that searches the response for the string `"status": "ok"` (or allows `"warn"` as warning).
+- **Zabbix:** an *HTTP agent* item on the status URL with the header, and dependent items with JSONPath, e.g. `$.status`, `$.checks[?(@.name=='exporter')].status.first()`, `$.metrics.login_failures_1h`. Trigger on `status <> "ok"`.
+- **PRTG:** an *HTTP Data Advanced* sensor on `…/api/monitoring/status?format=prtg` with the header. Every check becomes a channel (0 ok, 1 warn, 2 crit, with limits set), every metric a channel too.
+- **Uptime Kuma** and similar: an HTTP monitor on `/readyz`.
+
+### Syslog to the SIEM
+
+Kartei sends every audit event (see [Audit log](#audit-log)) directly to your SIEM:
+
+![Syslog settings](../img/en/settings-syslog.png)
+
+1. Tick *Send to syslog*, enter *Host* and *Port*, and choose the *Protocol*: UDP, TCP or TLS. For TLS, paste the CA certificate if the SIEM uses an internal CA (empty = system CAs), and keep *Verify the server certificate* on.
+2. Choose the *Facility* (default `local0`) and *What is sent*: audit events only, or also the warnings and errors of the application.
+3. *Save & send test event* sends a test event and shows the result.
+
+Each event is an RFC 5424 message (TCP and TLS with octet counting, RFC 6587). The message is the JSON log line:
+
+```text
+<132>1 2026-11-06T14:36:46.215+00:00 web kartei 11 audit - {"ts": "…", "level": "WARNING", "logger": "kartei.audit",
+  "msg": "login_failed session mallory", "audit": {"event": "login_failed", "area": "session", "object_id": "", "object": "mallory",
+  "user": "mallory", "ip": "203.0.113.45", "changes": {"reason": [null, "invalid_credentials"]}}}
+```
+
+- MSGID is `audit` for audit events and `app` for application messages.
+- Failed sign-ins, refused access and denied access have severity *warning*, everything else *info*.
+- For contacts only the names of the changed fields are sent, not the values. Users, settings and sign-ins include old and new values; passwords and secrets are masked.
+- Sending never slows Kartei down. If the SIEM is unreachable, events are queued (up to 10,000 per process) and sent when it is back; *Last run* in the status shows failures. A new setting is used at once by the process that saved it and by the others within a minute.
+
+### Container logs to the SIEM (Fluent Bit)
+
+To forward the complete container logs (requests, errors, database) as well, start the optional Fluent Bit container with the overlay `compose.logging.yaml`:
+
+```sh
+# .env
+COMPOSE_FILE=compose.yaml:compose.logging.yaml
+SIEM_HOST=siem.example.de
+SIEM_PORT=6514
+SIEM_MODE=tls        # udp, tcp or tls
+SIEM_TLS=on          # with SIEM_MODE=tls
+```
+
+```sh
+docker compose up -d
+```
+
+Docker passes the logs of `web`, `exporter` and `db` to Fluent Bit, which sends each line as RFC 5424 syslog; Kartei's lines arrive as JSON, the database's as text. `docker compose logs` keeps working. Further settings in `.env.example`: `SIEM_TLS_VERIFY`, your own CA (`SIEM_CA_HOST_FILE` and `SIEM_CA_FILE`), `SIEM_HOSTNAME`, `SIEM_FACILITY`.
+
+> Kartei sends its audit events itself (previous section), so Fluent Bit skips them to avoid duplicates. If you use only Fluent Bit, set `SIEM_SKIP_LOGGERS=^$` to forward them as well.
+{: .tip}
 
 ## Data protection {#data-protection}
 
@@ -1161,7 +1269,7 @@ Kartei holds personal data. Two functions help with the rights of the people in 
 ## Security
 
 - **`SECRET_KEY`:** the LDAP password, the AD writing password, the Outlook client secret and the SMTP password are stored encrypted with a key derived from `SECRET_KEY`. If the key changes, these values are lost (they read as empty) and must be entered again, and all users are signed out. Keep `SECRET_KEY` stable and in your backup.
-- **Shown once:** the CardDAV password and API tokens are stored only as hashes. They are shown once when created; afterwards they can only be replaced.
+- **Shown once:** the CardDAV password, API tokens and the monitoring token are stored only as hashes. They are shown once when created; afterwards they can only be replaced.
 - **Rate limits:** after 10 failed sign-ins for one username, after 20 failed CardDAV logins and after 20 failed API requests, the client address is blocked for 15 minutes. Behind the reverse proxy, the address is the last entry of `X-Forwarded-For`; make sure the proxy appends it and that port 8000 is not reachable directly (or set `PROXY_HEADERS=0` without a proxy).
 - **HTTPS only:** cookies are marked *Secure*. Keep `SECURE_COOKIES=1` in production.
 - **Two-factor sign-in:** switch it on for every admin account, especially the local one from `.env` (*My account*), or require it for administrators (*General settings*). It doesn't affect CardDAV, the REST API or webhooks.

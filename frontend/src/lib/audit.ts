@@ -50,7 +50,12 @@ const ATTR: Record<string, Record<string, string>> = {
     ad_kinds: 'exports.kinds', ad_columns: 'ad.mapping', ad_max_shrink_percent: 'ad.guard',
     phone_normalize: 'phone.normalize', phone_country_code: 'phone.country_code',
     mail_templates: 'audit.attr.mail_templates', mail_transport: 'audit.attr.mail_transport', mail_graph_sender: 'audit.attr.mail_graph_sender',
+    audit_signin_days: 'mon.retention', monitoring_allowlist: 'mon.allowlist', monitoring_token_hash: 'mon.token',
+    syslog_enabled: 'mon.syslog_enabled', syslog_host: 'mon.syslog_host', syslog_port: 'mon.syslog_port',
+    syslog_protocol: 'mon.syslog_protocol', syslog_ca_cert: 'mon.syslog_ca', syslog_tls_verify: 'mon.syslog_verify',
+    syslog_facility: 'mon.syslog_facility', syslog_content: 'mon.syslog_content',
   },
+  session: { method: 'audit.attr.method', reason: 'audit.attr.reason', channel: 'audit.attr.channel', needs: 'audit.attr.needs' },
   section: { label: 'fields.label', key: 'audit.attr.key', order: 'audit.attr.order' },
   token: { name: 'tokens.name', scope: 'tokens.scope' },
   webhook: { name: 'hooks.name', url: 'hooks.url', events: 'hooks.events', enabled: 'hooks.active', secret_enc: 'hooks.secret' },
@@ -64,6 +69,7 @@ const ATTR: Record<string, Record<string, string>> = {
 
 /** fields: all field definitions (admins pass the full list incl. archived ones), used for record keys and ids */
 export function auditLabel(e: Pick<AuditEntry, 'target_type'>, key: string, fields: Field[] = store.fields): string {
+  if (e.target_type === 'session' && ATTR.session[key]) return t(ATTR.session[key])
   if (SPECIAL.includes(key)) return t(`audit.attr.${key}`)
   if (e.target_type === 'record' || e.target_type === 'proposal') { // a proposed new contact holds record values
     const f = fields.find((f) => f.key === key)
@@ -84,6 +90,11 @@ export function auditLabel(e: Pick<AuditEntry, 'target_type'>, key: string, fiel
 export function auditValue(e: Pick<AuditEntry, 'target_type'>, key: string, v: any, fields: Field[] = store.fields): string {
   if (v == null || v === '' || (Array.isArray(v) && !v.length)) return '—'
   if (v === '***') return '••••'
+  if (e.target_type === 'session') {
+    if (key === 'method' || key === 'reason') return has(`audit.${key}.${v}`) ? t(`audit.${key}.${v}`) : String(v)
+    if (key === 'channel') return v === 'carddav' ? 'CardDAV' : 'API'
+    if (key === 'needs') return role(v)
+  }
   const fieldName = (id: any) => { const f = fields.find((f) => f.id === Number(id)); return f ? L(f.label) : `#${id}` }
   if (key === 'started' && typeof v === 'object')
     return t('review.started', { n: v.created ?? 0, open: v.already_open ?? 0, missing: v.no_responsible ?? 0 })

@@ -20,6 +20,14 @@ const click = (page, text) => page.getByRole('button', { name: text, exact: true
 
 /** name, user, path, optional steps to prepare the screen; selectors avoid UI text so both languages work */
 const open = (sel) => async (p) => { await p.locator(sel).first().click(); await wait(500) }
+// every request looks like it comes from an office workstation (audit log IPs), not from the machine taking them
+const OFFICE = { 'X-Forwarded-For': '10.0.5.31' }
+const publicUrl = async (ctx, h) => {
+  h.baseUrl = (await (await api(ctx, 'get', '/api/admin/settings')).json()).base_url
+  await api(ctx, 'put', '/api/admin/settings', { base_url: 'https://kartei.example.com' })
+}
+const restoreUrl = async (ctx, h) => { await api(ctx, 'put', '/api/admin/settings', { base_url: h.baseUrl }) }
+
 const SHOTS = [
   { name: 'login', user: null, path: '/' },
   { name: 'dashboard', user: 'mmuster', path: '/' },
@@ -88,6 +96,23 @@ const SHOTS = [
       await box.click(); await box.fill('…')
       await p.getByRole('option', { name: /Neues Feld|New field/ }).click(); await wait(500)
     } },
+  { name: 'settings-monitoring', user: 'admin', path: '/settings/monitoring', before: publicUrl, after: restoreUrl },
+  { name: 'settings-syslog', user: 'admin', path: '/settings/monitoring', steps: async (p) => {
+      await p.locator('#allow').fill('10.0.5.20\n10.0.6.0/24')
+      await p.getByLabel(/Send to syslog|An Syslog senden/).check()
+      await p.locator('#sh').fill('siem.example.local'); await p.locator('#sp').fill('6514')
+      await p.locator('#spr').selectOption('tls')
+      await p.locator('#allow').evaluate((el) => el.closest('form').querySelectorAll('h2')[1].scrollIntoView({ block: 'start' }))
+      await p.evaluate(() => document.activeElement?.blur()); await wait(300)
+    } },
+  { name: 'audit-signins', user: 'admin', path: '/settings/audit', before: async (ctx) => {
+      // a few refused sign-ins from other addresses, as an attack or a typo would leave them
+      for (const [user, ip] of [['administrator', '203.0.113.45'], ['admin', '203.0.113.45'], ['lschmidt', '10.0.5.47']]) {
+        await ctx.request.post(`${BASE}/api/login`, { data: { username: user, password: 'wrong' },
+          headers: { 'X-CSRFToken': (await ctx.cookies()).find((c) => c.name === 'csrftoken')?.value ?? '', Referer: BASE, 'X-Forwarded-For': ip } })
+      }
+    }, steps: async (p) => {
+      await p.locator('.toolbar select').selectOption('session'); await wait(500) } },
   { name: 'account', user: 'kkramer', path: '/account' },
   { name: 'account-totp', user: 'kkramer', path: '/account', steps: async (p) => {
       await p.locator('section.card').last().locator('.btn.primary').click(); await wait(600)
@@ -217,7 +242,7 @@ async function hints(ctx, lang) {
 const browser = await chromium.launch()
 for (const lang of LANGS) {
   mkdirSync(`${OUT}/${lang}`, { recursive: true })
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: THEME, locale: lang })
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: THEME, locale: lang, extraHTTPHeaders: OFFICE })
   // every screen starts from the same list (a ?list= link still wins)
   await ctx.addInitScript((theme) => { localStorage.setItem('kartei:theme', theme); localStorage.setItem('kartei:scope', 'all') }, THEME)
   const h = await hints(ctx, lang)

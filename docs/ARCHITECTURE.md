@@ -34,7 +34,9 @@ The Django project is `config`; the main app is `kartei`. The DMZ relay is the a
 | `models.py` | `Record` (person or company; core columns plus a JSON `data` for all admin-defined fields), `FieldDef`, `FieldSection`, `Settings` (singleton), `Profile` (role, language), `Review`, `Proposal`, `SavedFilter`, `ApiToken`, `ExportProfile`, `AuditEntry`, `NotDuplicate` |
 | `api.py` | JSON API for the SPA: session auth with CSRF, role checks (`needs`), error codes instead of texts |
 | `validation.py` | per-type validation and normalization of field values (incl. phone numbers) |
-| `audit.py` | append-only audit log with `{key: [old, new]}` diffs, secrets masked |
+| `audit.py` | append-only audit log with `{key: [old, new]}` diffs, secrets masked; every entry gets the client IP (`net.py` middleware) and is also written to the `kartei.audit` logger |
+| `monitoring.py` | `/healthz`, `/readyz` and `/api/monitoring/status` (checks of the database, the exporter heartbeat and every enabled job, plus metrics; JSON or PRTG), token plus IP allowlist |
+| `logs.py`, `syslog.py` | JSON log formatter (also for gunicorn, see `gunicorn.conf.py`); RFC 5424 syslog sender for audit events: a queue and a daemon thread per process, settings re-read every minute |
 | `vcard.py`, `dav.py`, `carddav.py` | vCard 3.0 rendering (iOS and Android flavours); the storage-independent read-only CardDAV protocol incl. `sync-collection` (`dav.py`, also used by the relay) and the built-in server on the Kartei database (`carddav.py`) |
 | `relaypush.py` | push to the DMZ relay: fetch the relay's `{uid: etag}`, send changed cards (both flavours), deletions and the CardDAV login; guards for 0 contacts and too many deletions |
 | `graph.py` | Microsoft Graph client: Outlook contact-folder sync and the Microsoft 365 mail backend |

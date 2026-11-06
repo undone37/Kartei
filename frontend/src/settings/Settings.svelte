@@ -8,11 +8,12 @@
   import Tokens from './Tokens.svelte'
   import Webhooks from './Webhooks.svelte'
   import ActiveDirectory from './ActiveDirectory.svelte'
+  import Monitoring from './Monitoring.svelte'
   import { store } from '../lib/store.svelte'
   import { t } from '../lib/i18n.svelte'
 
   let { tab }: { tab: string } = $props()
-  const tabs = ['fields', 'users', 'ldap', 'sso', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'audit']
+  const tabs = ['fields', 'users', 'ldap', 'sso', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'monitoring', 'audit']
 </script>
 
 {#if !store.isAdmin}
@@ -33,6 +34,7 @@
     {:else if tab === 'audit'}<Audit />
     {:else if tab === 'api'}<Tokens /><Webhooks />
     {:else if tab === 'ad'}<ActiveDirectory />
+    {:else if tab === 'monitoring'}<Monitoring />
     {/if}
   </div>
 {/if}

@@ -1,11 +1,17 @@
 from django.contrib import admin
 from django.urls import path, re_path
 
-from kartei import api, api_v1, carddav, dashboard, quality, scim, views
+from kartei import api, api_v1, carddav, dashboard, monitoring, quality, scim, views
 
 M = api.methods
 urlpatterns = [
     path("django-admin/", admin.site.urls),  # emergency only; the SPA covers normal administration
+    path("healthz", monitoring.healthz),
+    path("readyz", monitoring.readyz),
+    path("api/monitoring/status", monitoring.status_view),
+    path("api/admin/monitoring/status", M(GET=api.monitoring_status)),
+    path("api/admin/monitoring/token", M(POST=api.monitoring_token)),
+    path("api/admin/syslog/test", M(POST=api.syslog_test)),
     path("api/session", api.session),
     path("api/login", api.login_view),
     path("api/logout", api.logout_view),

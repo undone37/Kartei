@@ -283,11 +283,12 @@ docker compose logs --since 1h exporter
 
 Der `exporter` schreibt pro Export, Sync und Benutzerimport eine Zeile. Die Ergebnisse siehst du außerdem im jeweiligen Reiter der Einstellungen (*Letzter Lauf*).
 
+Die Logzeilen sind JSON, ein Objekt pro Zeile (`ts`, `level`, `logger`, `msg` und Details wie `http` bei Anfragen oder `audit` bei Protokolleinträgen), damit Log-Shipper und SIEM sie auswerten können. Für Klartextzeilen setzt du `LOG_FORMAT=text` in der `.env`; `LOG_LEVEL` (Standard `INFO`) bestimmt die Ausführlichkeit. Logs an ein SIEM weiterleiten: siehe [Monitoring und Protokolle](#monitoring).
+
 ### Healthcheck
 
-- `docker compose ps` zeigt den Zustand von `web` (fragt alle 10 Sekunden `/api/session` ab) und `db`.
-- Für ein externes Monitoring prüfst du `https://kartei.example.de/api/session` (HTTP 200 ohne Anmeldung).
-- `exporter` hat keinen Healthcheck. Behalte den Stand der Exporte (*Einstellungen → Exporte*, Spalte *Letzter Lauf*) und der Syncs im Blick.
+- `docker compose ps` zeigt den Zustand von `web` (fragt alle 10 Sekunden `/healthz` ab) und `db`.
+- Für ein externes Monitoring nimmst du `/readyz` und den ausführlichen Status, siehe [Monitoring und Protokolle](#monitoring).
 
 ### Kommandozeile
 
@@ -1126,7 +1127,7 @@ Statt Kartei alle paar Minuten abzufragen, können andere Systeme sofort benachr
 
 ![Reiter Protokoll](../img/de/settings-audit.png)
 
-- **Filtern** nach Bereich: *Alle Bereiche*, *Kontakt*, *Feld*, *Benutzer*, *Einstellungen*, *Export*, *API-Token*.
+- **Filtern** nach Bereich: *Alle Bereiche*, *Kontakt*, *Feld*, *Benutzer*, *Einstellungen*, *Export*, *API-Token*, *Anmeldungen*.
 - **Suchen** in Objektnamen und Benutzernamen (*Objekt oder Benutzer suchen …*).
 - Es werden je 100 Einträge geladen; *Ältere laden* holt weitere.
 
@@ -1140,10 +1141,117 @@ Was protokolliert wird:
 | Einstellungen | jede Änderung (Passwörter und Schlüssel als `***` maskiert), neues CardDAV-Passwort, *Jetzt synchronisieren*, gestartete Prüfungen, Umwandlung der Telefonnummern |
 | Export | Änderungen an Exportprofilen und jeder Listenexport durch Benutzer (mit Zeilenzahl) |
 | API-Token | Erzeugen (mit Berechtigung), Widerrufen |
+| Anmeldungen | Anmeldung (mit Verfahren: Passwort, LDAP, Single Sign-on), Abmeldung, fehlgeschlagene Anmeldung (mit Grund), abgelehnter CardDAV- oder API-Zugang, verweigerter Zugriff auf eine Admin- oder Bearbeiter-Funktion |
 
-Nicht protokolliert werden Anmeldungen und die einzelnen Läufe von Exporten und Syncs (deren Ergebnis zeigt der jeweilige Reiter und das Log des `exporter`). Automatische Aktionen erscheinen als Benutzer *system*, Änderungen über ein Schreib-Token als `api:<Token-Name>`.
+Zu jedem Eintrag wird außerdem die IP-Adresse des Aufrufers gespeichert; nur Admins sehen sie, in der Spalte *Benutzer*.
+
+![Anmeldungen im Protokoll](../img/de/audit-signins.png)
+
+Anmeldeeinträge enthalten IP-Adressen und werden nach den Tagen gelöscht, die unter *Einstellungen → Monitoring & Protokolle → Anmeldeeinträge aufbewahren* eingestellt sind (Standard 90; 0 = für immer). Ein abgelehnter CardDAV- oder API-Zugang wird je Adresse und 15 Minuten einmal protokolliert, damit ein Telefon mit altem Passwort das Protokoll nicht füllt. Alle anderen Einträge bleiben erhalten.
+
+Nicht protokolliert werden die einzelnen Läufe von Exporten und Syncs (deren Ergebnis zeigt der jeweilige Reiter, das Log des `exporter` und der [Monitoring-Status](#monitoring)). Automatische Aktionen erscheinen als Benutzer *system*, Änderungen über ein Schreib-Token als `api:<Token-Name>`. Das Protokoll an ein SIEM senden: siehe [Syslog an das SIEM](#monitoring).
 
 Jeder Kontakt hat außerdem einen eigenen Reiter *Verlauf*, siehe [Benutzerhandbuch](user.html).
+
+## Monitoring und Protokolle {#monitoring}
+
+*Einstellungen → Monitoring & Protokolle* zeigt den Zustand von Kartei und seinen Hintergrundaufgaben, gibt Monitoring-Systemen Zugriff darauf und sendet Protokolleinträge an dein SIEM.
+
+![Reiter Monitoring & Protokolle](../img/de/settings-monitoring.png)
+
+### Endpunkte
+
+| Adresse | Zugriff | Antwort |
+|---|---|---|
+| `/healthz` | offen | `{"status": "ok"}`: der Webprozess läuft (ohne Datenbankprüfung). Für Container- und Loadbalancer-Prüfungen. |
+| `/readyz` | offen | `{"status": "ok"}` (HTTP 200), wenn die Datenbank erreichbar und migriert ist, sonst `{"status": "fail"}` mit HTTP **503**. |
+| `/api/monitoring/status` | Token **und** erlaubte Adresse | alle Prüfungen und Kennzahlen als JSON; `?format=prtg` im Format des PRTG-Sensors *HTTP-Daten (erweitert)* |
+
+Der ausführliche Status braucht beides:
+
+1. **Token:** *Token erzeugen* zeigt ihn einmal an (`kmon_…`); er wird als `Authorization: Bearer kmon_…` mitgeschickt. *Neuen Token erzeugen* ersetzt ihn.
+2. **Erlaubte Adressen:** eine IP-Adresse oder ein Netz pro Zeile, z. B. `10.0.5.20` oder `10.0.6.0/24`. Leer heißt: niemand. Hinter dem Reverse Proxy zählt die Adresse aus `X-Forwarded-For` (siehe [Sicherheit](#sicherheit)).
+
+Fehlender oder falscher Token: HTTP 401; Adresse nicht erlaubt: HTTP 403. Mehr verrät keine der beiden Antworten.
+
+```sh
+curl -H "Authorization: Bearer kmon_…" https://kartei.example.de/api/monitoring/status
+```
+
+```json
+{"status": "warn", "version": "0.5.0-beta", "at": "…",
+ "checks": [{"name": "database", "status": "ok", "detail": "", "age_s": null},
+            {"name": "exporter", "status": "ok", "detail": "", "age_s": 42},
+            {"name": "export:Telefonbuch", "status": "warn", "detail": "…", "age_s": 11000}],
+ "metrics": {"persons": 1840, "companies": 412, "login_failures_1h": 0, "…": 0}}
+```
+
+`status` ist das schlechteste Ergebnis aller Prüfungen: `ok`, `warn` oder `crit`.
+
+| Prüfung | warn | crit |
+|---|---|---|
+| `database` | – | nicht erreichbar oder Migrationen ausstehend |
+| `exporter` | seit 2 Exportintervallen kein Lebenszeichen | seit 3 Intervallen oder noch nie |
+| `export:<Name>` (automatische Exporte) | seit 3 Intervallen nicht gelaufen | letzter Lauf fehlgeschlagen (z. B. vom Schrumpfschutz gestoppt) |
+| `outlook`, `active_directory`, `carddav_relay` (wenn aktiv) | seit 3 Intervallen nicht gelaufen | letzter Lauf fehlgeschlagen |
+| `ldap_users` (täglicher Import) | seit 3 Tagen nicht gelaufen | letzter Lauf fehlgeschlagen |
+| `webhook:<Name>` | letzte Zustellung fehlgeschlagen | – |
+| `syslog` (wenn aktiv) | – | Versand in der letzten Stunde fehlgeschlagen |
+| `export_disk` | unter 10 % frei auf `/export` | unter 5 % frei |
+
+Kennzahlen: Kontakte (`persons`, `companies`, `recycle_bin`), aktive Benutzer je Rolle, offene Prüfungen und Vorschläge, Anmeldungen und Fehlversuche der letzten Stunde und des letzten Tages, abgelehnte CardDAV-/API-Zugriffe, Protokolleinträge pro Tag und die Syslog-Zähler.
+
+**Beispiele:**
+
+- **Checkmk:** eine Regel *Check HTTP web service* für `/readyz` (erwartet 200) und eine für die Status-URL mit dem Header `Authorization: Bearer kmon_…`, die in der Antwort nach `"status": "ok"` sucht (oder `"warn"` als Warnung zulässt).
+- **Zabbix:** ein Item *HTTP agent* auf die Status-URL mit dem Header und abhängige Items mit JSONPath, z. B. `$.status`, `$.checks[?(@.name=='exporter')].status.first()`, `$.metrics.login_failures_1h`. Trigger auf `status <> "ok"`.
+- **PRTG:** ein Sensor *HTTP-Daten (erweitert)* auf `…/api/monitoring/status?format=prtg` mit dem Header. Jede Prüfung wird ein Kanal (0 ok, 1 warn, 2 crit, mit gesetzten Grenzwerten), jede Kennzahl ebenfalls.
+- **Uptime Kuma** und ähnliche: ein HTTP-Monitor auf `/readyz`.
+
+### Syslog an das SIEM
+
+Kartei sendet jeden Protokolleintrag (siehe [Protokoll](#protokoll)) direkt an dein SIEM:
+
+![Syslog-Einstellungen](../img/de/settings-syslog.png)
+
+1. *An Syslog senden* anhaken, *Host* und *Port* eintragen und das *Protokoll* wählen: UDP, TCP oder TLS. Bei TLS das CA-Zertifikat einfügen, wenn das SIEM eine interne CA nutzt (leer = System-CAs), und *Serverzertifikat prüfen* eingeschaltet lassen.
+2. *Facility* (Standard `local0`) und *Was gesendet wird* wählen: nur Protokolleinträge oder zusätzlich Warnungen und Fehler der Anwendung.
+3. *Speichern & Testereignis senden* schickt ein Testereignis und zeigt das Ergebnis.
+
+Jedes Ereignis ist eine RFC-5424-Nachricht (TCP und TLS mit Octet Counting, RFC 6587). Die Nachricht ist die JSON-Logzeile:
+
+```text
+<132>1 2026-11-06T14:36:46.215+00:00 web kartei 11 audit - {"ts": "…", "level": "WARNING", "logger": "kartei.audit",
+  "msg": "login_failed session mallory", "audit": {"event": "login_failed", "area": "session", "object_id": "", "object": "mallory",
+  "user": "mallory", "ip": "203.0.113.45", "changes": {"reason": [null, "invalid_credentials"]}}}
+```
+
+- MSGID ist `audit` für Protokolleinträge und `app` für Meldungen der Anwendung.
+- Fehlgeschlagene Anmeldungen, abgelehnte und verweigerte Zugriffe haben den Schweregrad *warning*, alles andere *info*.
+- Bei Kontakten werden nur die Namen der geänderten Felder gesendet, keine Werte. Benutzer, Einstellungen und Anmeldungen enthalten alten und neuen Wert; Passwörter und Schlüssel sind maskiert.
+- Der Versand bremst Kartei nie aus. Ist das SIEM nicht erreichbar, werden Ereignisse zwischengespeichert (bis zu 10.000 je Prozess) und nachgesendet; Fehler zeigt der Status. Eine neue Einstellung gilt sofort im Prozess, der sie gespeichert hat, in den anderen innerhalb einer Minute.
+
+### Container-Logs an das SIEM (Fluent Bit)
+
+Sollen zusätzlich die vollständigen Container-Logs (Anfragen, Fehler, Datenbank) weitergeleitet werden, startest du den optionalen Fluent-Bit-Container mit der Ergänzung `compose.logging.yaml`:
+
+```sh
+# .env
+COMPOSE_FILE=compose.yaml:compose.logging.yaml
+SIEM_HOST=siem.example.de
+SIEM_PORT=6514
+SIEM_MODE=tls        # udp, tcp oder tls
+SIEM_TLS=on          # zusammen mit SIEM_MODE=tls
+```
+
+```sh
+docker compose up -d
+```
+
+Docker übergibt die Logs von `web`, `exporter` und `db` an Fluent Bit, das jede Zeile als RFC-5424-Syslog sendet; die Zeilen von Kartei kommen als JSON an, die der Datenbank als Text. `docker compose logs` funktioniert weiterhin. Weitere Einstellungen in der `.env.example`: `SIEM_TLS_VERIFY`, eine eigene CA (`SIEM_CA_HOST_FILE` und `SIEM_CA_FILE`), `SIEM_HOSTNAME`, `SIEM_FACILITY`.
+
+> Kartei sendet seine Protokolleinträge selbst (vorheriger Abschnitt), deshalb überspringt Fluent Bit sie, damit nichts doppelt ankommt. Nutzt du nur Fluent Bit, setz `SIEM_SKIP_LOGGERS=^$`, dann werden sie mit weitergeleitet.
+{: .tip}
 
 ## Datenschutz {#datenschutz}
 
@@ -1161,7 +1269,7 @@ Kartei enthält personenbezogene Daten. Zwei Funktionen helfen bei den Rechten d
 ## Sicherheit
 
 - **`SECRET_KEY`:** Das LDAP-Passwort, das Passwort des AD-Schreibkontos, der Outlook-Clientschlüssel und das SMTP-Passwort werden mit einem aus dem `SECRET_KEY` abgeleiteten Schlüssel verschlüsselt gespeichert. Ändert sich der Schlüssel, sind diese Werte verloren (sie gelten als leer) und müssen neu eingegeben werden; außerdem werden alle Benutzer abgemeldet. Halte den `SECRET_KEY` stabil und in der Sicherung.
-- **Nur einmal angezeigt:** Das CardDAV-Passwort und die API-Token werden nur als Hash gespeichert. Sie erscheinen einmal beim Erzeugen; danach lassen sie sich nur ersetzen.
+- **Nur einmal angezeigt:** Das CardDAV-Passwort, die API-Token und der Monitoring-Token werden nur als Hash gespeichert. Sie erscheinen einmal beim Erzeugen; danach lassen sie sich nur ersetzen.
 - **Sperren nach Fehlversuchen:** Nach 10 fehlgeschlagenen Anmeldungen für einen Benutzernamen, 20 fehlgeschlagenen CardDAV-Anmeldungen bzw. 20 fehlgeschlagenen API-Anfragen ist die Absenderadresse 15 Minuten gesperrt. Hinter dem Reverse Proxy ist das der letzte Eintrag von `X-Forwarded-For`; sorg dafür, dass der Proxy ihn anhängt und Port 8000 nicht direkt erreichbar ist (ohne Proxy: `PROXY_HEADERS=0`).
 - **Nur HTTPS:** Cookies sind als *Secure* markiert. Lass `SECURE_COOKIES=1` im Betrieb.
 - **Zwei-Faktor-Anmeldung:** Schalte sie für jedes Admin-Konto ein, vor allem für das lokale aus der `.env` (*Mein Konto*), oder mach sie für Administratoren zur Pflicht (*Allgemeine Einstellungen*). CardDAV, REST-API und Webhooks betrifft sie nicht.

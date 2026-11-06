@@ -22,7 +22,8 @@ from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from . import adsync, audit, batch, exports, gdpr, graph, handover, importer, ldapusers, oidc, relaypush, reviews, totp
+from . import (adsync, audit, batch, exports, gdpr, graph, handover, importer, ldapusers, monitoring, oidc, relaypush,
+               reviews, syslog, totp)
 from .msg import msg
 from .net import client_ip
 from .models import (ROLE_RANK, USER_TYPES, ApiToken, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind,
@@ -57,6 +58,8 @@ def needs(min_rank):
                 return err("unauthenticated", 401)
             request.rank = rank_of(request.user)
             if request.rank < min_rank:
+                audit.log(request.user, "denied", "session", request.user.id, request.path[:255],
+                          {"needs": [None, ["read", "maintainer", "admin"][min_rank]]})
                 return err("forbidden", 403)
             if fn.__name__ not in ("my_totp", "update_me") and totp_due(request.user, request):  # set up the required 2FA first
                 return err("totp_setup_required", 403)
@@ -207,26 +210,33 @@ def login_view(request):
     if sso:
         if time.time() - sso["at"] > 300:
             request.session.pop("sso_pending")
+            _signin_failed(User.objects.filter(pk=sso["user"]).values_list("username", flat=True).first() or "", "sso_expired")
             return err("sso_expired", 401)
         user = User.objects.filter(pk=sso["user"], is_active=True).first()
         username = user.username if user else ""
     # ponytail: per-process cache counter; use a shared cache (DB/redis) if brute force across workers matters
     key = f"login-fail:{client_ip(request)}:{username.lower()}"
     if cache.get(key, 0) >= 10:
+        if cache.get(key, 0) == 10:  # once per lockout, not for every further try
+            cache.set(key, 11, 15 * 60)
+            _signin_failed(username, "too_many_attempts")
         return err("too_many_attempts", 429)
     if not sso:
         user = authenticate(request, username=username, password=password)
     if user is None or not user.is_active:
         cache.set(key, cache.get(key, 0) + 1, 15 * 60)
+        _signin_failed(username, "inactive" if user else "invalid_credentials", user)
         return err("invalid_credentials", 401)
     p = profile_of(user)
     if p.totp_secret_enc:  # two-factor sign-in: the code from the authenticator app (or a recovery code) as well
         if not str(body.get("code") or "").strip():
             return err("totp_required", 401)
         if totp_locked(p):
+            _signin_failed(username, "too_many_attempts", user)
             return err("too_many_attempts", 429)
         if not _second_factor(user, p, str(body["code"])):
             cache.set(key, cache.get(key, 0) + 1, 15 * 60)
+            _signin_failed(username, "invalid_code", user)
             return err("invalid_code", 401)
     cache.delete(key)
     if sso:
@@ -234,13 +244,21 @@ def login_view(request):
         _sso_login(request, user)
     else:
         login(request, user)
+        method = "ldap" if "LDAP" in getattr(user, "backend", "") else "password"
+        audit.log(user, "login", "session", user.id, user.username, {"method": [None, method]})
     return JsonResponse({"user": ser_user(user)})
+
+
+def _signin_failed(username, reason, user=None):
+    """Audit entry for a refused sign-in; the attempted name is the label (there may be no such user)."""
+    audit.log(None, "login_failed", "session", user.id if user else "", username[:150],
+              {"reason": [None, reason]}, username=username[:150] or "?")
 
 
 def _sso_login(request, user):
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     request.session["sso_at"] = int(time.time())  # stands in for the password when a SCIM user sets up 2FA
-    audit.log(user, "login", "user", user.id, user.username, {"sso": [None, "oidc"]})
+    audit.log(user, "login", "session", user.id, user.username, {"method": [None, "oidc"]})
 
 
 def oidc_start(request):
@@ -264,6 +282,7 @@ def oidc_callback(request):
     try:
         user = oidc.finish(request.session, s, request.GET.get("code", ""), request.GET.get("state", ""))
     except oidc.SignInError as e:
+        _signin_failed("", str(e))  # ponytail: the provider's name for the user isn't known at this point
         return HttpResponseRedirect(f"/?login_error={e}")
     if profile_of(user).totp_secret_enc and not s.oidc_mfa_trusted:  # unless the provider's MFA counts, the login page asks
         request.session["sso_pending"] = {"user": user.id, "at": int(time.time())}
@@ -369,6 +388,8 @@ def user_totp_reset(request, pk):
 def logout_view(request):
     if request.method != "POST":
         return err("method_not_allowed", 405)
+    if request.user.is_authenticated:
+        audit.log(request.user, "logout", "session", request.user.id, request.user.username)
     logout(request)
     return JsonResponse({"ok": True})
 
@@ -646,7 +667,7 @@ def ser_audit(e, rank, kinds=None):
         changes = {k: v for k, v in changes.items() if k not in hidden}
     return {"id": e.id, "at": e.at.isoformat(), "user": e.username, "action": e.action,
             "target_type": e.target_type, "target_id": e.target_id, "target_label": e.target_label,
-            "kind": (kinds or {}).get(e.target_id), "changes": changes}
+            "kind": (kinds or {}).get(e.target_id), "changes": changes, **({"ip": e.ip} if rank >= ADMIN else {})}
 
 
 def record_kinds(entries):
@@ -1569,6 +1590,8 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
                   "review_remind_days", "proposal_notify", "proposal_notify_to",
                   "ad_enabled", "ad_ou", "ad_bind_dn", "ad_kinds", "ad_columns", "ad_max_shrink_percent"]
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
+SETTINGS_ATTRS += ["audit_signin_days", "monitoring_allowlist", "syslog_enabled", "syslog_host", "syslog_port",
+                   "syslog_protocol", "syslog_ca_cert", "syslog_tls_verify", "syslog_facility", "syslog_content"]
 SETTINGS_ATTRS += ["mail_templates", "mail_transport", "mail_graph_sender"]
 SETTINGS_ATTRS += ["oidc_issuer", "oidc_client_id", "oidc_scopes", "oidc_claim", "oidc_label", "oidc_mfa_trusted",
                    "scim_group_admin", "scim_group_maintainer", "scim_group_read"]
@@ -1586,6 +1609,7 @@ def ser_settings(s):
             "ad_bind_password_set": bool(s.ad_bind_password_enc), "ad_status": s.ad_status,
             "ad_sync_requested": s.ad_sync_requested, **relaypush.ser(s),
             "oidc_client_secret_set": bool(s.oidc_client_secret_enc), "scim_token_set": bool(s.scim_token_hash),
+            "monitoring_token_set": bool(s.monitoring_token_hash), "syslog_status": s.syslog_status,
             "scim_seen_at": s.scim_seen_at.isoformat() if s.scim_seen_at else None,
             "scim_groups": [{"id": str(g.id), "name": g.display_name, "members": g.n}
                             for g in ScimGroup.objects.annotate(n=Count("members"))]}
@@ -1641,7 +1665,7 @@ def settings_put(request):
         errors["mail_templates"] = bad
     if s.default_language not in ("de", "en"):
         errors["default_language"] = "invalid"
-    for a in ("trash_days", "export_interval_minutes"):
+    for a in ("trash_days", "export_interval_minutes", "audit_signin_days"):
         if not isinstance(getattr(s, a), int) or getattr(s, a) < 0:
             errors[a] = "invalid_number"
     if not re.fullmatch(r"\+[1-9]\d{0,3}", str(s.phone_country_code)):
@@ -1673,6 +1697,23 @@ def settings_put(request):
         errors["oidc_scopes"] = "openid_required"
     if s.oidc_enabled and not (s.oidc_issuer and s.oidc_client_id and s.oidc_client_secret_enc and s.base_url):
         errors["oidc_enabled"] = "oidc_incomplete"  # provider and the public URL (for the redirect URI) are needed
+    if not isinstance(s.monitoring_allowlist, list):
+        errors["monitoring_allowlist"] = "invalid"
+    else:
+        s.monitoring_allowlist = [str(x).strip() for x in s.monitoring_allowlist if str(x).strip()]
+        if bad := monitoring.valid_allowlist(s.monitoring_allowlist):
+            errors["monitoring_allowlist"] = "invalid_network:" + ", ".join(bad)[:200]
+    s.syslog_host = str(s.syslog_host or "").strip()
+    if s.syslog_protocol not in ("udp", "tcp", "tls"):
+        errors["syslog_protocol"] = "invalid"
+    if s.syslog_facility not in syslog.FACILITIES:
+        errors["syslog_facility"] = "invalid"
+    if s.syslog_content not in ("audit", "audit_and_app"):
+        errors["syslog_content"] = "invalid"
+    if not isinstance(s.syslog_port, int) or not 1 <= s.syslog_port <= 65535:
+        errors["syslog_port"] = "invalid_number"
+    if s.syslog_enabled and not s.syslog_host:
+        errors["syslog_host"] = "required"
     groups = {str(i) for i in ScimGroup.objects.values_list("id", flat=True)}
     for a in ("scim_group_admin", "scim_group_maintainer", "scim_group_read"):
         setattr(s, a, str(getattr(s, a) or ""))
@@ -1681,6 +1722,7 @@ def settings_put(request):
     if errors:
         return err("validation", fields=errors)
     s.save()
+    syslog.reload(s)
     if change := audit.diff(before, _settings_snapshot(s)):
         audit.log(request.user, "update", "settings", 1, "settings", change)
     if any(a.startswith("scim_group_") for a in change or {}):
@@ -1707,6 +1749,27 @@ def carddav_password(request):
     s.save()
     audit.log(request.user, "update", "settings", 1, "settings", {"carddav_password_hash": ["***", "***"]})
     return JsonResponse({"password": pw})  # shown once
+
+
+@needs(ADMIN)
+def monitoring_token(request):
+    """A new monitoring token, shown once; the old one stops working."""
+    token, digest = monitoring.new_token()
+    Settings.objects.filter(pk=1).update(monitoring_token_hash=digest)
+    audit.log(request.user, "update", "settings", 1, "settings", {"monitoring_token_hash": ["***", "***"]})
+    return JsonResponse({"token": token})
+
+
+@needs(ADMIN)
+def monitoring_status(request):
+    """The monitoring status for the settings page (admin session instead of token and allowlist)."""
+    return JsonResponse(monitoring.collect())
+
+
+@needs(ADMIN)
+def syslog_test(request):
+    error = syslog.send_test(Settings.get())
+    return JsonResponse({"error": msg(error) if error == "syslog_no_host" else error} if error else {"ok": True})
 
 
 @needs(ADMIN)
