@@ -11,6 +11,7 @@ mimetypes.add_type("application/manifest+json", ".webmanifest")  # PWA manifest,
 FRONTEND_DIST = Path(os.environ.get("FRONTEND_DIST", BASE_DIR.parent / "frontend" / "dist"))
 
 DEBUG = os.environ.get("DEBUG", "0") == "1"
+TESTING = sys.argv[1:2] == ["test"]  # no background syslog sender in tests
 SECRET_KEY = os.environ.get("SECRET_KEY") or ("dev-insecure-key" if DEBUG else None)
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY must be set when DEBUG is off")
@@ -43,6 +44,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "kartei.net.ip_middleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -93,6 +95,11 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # CSV imports
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,  # else django.request is off and server errors leave no traceback in the log
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": os.environ.get("LOG_LEVEL", "INFO")},
+    # JSON lines in production (LOG_FORMAT=json, the default without DEBUG), so log shippers and the SIEM can parse them
+    "formatters": {"json": {"()": "kartei.logs.JsonFormatter"}},
+    "handlers": {"syslog": {"class": "kartei.syslog.Handler"},  # sends only once enabled in the settings
+                 "console": {"class": "logging.StreamHandler",
+                             **({"formatter": "json"} if os.environ.get("LOG_FORMAT", "text" if DEBUG else "json") == "json" else {})}},
+    "root": {"handlers": ["console"] + ([] if TESTING else ["syslog"]), "level": os.environ.get("LOG_LEVEL", "INFO")},
+    "loggers": {"kartei.audit": {"level": "WARNING" if TESTING else "INFO"}},  # audit events reach the SIEM whatever LOG_LEVEL says
 }

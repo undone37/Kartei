@@ -42,7 +42,10 @@ def token_auth(*allowed):
             token = header[7:].strip() if header.startswith("Bearer ") else ""
             t = ApiToken.objects.filter(token_hash=ApiToken.digest(token)).first() if token else None
             if t is None:
-                cache.set(key, cache.get(key, 0) + 1, 15 * 60)
+                failures = cache.get(key, 0)
+                cache.set(key, failures + 1, 15 * 60)
+                if not failures:  # first failure per address and window, like CardDAV
+                    audit.log(None, "auth_failed", "session", "", "API", {"channel": [None, "api"]}, username="?")
                 resp = err("unauthenticated", 401)
                 resp["WWW-Authenticate"] = 'Bearer realm="Kartei"'
                 return resp

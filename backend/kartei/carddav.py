@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from . import dav as proto
+from . import audit, dav as proto
 from .models import AuditEntry, FieldDef, Record, Settings, ref_names
 from .vcard import render
 
@@ -92,5 +92,10 @@ def dav(request, uid=None):
     s = Settings.get()
     if not s.carddav_enabled:
         return HttpResponse(status=404)
-    return proto.serve(request, uid, s.carddav_username, s.carddav_password_hash, lambda flavour: Book(s, flavour))
+    return proto.serve(request, uid, s.carddav_username, s.carddav_password_hash, lambda flavour: Book(s, flavour),
+                       on_fail=_auth_failed)
+
+
+def _auth_failed(user):
+    audit.log(None, "auth_failed", "session", "", user[:150], {"channel": [None, "carddav"]}, username=user[:150] or "?")
 

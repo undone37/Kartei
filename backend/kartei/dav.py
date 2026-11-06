@@ -38,8 +38,9 @@ def unauthorized():
     return r
 
 
-def authorized(request, username, password_hash):
-    """Basic auth against one user; 20 failures per client address lock it out for 15 minutes."""
+def authorized(request, username, password_hash, on_fail=None):
+    """Basic auth against one user; 20 failures per client address lock it out for 15 minutes.
+    on_fail(user): called on the first failure of such a window (Kartei audits it; the relay has no audit log)."""
     key = f"carddav-fail:{client_ip(request)}"
     if cache.get(key, 0) >= 20:
         return False
@@ -55,7 +56,10 @@ def authorized(request, username, password_hash):
         if password_hash and user == username and (cache.get(ok) or check_password(pw, password_hash)):
             cache.set(ok, True, 5 * 60)
             return True
-        cache.set(key, cache.get(key, 0) + 1, 15 * 60)
+        failures = cache.get(key, 0)
+        cache.set(key, failures + 1, 15 * 60)
+        if not failures and on_fail:  # first failure of the window only: a phone with an old password retries all day
+            on_fail(user)
     return False
 
 
@@ -181,14 +185,14 @@ def well_known(request):
     return HttpResponseRedirect(ROOT)
 
 
-def serve(request, uid, username, password_hash, book):
+def serve(request, uid, username, password_hash, book, on_fail=None):
     """One CardDAV request. uid: card from the URL (validated by the URL pattern) or None for root/book."""
     if request.method == "OPTIONS":
         r = HttpResponse()
         r["DAV"] = "1, 3, addressbook"
         r["Allow"] = "OPTIONS, GET, HEAD, PROPFIND, REPORT"
         return r
-    if not authorized(request, username, password_hash):
+    if not authorized(request, username, password_hash, on_fail):
         return unauthorized()
     if request.method not in ("GET", "HEAD", "PROPFIND", "REPORT"):
         return HttpResponse("read-only", status=403)

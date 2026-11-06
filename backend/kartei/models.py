@@ -76,6 +76,23 @@ class Settings(models.Model):
     base_url = models.URLField(blank=True)
     trash_days = models.PositiveIntegerField(default=0)  # 0 = recycle bin is never purged
     purge_anonymize = models.BooleanField(default=True)  # purging also removes values and name from the history (GDPR)
+    audit_signin_days = models.PositiveIntegerField(default=90)  # sign-in entries (with IPs) kept this long; 0 = forever
+
+    # monitoring: /api/monitoring/status needs the token *and* an allowed address
+    monitoring_token_hash = models.CharField(max_length=64, blank=True)  # sha256 of a random token
+    monitoring_allowlist = models.JSONField(default=list, blank=True)  # IPs / CIDRs; empty = nobody
+    exporter_seen_at = models.DateTimeField(null=True, blank=True)  # heartbeat, written every exporter tick
+
+    # syslog: audit events (and optionally app warnings) as RFC 5424 + JSON to a SIEM
+    syslog_enabled = models.BooleanField(default=False)
+    syslog_host = models.CharField(max_length=255, blank=True)
+    syslog_port = models.PositiveIntegerField(default=514)
+    syslog_protocol = models.CharField(max_length=3, default="udp", choices=[(x, x) for x in ("udp", "tcp", "tls")])
+    syslog_ca_cert = models.TextField(blank=True)  # PEM; empty = system CAs
+    syslog_tls_verify = models.BooleanField(default=True)
+    syslog_facility = models.CharField(max_length=8, default="local0")
+    syslog_content = models.CharField(max_length=13, default="audit", choices=[("audit", "audit"), ("audit_and_app", "audit_and_app")])
+    syslog_status = models.JSONField(default=dict, blank=True)  # written by the senders, at most once a minute
     export_interval_minutes = models.PositiveIntegerField(default=15)
 
     ldap_uri = models.CharField(max_length=255, blank=True)  # empty = LDAP disabled
@@ -355,6 +372,7 @@ class AuditEntry(models.Model):
     target_id = models.CharField(max_length=64, db_index=True)
     target_label = models.CharField(max_length=255, blank=True)
     changes = models.JSONField(default=dict, blank=True)  # {key: [old, new]}
+    ip = models.GenericIPAddressField(null=True, blank=True)  # client address of the request that caused it
 
     class Meta:
         ordering = ["-at", "-id"]

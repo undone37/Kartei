@@ -1,0 +1,46 @@
+# Fluent Bit for compose.logging.yaml: container logs (Docker fluentd driver) -> RFC 5424 syslog to the SIEM.
+# Kartei's own lines are JSON (one object per line) and become the syslog message unchanged.
+service:
+  flush: 1
+  log_level: info
+
+parsers:
+  - name: json
+    format: json
+
+pipeline:
+  inputs:
+    - name: forward
+      listen: 0.0.0.0
+      port: 24224
+
+  filters:
+    # read the JSON fields (logger, level, ...) for the grep below; the original line stays in "log"
+    - name: parser
+      match: "*"
+      key_name: log
+      parser: json
+      reserve_data: on
+      preserve_key: on
+    # Kartei sends its audit events itself (Settings -> Monitoring & logging); skip them here to avoid duplicates
+    - name: grep
+      match: "*"
+      exclude: logger ${SIEM_SKIP_LOGGERS}
+
+  outputs:
+    - name: syslog
+      match: "*"
+      host: ${SIEM_HOST}
+      port: ${SIEM_PORT}
+      mode: ${SIEM_MODE}
+      syslog_format: rfc5424
+      syslog_maxsize: 65535
+      syslog_hostname_preset: ${SIEM_HOSTNAME}
+      syslog_appname_key: container_name
+      syslog_message_key: log
+      syslog_severity_preset: 6
+      syslog_facility_preset: ${SIEM_FACILITY}
+      tls: ${SIEM_TLS}
+      tls.verify: ${SIEM_TLS_VERIFY}
+      tls.ca_file: ${SIEM_CA_FILE}
+      retry_limit: no_limits

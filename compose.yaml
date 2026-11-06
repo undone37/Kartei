@@ -28,7 +28,7 @@ services:
     volumes:
       - ${EXPORT_HOST_DIR:-./export_out}:/export
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/session')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
       interval: 10s
       start_period: 30s
 
