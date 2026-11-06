@@ -1,0 +1,82 @@
+# Nightly images of main (linux/amd64 and linux/arm64) in the GitHub container registry, no release:
+#   ghcr.io/<owner>/kartei:nightly, ghcr.io/<owner>/kartei-relay:nightly (latest build), and :sha-<commit> of each build.
+# Skipped when main hasn't changed since the last nightly (its sha-<commit> tag exists already). For testing, not production.
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 2 * * *"   # 02:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency: { group: nightly, cancel-in-progress: false }
+
+jobs:
+  nightly:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: v
+        name: Version and change check
+        run: |
+          short=$(git rev-parse --short=7 HEAD)
+          echo "version=nightly-$(date -u +%Y%m%d)-$short" >> "$GITHUB_OUTPUT"
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+          if docker buildx imagetools inspect "ghcr.io/${{ github.repository_owner }}/kartei:sha-$short" >/dev/null 2>&1; then
+            echo "main unchanged since the last nightly (sha-$short exists): nothing to build"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.v.outputs.skip != 'true'
+        uses: docker/setup-qemu-action@v4   # arm64 images are built under emulation
+      - if: steps.v.outputs.skip != 'true'
+        uses: docker/setup-buildx-action@v4
+
+      - if: steps.v.outputs.skip != 'true'
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/kartei
+          tags: |
+            type=raw,value=nightly
+            type=sha,prefix=sha-,format=short
+      - if: steps.v.outputs.skip != 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: KARTEI_VERSION=${{ steps.v.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+
+      - if: steps.v.outputs.skip != 'true'
+        id: relay
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/kartei-relay
+          tags: |
+            type=raw,value=nightly
+            type=sha,prefix=sha-,format=short
+      - if: steps.v.outputs.skip != 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: relay
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: KARTEI_VERSION=${{ steps.v.outputs.version }}
+          tags: ${{ steps.relay.outputs.tags }}
+          labels: ${{ steps.relay.outputs.labels }}
+          sbom: true
+          provenance: mode=max

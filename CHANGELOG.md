@@ -4,6 +4,10 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- **Nightly images:** `ghcr.io/undone37/kartei:nightly` and `kartei-relay:nightly` are built from `main` every night when it has changed, plus `:sha-<commit>` per build, for amd64 and arm64. The user menu shows the version as `nightly-<date>-<commit>`. They are for testing only, not releases.
+
 ## [0.5.0-beta] – 2026-11-06
 
 Kartei can now be monitored and audited like any other production service. There are health and status endpoints for Checkmk, Zabbix and PRTG, sign-ins appear in the audit log, logs are JSON, and audit events and container logs can go to a SIEM via syslog. In the contact view, a click on a tag filters the list.
