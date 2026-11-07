@@ -839,6 +839,25 @@ test.describe('email signature', () => {
   })
 })
 
+test.describe('order and names', () => {
+  test('a user sorts the list by first name and shows "Last, First"; it stays after a reload', async ({ as }) => {
+    const page = await as('kkramer')
+    await page.goto('/')
+    try {
+      await page.getByRole('button', { name: 'Order and names' }).click()
+      await page.getByLabel('First name (A–Z)').check()
+      await page.getByLabel('Last name, First name').check()
+      const persons = (await page.records()).filter((r) => r.kind === 'person' && r.first_name)
+      const first = persons.sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, 'de'))[0]
+      await page.keyboard.press('Escape')
+      await page.reload()
+      await expect(list(page).getByRole('option').first()).toContainText(`${first.last_name}, ${first.first_name}`)
+    } finally {
+      await page.api('patch', '/api/me', { list_sort: 'last_name', name_order: 'first_last' })
+    }
+  })
+})
+
 test.describe('deleting', () => {
   test('delete asks first; the contact goes to the recycle bin and comes back', async ({ as }) => {
     const page = await as('mmuster')

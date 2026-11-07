@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import logo from './assets/logo.svg'
-  import { Bookmark, Building2, ChevronDown, ClipboardPaste, Copy, Download, FileUp, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, Printer, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
+  import { ArrowDownUp, Bookmark, Building2, ChevronDown, ClipboardPaste, Copy, Download, FileUp, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, Printer, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
   import AdvancedFilter from './components/AdvancedFilter.svelte'
   import Combobox from './components/Combobox.svelte'
   import Login from './components/Login.svelte'
@@ -359,6 +359,7 @@
           {/if}
           <div class="listbar">
             <span class="count tabular">{t('list.count', { n: results.length })}</span>
+            <button class="btn icon sm ghost" popovertarget="sort-menu" title={t('sort.title')} aria-label={t('sort.title')}><ArrowDownUp size={15} /></button>
             <button class="btn icon sm ghost" popovertarget="saved-menu" title={t('saved.title')} aria-label={t('saved.title')}><Bookmark size={15} /></button>
             <button class="btn icon sm ghost" popovertarget="export-menu" title={t('dl.title')} aria-label={t('dl.title')} disabled={!results.length}><Download size={15} /></button>
             {#if store.canEdit}
@@ -438,6 +439,22 @@
           <button class="btn sm primary" disabled={!saveName.trim()}>{t('common.save')}</button>
         </div>
       </form>
+    </div>
+    <div id="sort-menu" popover class="menu list-menu sort-menu">
+      <fieldset>
+        <legend>{t('sort.order')}</legend>
+        {#each ['last_name', 'first_name', 'updated', 'created'] as const as o (o)}
+          <label><input type="radio" name="list-sort" checked={(store.user?.list_sort ?? 'last_name') === o}
+                        onchange={() => store.setListPrefs({ list_sort: o }).catch(() => toast(t('err.generic'), { kind: 'error' }))} /> {t(`sort.${o}`)}</label>
+        {/each}
+      </fieldset>
+      <fieldset>
+        <legend>{t('sort.names')}</legend>
+        {#each ['first_last', 'last_first'] as const as o (o)}
+          <label><input type="radio" name="name-order" checked={(store.user?.name_order ?? 'first_last') === o}
+                        onchange={() => store.setListPrefs({ name_order: o }).catch(() => toast(t('err.generic'), { kind: 'error' }))} /> {t(`sort.${o}`)}</label>
+        {/each}
+      </fieldset>
     </div>
     <div id="export-menu" popover class="menu list-menu">
       <button onclick={() => exportList('xlsx')}><Download size={15} />{t('dl.xlsx', { n: results.length })}</button>
@@ -524,6 +541,11 @@
   .list-menu { top: 150px; left: 12px; width: 320px; }
   .list-menu .fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .list-menu .none { margin: 6px 10px; }
+  .sort-menu fieldset { border: 0; margin: 0; padding: 4px 6px 8px; display: grid; gap: 2px; }
+  .sort-menu fieldset + fieldset { border-top: 1px solid var(--border); padding-top: 8px; }
+  .sort-menu legend { font-size: 12px; font-weight: 600; color: var(--muted); padding: 0 0 4px; }
+  .sort-menu label { display: flex; align-items: center; gap: 8px; padding: 4px 4px; border-radius: 6px; cursor: pointer; }
+  .sort-menu label:hover { background: var(--panel-2); }
   .save { display: grid; gap: 6px; padding: 8px 4px 2px; margin-top: 6px; border-top: 1px solid var(--border); }
   .save-row { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
   .list { flex: 1; min-height: 0; }

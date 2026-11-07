@@ -2,7 +2,7 @@ import { del as idbDel, get as idbGet, set as idbSet } from 'idb-keyval'
 import { ApiError, del, get, onUnauthorized, patch, post } from './api'
 import { setLang, t } from './i18n.svelte'
 import { clearDrafts } from './drafts'
-import { buildIndex, displayName, type Indexed } from './search'
+import { buildIndex, displayName, type Indexed, type ListSort, type NameOrder } from './search'
 import { RANK, type Field, type Kind, type Section, type Lang, type ListState, type Proposal, type Rec, type Review,
          type SavedFilter, type User } from './types'
 
@@ -57,7 +57,7 @@ class Store {
   cursor = ''
 
   byUid = $derived(new Map(this.records.map((r) => [r.uid, r])))
-  index: Indexed[] = $derived(buildIndex(this.records, this.fields, this.byUid))
+  index: Indexed[] = $derived(buildIndex(this.records, this.fields, this.byUid, this.user?.list_sort))
   rank = $derived(this.user ? RANK[this.user.role] : -1)
   canEdit = $derived(this.rank >= 1)
   isAdmin = $derived(this.rank >= 2)
@@ -113,7 +113,7 @@ class Store {
   }
 
   name(r: Rec) {
-    return displayName(r)
+    return displayName(r, this.user?.name_order)
   }
 
   // ------------------------------------------------------------- lifecycle
@@ -202,6 +202,20 @@ class Store {
     if (user.totp_due) return void (this.status = 'totp')
     await this.sync()
     this.status = 'ready'
+  }
+
+  /** list order / name display: applied at once, then saved with the user (on every device the same) */
+  async setListPrefs(prefs: { list_sort?: ListSort; name_order?: NameOrder }) {
+    if (!this.user) return
+    const before = this.user
+    this.user = { ...this.user, ...prefs }
+    try {
+      this.user = (await patch<{ user: User }>('/api/me', prefs)).user
+      this.persist()
+    } catch (e) {
+      this.user = before
+      throw e
+    }
   }
 
   async logout() {

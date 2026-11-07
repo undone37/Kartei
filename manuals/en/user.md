@@ -120,6 +120,14 @@ The switch above the list chooses which contacts you see. Next to each list is t
 
 Kartei remembers the last list you used.
 
+### Order and names
+
+The sort icon above the list (next to the bookmark) sets how *your* list looks:
+- **Sort the list by** *Last name* (default), *First name*, *Last change* or *Last created* (newest first). Companies sort by their name.
+- **Show names as** *First name Last name* (default) or *Last name, First name*. This applies throughout Kartei: list, contact, dashboard (the phone list always lists "Last name, First name").
+
+The choice is saved with your account, so it's the same on every device, and it only affects you.
+
 ### Persons or companies
 
 The buttons below the list switch narrow the list down: **All**, **People** or **Companies**. The numbers show how many of each are in the current list.

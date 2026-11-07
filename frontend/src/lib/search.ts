@@ -22,14 +22,29 @@ export interface Indexed {
   tel: string
 }
 
-export function displayName(r: Rec) {
-  return r.kind === 'company' ? r.name : `${r.first_name} ${r.last_name}`.trim()
+export type ListSort = 'last_name' | 'first_name' | 'updated' | 'created'
+export type NameOrder = 'first_last' | 'last_first'
+
+/** "Anna Müller", or with last_first "Müller, Anna"; companies by their name */
+export function displayName(r: Rec, order: NameOrder = 'first_last') {
+  if (r.kind === 'company') return r.name
+  return order === 'last_first' ? [r.last_name, r.first_name].filter(Boolean).join(', ') : `${r.first_name} ${r.last_name}`.trim()
 }
 
-export function buildIndex(records: Rec[], fields: Field[], byUid: Map<string, Rec>): Indexed[] {
+const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true })
+/** the list order: alphabetical by last or first name (companies by name), or the newest change / contact first */
+export function compareBy(sort: ListSort = 'last_name'): (a: Rec, b: Rec) => number {
+  const name = (r: Rec) => r.kind === 'company' ? r.name
+    : sort === 'first_name' ? `${r.first_name} ${r.last_name}` : `${r.last_name} ${r.first_name}`
+  const alpha = (a: Rec, b: Rec) => collator.compare(name(a), name(b))
+  if (sort === 'updated') return (a, b) => b.updated_at.localeCompare(a.updated_at) || alpha(a, b)
+  if (sort === 'created') return (a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '') || alpha(a, b)
+  return alpha
+}
+
+export function buildIndex(records: Rec[], fields: Field[], byUid: Map<string, Rec>, sort: ListSort = 'last_name'): Indexed[] {
   const searchable = fields.filter((f) => f.searchable && !f.archived)
-  const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true })
-  const sortKey = (r: Rec) => (r.kind === 'company' ? r.name : `${r.last_name} ${r.first_name}`)
+  const cmp = compareBy(sort)
   return records
     .map((rec) => {
       const parts = [rec.first_name, rec.last_name, rec.name, rec.legacy_id]
@@ -54,7 +69,7 @@ export function buildIndex(records: Rec[], fields: Field[], byUid: Map<string, R
       const text = parts.join(' ')
       return { rec, hay: fold(text) + ' ' + expand(text), tel: tel.join(' ') }
     })
-    .sort((a, b) => collator.compare(sortKey(a.rec), sortKey(b.rec)))
+    .sort((a, b) => cmp(a.rec, b.rec))
 }
 
 /** All tokens must match (AND). Digit tokens also match normalized phone numbers. */

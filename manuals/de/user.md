@@ -120,6 +120,14 @@ Der Umschalter über der Liste bestimmt, welche Kontakte du siehst. Neben jeder 
 
 Kartei merkt sich die zuletzt gewählte Liste.
 
+### Sortierung und Namen
+
+Das Sortier-Symbol über der Liste (neben dem Lesezeichen) legt fest, wie *deine* Liste aussieht:
+- **Liste sortieren nach** *Nachname* (Standard), *Vorname*, *Letzte Änderung* oder *Zuletzt angelegt* (neueste zuerst). Firmen stehen nach ihrem Namen.
+- **Namen anzeigen als** *Vorname Nachname* (Standard) oder *Nachname, Vorname*. Das gilt in ganz Kartei: Liste, Kontakt, Startseite (die Telefonliste führt immer „Nachname, Vorname“).
+
+Die Wahl wird mit deinem Konto gespeichert, ist also auf jedem Gerät gleich, und gilt nur für dich.
+
 ### Personen oder Firmen
 
 Die Knöpfe unter dem Listenumschalter grenzen weiter ein: **Alle**, **Personen** oder **Firmen**. Die Zahlen zeigen, wie viele davon in der aktuellen Liste sind.

@@ -166,6 +166,7 @@ def ser_user(u):
     p = profile_of(u)
     return {"id": u.id, "username": u.username, "first_name": u.first_name, "last_name": u.last_name,
             "email": u.email, "role": Role.ADMIN if u.is_superuser else p.role, "language": p.language,
+            "list_sort": p.list_sort, "name_order": p.name_order,
             "source": p.source, "is_active": u.is_active, "is_superuser": u.is_superuser, "totp": bool(p.totp_secret_enc),
             "totp_due": totp_due(u), "last_login": u.last_login.isoformat() if u.last_login else None}
 
@@ -741,6 +742,10 @@ def delete_image(request, uid):
 
 # ---------------------------------------------------------------- me
 
+LIST_SORTS = ("last_name", "first_name", "updated", "created")
+NAME_ORDERS = ("first_last", "last_first")
+
+
 @needs(READ)
 def update_me(request):
     body, p, u = request.json, profile_of(request.user), request.user
@@ -749,6 +754,12 @@ def update_me(request):
             return err("validation", fields={"language": "invalid"})
         p.language = body["language"]
         p.save()
+    for key, allowed in (("list_sort", LIST_SORTS), ("name_order", NAME_ORDERS)):
+        if key in body:
+            if body[key] not in allowed:
+                return err("validation", fields={key: "invalid"})
+            setattr(p, key, body[key])
+            p.save(update_fields=[key])
     if "password" in body:
         if p.source != "local":
             return err("forbidden", 403)
