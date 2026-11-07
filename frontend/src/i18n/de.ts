@@ -839,7 +839,6 @@ export default {
   'saved.title': "Gespeicherte Filter",
   'saved.none': "Noch keine gespeicherten Filter",
   'saved.save_as': "Aktuelle Liste speichern als …",
-  'saved.share': "Für alle sichtbar",
   'saved.shared': "Geteilt",
   'saved.saved': "Filter „{name}“ gespeichert",
   'saved.rename': "Umbenennen",
@@ -1248,4 +1247,9 @@ export default {
   'general.map_url': "Kartenlink",
   'general.map_url_hint': "Adresslink in der Kontaktansicht; {address} wird durch Straße, PLZ, Ort und Land ersetzt. Kartei baut nur den Link, der Browser öffnet ihn beim Klick. Leer: kein Link.",
   'err.map_url_invalid': "Braucht http(s):// und {address}",
+  'saved.share_with': "Teilen mit",
+  'saved.share_none': "Nur ich",
+  'saved.share_all': "Alle",
+  'saved.share_role': "Rolle: {role}",
+  'saved.shared_by': "Geteilt von {name}",
 } as Record<string, string>

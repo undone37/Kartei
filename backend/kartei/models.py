@@ -502,11 +502,13 @@ class WebhookDelivery(models.Model):
 
 
 class SavedFilter(models.Model):
-    """A named list state (search, scope, kind, field filters); private or shared with everyone."""
+    """A named list state (search, scope, kind, field filters); private, or shared with everyone, roles or users."""
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="saved_filters")
     name = models.CharField(max_length=100)
     state = models.JSONField(default=dict)  # {"q", "scope", "kind", "filters": {key: [values]}}
-    shared = models.BooleanField(default=False)
+    shared = models.BooleanField(default=False)  # with everyone
+    share_roles = models.JSONField(default=list, blank=True)  # e.g. ["read", "maintainer"]
+    share_users = models.ManyToManyField(User, blank=True, related_name="filters_shared_with_me")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

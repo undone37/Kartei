@@ -45,7 +45,7 @@ class SavedFilterTests(ApiTestBase):
         self.assertEqual(f["state"], {"q": "acme", "scope": "responsible", "kind": "person", "filters": {"keywords": ["A"]}})
         self.assertTrue(f["mine"])
         bad = self.j("post", "/api/filters", {"name": "x", "shared": True}, status=400)
-        self.assertEqual(bad["fields"], {"shared": "forbidden"})
+        self.assertEqual(bad["fields"], {"share": "forbidden"})
         self.j("post", "/api/filters", {"name": "", "state": state}, status=400)
         self.j("post", "/api/filters", {"name": "x", "state": {"filters": {"k": "notalist"}}}, status=400)
 
@@ -62,6 +62,33 @@ class SavedFilterTests(ApiTestBase):
         self.assertEqual(self.j("patch", f"/api/filters/{f['id']}", {"name": "Umbenannt"})["name"], "Umbenannt")
         self.j("delete", f"/api/filters/{f['id']}")
         self.assertFalse(SavedFilter.objects.filter(pk=f["id"]).exists())
+
+    def test_sharing_with_roles_and_users(self):
+        from django.contrib.auth.models import User
+        from .models import Profile
+        anna = User.objects.create_user("anna", first_name="Anna", last_name="Berg")
+        Profile.objects.create(user=anna, role="read")
+        self.as_("maintainer")
+        boot = self.j("get", "/api/bootstrap")
+        self.assertIn({"username": "anna", "name": "Anna Berg"}, boot["share_users"])  # people to share with
+        self.assertNotIn("maintainer", [u["username"] for u in boot["share_users"]])  # not yourself
+        f = self.j("post", "/api/filters", {"name": "Team Nord", "state": {}, "share": ["role:admin", "user:anna"]}, status=201)
+        self.assertEqual((f["shared"], f["share"]), (True, ["role:admin", "user:anna"]))
+        for bad in (["role:boss"], ["user:nobody"], ["everyone"], "all"):
+            self.j("post", "/api/filters", {"name": "x", "share": bad}, status=400)
+        seen = lambda role: [x["name"] for x in (self.as_(role) or self.j("get", "/api/bootstrap"))["filters"]]
+        self.assertEqual(seen("admin"), ["Team Nord"])  # by role
+        self.assertEqual(seen("read"), [])  # neither the role nor the user
+        self.client.force_login(anna)
+        boot = self.j("get", "/api/bootstrap")
+        self.assertEqual([(x["name"], x["mine"], "share" in x) for x in boot["filters"]], [("Team Nord", False, False)])
+        self.assertNotIn("share_users", boot)  # read only: may not share
+        self.as_("maintainer")
+        self.assertEqual(self.j("patch", f"/api/filters/{f['id']}", {"share": ["all"]})["share"], ["all"])
+        self.assertEqual(seen("read"), ["Team Nord"])
+        self.as_("maintainer")
+        self.assertEqual(self.j("patch", f"/api/filters/{f['id']}", {"share": []})["shared"], False)
+        self.assertEqual(seen("admin"), [])
 
     def test_advanced_filter_state(self):
         self.as_("read")

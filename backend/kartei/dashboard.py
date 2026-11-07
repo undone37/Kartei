@@ -2,15 +2,15 @@
 import uuid
 from datetime import date
 
+from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 
 from . import audit, exports, reviews
 from .api import (MAINT, READ, _add_new_options, _soft_delete, delete_with_persons, err, needs, profile_of, record_kinds,
                   ser_audit, ser_record, snapshot, visible_fields)
-from .models import (AuditEntry, FieldDef, Kind, Profile, Record, SavedFilter, Settings, default_csv_options,
-                     default_xlsx_options, ref_names)
+from .models import (AuditEntry, FieldDef, Kind, Profile, Record, Role, SavedFilter, Settings, default_csv_options,
+                     default_xlsx_options, ref_names, user_label)
 from .validation import EMPTY, merge_data
 
 RECENT_MAX, FAVORITES_MAX = 20, 200
@@ -27,16 +27,37 @@ def _uids(v):
     return list(dict.fromkeys(u for u in map(_uid, v) if u)) if isinstance(v, list) else []
 
 
+def share_of(f):
+    """Who a filter is shared with, as the UI's values: "all", "role:<role>", "user:<username>"."""
+    return (["all"] if f.shared else []) + [f"role:{r}" for r in f.share_roles] + \
+        [f"user:{u.username}" for u in f.share_users.all()]
+
+
 def ser_filter(f, user):
-    return {"id": f.id, "name": f.name, "state": f.state, "shared": f.shared, "owner": f.owner.username,
-            "mine": f.owner_id == user.id}
+    share = share_of(f)
+    return {"id": f.id, "name": f.name, "state": f.state, "shared": bool(share), "owner": f.owner.username,
+            "mine": f.owner_id == user.id, **({"share": share} if f.owner_id == user.id else {})}
+
+
+def visible_filters(user, role):
+    """Own filters and those shared with everyone, the user's role or the user."""
+    # ponytail: filtered in Python (JSON "contains" isn't available on SQLite); fine for hundreds of saved filters
+    fs = SavedFilter.objects.select_related("owner").prefetch_related("share_users").order_by("name")
+    return [f for f in fs if f.owner_id == user.id or f.shared or role in f.share_roles
+            or any(u.id == user.id for u in f.share_users.all())]
 
 
 def prefs(request):
-    """Part of bootstrap/changes (small, so always sent): recently viewed, favorites, own + shared saved filters."""
+    """Part of bootstrap/changes (small, so always sent): recently viewed, favorites, own + shared saved filters.
+    Those who may share also get the active users to share with."""
     p = profile_of(request.user)
-    fs = SavedFilter.objects.filter(Q(owner=request.user) | Q(shared=True)).select_related("owner")
-    return {"recent": p.recent, "favorites": p.favorites, "filters": [ser_filter(f, request.user) for f in fs]}
+    role = "admin" if request.user.is_superuser else p.role
+    out = {"recent": p.recent, "favorites": p.favorites,
+           "filters": [ser_filter(f, request.user) for f in visible_filters(request.user, role)]}
+    if request.rank >= MAINT:
+        out["share_users"] = [{"username": u.username, "name": user_label(u)} for u in
+                              User.objects.filter(is_active=True).exclude(pk=request.user.pk).order_by("first_name", "last_name", "username")]
+    return out
 
 
 # ---------------------------------------------------------------- recently viewed & favorites
@@ -128,10 +149,21 @@ def _filter_from_body(f, b, rank):
             errors["state"] = "invalid"
         else:
             f.state = st
-    if "shared" in b:
-        if b["shared"] and rank < MAINT:
-            errors["shared"] = "forbidden"
-        f.shared = bool(b["shared"])
+    f._users = None  # set after saving (many-to-many needs the id)
+    if "shared" in b and "share" not in b:  # older clients: everyone or nobody
+        b = {**b, "share": ["all"] if b["shared"] else []}
+    if "share" in b:
+        share = b["share"] if isinstance(b["share"], list) else None
+        roles = [str(x)[5:] for x in share or [] if str(x).startswith("role:")]
+        names = [str(x)[5:] for x in share or [] if str(x).startswith("user:")]
+        users = list(User.objects.filter(username__in=names, is_active=True))
+        if share is None or any(not (x == "all" or str(x).startswith(("role:", "user:"))) for x in share) \
+                or any(r not in Role.values for r in roles) or len(users) != len(set(names)):
+            errors["share"] = "invalid"
+        elif share and rank < MAINT:
+            errors["share"] = "forbidden"
+        else:
+            f.shared, f.share_roles, f._users = "all" in share, sorted(set(roles)), users
     return errors
 
 
@@ -141,6 +173,8 @@ def filter_create(request):
     if errors := _filter_from_body(f, request.json, request.rank):
         return err("validation", fields=errors)
     f.save()
+    if f._users is not None:
+        f.share_users.set(f._users)
     return JsonResponse(ser_filter(f, request.user), status=201)
 
 
@@ -156,6 +190,8 @@ def filter_update(request, pk):
     if errors := _filter_from_body(f, request.json, request.rank):
         return err("validation", fields=errors)
     f.save()
+    if f._users is not None:
+        f.share_users.set(f._users)
     return JsonResponse(ser_filter(f, request.user))
 
 

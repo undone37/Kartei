@@ -126,4 +126,5 @@ export interface BatchItem { uid: string; name: string; key: string; old: any; n
 export interface ListState { q: string; scope: string; kind: 'all' | Kind; filters: Record<string, string[]>; adv?: Group }
 
 /** a named list state, own or shared by a maintainer */
-export interface SavedFilter { id: number; name: string; state: ListState; shared: boolean; owner: string; mine: boolean }
+/** share (own filters only): "all", "role:<role>", "user:<username>" */
+export interface SavedFilter { id: number; name: string; state: ListState; shared: boolean; owner: string; mine: boolean; share?: string[] }

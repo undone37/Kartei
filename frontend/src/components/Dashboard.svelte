@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Bookmark, ClipboardCheck, Clock, Copy, History, Inbox, Pencil, ShieldCheck, Star, Trash2, Users } from '@lucide/svelte'
+  import { Bookmark, ClipboardCheck, Clock, Copy, History, Inbox, Pencil, Share2, ShieldCheck, Star, Trash2, Users } from '@lucide/svelte'
+  import Combobox from './Combobox.svelte'
   import Avatar from './Avatar.svelte'
   import { ApiError, get } from '../lib/api'
   import { auditLabel, auditObject, auditValue, visibleChanges } from '../lib/audit'
@@ -24,6 +25,11 @@
 
   // recent changes: maintainers only; reloaded whenever a sync brought new records
   let changes = $state<AuditEntry[] | null>(null)
+  let sharing = $state<number | null>(null) // own filter whose sharing is being edited
+  const shareLabel = (share: string[]) => {
+    const opts = store.shareOptions()
+    return share.map((v) => opts.find((o) => o.value === v)?.label ?? v.replace(/^user:/, '')).join(', ')
+  }
   $effect(() => {
     void store.records
     if (!store.canEdit) return
@@ -97,13 +103,21 @@
               </form>
             {:else}
               <button class="apply" onclick={() => onapply(f.state)}>{f.name}</button>
-              {#if f.shared}<span class="badge" title={f.mine ? '' : f.owner}>{t('saved.shared')}</span>{/if}
+              {#if f.shared}<span class="badge" title={f.mine ? shareLabel(f.share ?? []) : t('saved.shared_by', { name: store.userName(f.owner) })}>{t('saved.shared')}</span>{/if}
+              {#if f.mine && store.canEdit}
+                <button class="btn icon sm ghost" title={t('saved.share_with')} aria-label={t('saved.share_with')} aria-expanded={sharing === f.id}
+                        onclick={() => (sharing = sharing === f.id ? null : f.id)}><Share2 size={13} /></button>
+              {/if}
               {#if f.mine}
                 <button class="btn icon sm ghost" title={t('saved.rename')} aria-label={t('saved.rename')}
                         onclick={() => { renaming = f.id; newName = f.name }}><Pencil size={13} /></button>
                 <button class="btn icon sm ghost danger" title={t('common.delete')} aria-label={t('common.delete')}
                         onclick={() => remove(f)}><Trash2 size={13} /></button>
               {/if}
+            {/if}
+            {#if sharing === f.id}
+              <div class="share"><Combobox multiple value={f.share ?? []} options={store.shareOptions()} label={t('saved.share_with')}
+                                           placeholder={t('saved.share_none')} onchange={(v) => store.shareFilter(f.id, v).catch(fail)} /></div>
             {/if}
           </li>
         {:else}
@@ -155,7 +169,8 @@
   .recs a:hover { background: var(--panel-2); text-decoration: none; }
   .name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; max-width: 60%; }
   .sub { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .filters li { display: flex; align-items: center; gap: 4px; min-height: 32px; }
+  .filters li { display: flex; align-items: center; gap: 4px; min-height: 32px; flex-wrap: wrap; }
+  .filters .share { flex-basis: 100%; padding: 2px 0 6px; }
   .filters form { flex: 1; }
   .filters .input { height: 28px; }
   .apply { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 5px 6px; margin-left: -6px; border-radius: 7px;
