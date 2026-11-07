@@ -6,7 +6,7 @@ Kartei is a contact directory for persons and companies. It suits organizations 
 
 **Manuals online:** [undone37.github.io/Kartei](https://undone37.github.io/Kartei/) (English and German)
 
-![Kartei in the browser: the contact list with search and filters on the left, a person's details on the right (demo data)](manuals/img/en/person.png)
+![Kartei in the browser with demo data: searching, opening a person, editing the job title, showing the contact as a QR code, and a click on a keyword that filters the list](manuals/img/en/demo.webp)
 
 - **Your own fields:** admins define the fields: types, options, validation, visibility per role and vCard mapping. Field sets and import mappings are plain JSON files.
 - **Fast:**
