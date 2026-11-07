@@ -38,7 +38,10 @@
     load()
   }
 
-  const base = `${location.origin}/api/v1/contacts`
+  // the public address (Settings → General) like the other examples; this browser's address if none is set
+  let origin = $state(location.origin)
+  get<{ base_url: string }>('/api/admin/settings').then((r) => { if (r.base_url) origin = r.base_url.replace(/\/$/, '') }).catch(() => {})
+  const base = $derived(`${origin}/api/v1/contacts`)
   const copy = copyText
 </script>
 

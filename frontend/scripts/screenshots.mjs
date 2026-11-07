@@ -166,12 +166,13 @@ const SHOTS = [
     } },
   { name: 'settings-general-phones', user: 'admin', path: '/settings/general', steps: open('button:has(.lucide-phone)') },
   { name: 'settings-carddav-password', user: 'admin', path: '/settings/carddav', steps: open('button:has(.lucide-key-round)') },
-  { name: 'settings-api-token', user: 'admin', path: '/settings/api', steps: async (p) => {
+  { name: 'settings-api-token', user: 'admin', path: '/settings/api', before: publicUrl, steps: async (p) => {
       const form = p.locator('form.toolbar').first() // the token form; the webhook form follows
       await form.locator('input:not([type=radio])').fill('Telefonanlage')
       await form.locator('input[type=radio][value=write]').check().catch(() => {})
       await form.locator('button').click(); await wait(600)
-    }, after: async (ctx) => {
+    }, after: async (ctx, h) => {
+      await restoreUrl(ctx, h)
       const { tokens } = await (await api(ctx, 'get', '/api/admin/tokens')).json()
       for (const tk of tokens.filter((x) => x.name === 'Telefonanlage')) await api(ctx, 'delete', `/api/admin/tokens/${tk.id}`)
     } },
@@ -198,22 +199,25 @@ const SHOTS = [
     }, steps: async (p) => { await p.locator('#scim-url').evaluate((e) => e.scrollIntoView({ block: 'start' })); await wait(300) } },
   // the login page with the single sign-on button (still switched on from the scene above), then everything back
   { name: 'login-sso', user: null, path: '/', after: async (ctx, h) => {
-      const admin = await ctx.browser().newContext()
+      const admin = await ctx.browser().newContext({ extraHTTPHeaders: OFFICE })
       await login(admin, 'admin', '')
       await api(admin, 'put', '/api/admin/settings', { base_url: h.baseUrl, oidc_enabled: false, oidc_issuer: '', oidc_client_id: '', oidc_client_secret: '', oidc_label: '',
         scim_group_admin: '', scim_group_maintainer: '', scim_group_read: '' })
       for (const id of h.groups) await h.scim('delete', `Groups/${id}`)
       await admin.close()
     } },
-  { name: 'settings-webhooks', user: 'admin', path: '/settings/api', before: async (ctx) => {
+  { name: 'settings-webhooks', user: 'admin', path: '/settings/api', before: async (ctx, h) => {
+      await publicUrl(ctx, h)
       await api(ctx, 'post', '/api/admin/webhooks', { name: 'Intranet', url: 'https://intranet.example.de/kartei-hook', events: [] })
     }, steps: async (p) => { await p.getByRole('heading', { level: 2 }).last().evaluate((h) => h.scrollIntoView({ block: 'start' })); await wait(300) },
-    after: async (ctx) => {
+    after: async (ctx, h) => {
+      await restoreUrl(ctx, h)
       const { webhooks } = await (await api(ctx, 'get', '/api/admin/webhooks')).json()
       for (const h of webhooks.filter((x) => x.name === 'Intranet')) await api(ctx, 'delete', `/api/admin/webhooks/${h.id}`)
     } },
   ...['fields', 'users', 'ldap', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'backup', 'audit']
-    .map((tab) => ({ name: `settings-${tab}`, user: 'admin', path: `/settings/${tab}` })),
+    .map((tab) => ({ name: `settings-${tab}`, user: 'admin', path: `/settings/${tab}`,
+                     ...(tab === 'api' ? { before: publicUrl, after: restoreUrl } : {}) })),
 ]
 
 async function login(ctx, user, lang) {
