@@ -64,7 +64,9 @@
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' }))
     a.download = `${t('phonelist.title')}-${new Date().toISOString().slice(0, 10)}.pdf`
+    document.body.append(a)  // some browsers ignore clicks on a link that isn't in the page
     a.click()
+    a.remove()
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
   }
   const toggle = (key: string, on: boolean) => {
