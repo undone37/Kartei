@@ -1,18 +1,31 @@
 // Kartei service worker: makes the app installable and lets it start offline.
 // Data lives in IndexedDB (see src/lib/store.svelte.ts); /api is never cached here.
 const CACHE = 'kartei-v1'
+const SHARE = 'kartei-share'  // what another app shared (Web Share Target), until the /share page picks it up
 
 self.addEventListener('install', () => self.skipWaiting())
 
 self.addEventListener('activate', (e) =>
   e.waitUntil((async () => {
-    for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k)
+    for (const k of await caches.keys()) if (k !== CACHE && k !== SHARE) await caches.delete(k)
     await self.clients.claim()
   })()))
 
 self.addEventListener('fetch', (e) => {
   const req = e.request
   const url = new URL(req.url)
+  if (req.method === 'POST' && url.origin === location.origin && url.pathname === '/share') {
+    // shared from another app (installed app on Android): keep the text and files, then open the import page
+    e.respondWith((async () => {
+      const form = await req.formData()
+      const files = await Promise.all(form.getAll('file').filter((f) => f instanceof File)
+        .map(async (f) => ({ name: f.name, text: await f.text() })))
+      const data = { title: form.get('title') || '', text: form.get('text') || '', url: form.get('url') || '', files }
+      await (await caches.open(SHARE)).put('/share-data', new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } }))
+      return Response.redirect('/share?received=1', 303)
+    })())
+    return
+  }
   if (req.method !== 'GET' || url.origin !== location.origin) return
   if (url.pathname.startsWith('/static/assets/')) {
     // hashed file names never change: cache first

@@ -1604,7 +1604,7 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
 SETTINGS_ATTRS += ["map_url", "ldap_users_max_deactivate_percent"]
 SETTINGS_ATTRS += ["backup_enabled", "backup_time", "backup_keep_days"]
-SETTINGS_ATTRS += ["audit_signin_days", "monitoring_allowlist", "syslog_enabled", "syslog_host", "syslog_port",
+SETTINGS_ATTRS += ["retention_months", "phonebook_enabled", "phonebook_username", "phonebook_allowlist", "audit_signin_days", "monitoring_allowlist", "syslog_enabled", "syslog_host", "syslog_port",
                    "syslog_protocol", "syslog_ca_cert", "syslog_tls_verify", "syslog_facility", "syslog_content"]
 SETTINGS_ATTRS += ["mail_templates", "mail_transport", "mail_graph_sender"]
 SETTINGS_ATTRS += ["oidc_issuer", "oidc_client_id", "oidc_scopes", "oidc_claim", "oidc_label", "oidc_mfa_trusted",
@@ -1616,7 +1616,7 @@ SETTINGS_ATTRS += ["carddav_relay_enabled", "carddav_relay_url", "carddav_relay_
 def ser_settings(s):
     return {**{a: getattr(s, a) for a in SETTINGS_ATTRS},
             "ldap_bind_password_set": bool(s.ldap_bind_password_enc),
-            "carddav_password_set": bool(s.carddav_password_hash), "export_root": exports.EXPORT_ROOT,
+            "carddav_password_set": bool(s.carddav_password_hash), "phonebook_password_set": bool(s.phonebook_password_hash), "export_root": exports.EXPORT_ROOT,
             "graph_client_secret_set": bool(s.graph_client_secret_enc), "graph_status": s.graph_status,
             "smtp_password_set": bool(s.smtp_password_enc), "mail_template_defaults": reviews.DEFAULT_TEMPLATES,
             "graph_sync_requested": s.graph_sync_requested, "ldap_users_status": s.ldap_users_status,
@@ -1687,7 +1687,7 @@ def settings_put(request):
         errors["backup_keep_days"] = "invalid_number"
     if not isinstance(s.ldap_users_max_deactivate_percent, int) or not 0 <= s.ldap_users_max_deactivate_percent <= 100:
         errors["ldap_users_max_deactivate_percent"] = "invalid_number"
-    for a in ("trash_days", "export_interval_minutes", "audit_signin_days"):
+    for a in ("trash_days", "export_interval_minutes", "audit_signin_days", "retention_months"):
         if not isinstance(getattr(s, a), int) or getattr(s, a) < 0:
             errors[a] = "invalid_number"
     s.map_url = str(s.map_url or "").strip()
@@ -1722,12 +1722,16 @@ def settings_put(request):
         errors["oidc_scopes"] = "openid_required"
     if s.oidc_enabled and not (s.oidc_issuer and s.oidc_client_id and s.oidc_client_secret_enc and s.base_url):
         errors["oidc_enabled"] = "oidc_incomplete"  # provider and the public URL (for the redirect URI) are needed
-    if not isinstance(s.monitoring_allowlist, list):
-        errors["monitoring_allowlist"] = "invalid"
-    else:
-        s.monitoring_allowlist = [str(x).strip() for x in s.monitoring_allowlist if str(x).strip()]
-        if bad := monitoring.valid_allowlist(s.monitoring_allowlist):
-            errors["monitoring_allowlist"] = "invalid_network:" + ", ".join(bad)[:200]
+    for a in ("monitoring_allowlist", "phonebook_allowlist"):
+        if not isinstance(getattr(s, a), list):
+            errors[a] = "invalid"
+            continue
+        setattr(s, a, [str(x).strip() for x in getattr(s, a) if str(x).strip()])
+        if bad := monitoring.valid_allowlist(getattr(s, a)):
+            errors[a] = "invalid_network:" + ", ".join(bad)[:200]
+    s.phonebook_username = str(s.phonebook_username or "").strip()
+    if not s.phonebook_username or ":" in s.phonebook_username:
+        errors["phonebook_username"] = "invalid"
     s.syslog_host = str(s.syslog_host or "").strip()
     if s.syslog_protocol not in ("udp", "tcp", "tls"):
         errors["syslog_protocol"] = "invalid"
@@ -1773,6 +1777,15 @@ def carddav_password(request):
     s.carddav_password_hash = make_password(pw)
     s.save()
     audit.log(request.user, "update", "settings", 1, "settings", {"carddav_password_hash": ["***", "***"]})
+    return JsonResponse({"password": pw})  # shown once
+
+
+@needs(ADMIN)
+def phonebook_password(request):
+    """A new password for the desk-phone phonebook, shown once; the old one stops working."""
+    pw = secrets.token_urlsafe(18)
+    Settings.objects.filter(pk=1).update(phonebook_password_hash=make_password(pw))
+    audit.log(request.user, "update", "settings", 1, "settings", {"phonebook_password_hash": ["***", "***"]})
     return JsonResponse({"password": pw})  # shown once
 
 

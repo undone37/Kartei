@@ -255,6 +255,12 @@ Firmen haben zusätzlich den Reiter **Personen** mit allen, die dort arbeiten. A
 
 ![Reiter Personen einer Firma](../img/de/company-persons.png)
 
+**Organigramm.** Hat deine Kartei ein Feld *Vorgesetzter* und ist es bei den Personen der Firma gepflegt, gibt es zusätzlich den Reiter **Organigramm**: oben die Geschäftsführung (oder wer dort an niemanden berichtet), darunter alle anderen bei der Person, an die sie berichten. Ein Klick auf einen Namen öffnet die Person.
+
+![Das Organigramm einer Firma](../img/de/org-chart.png)
+
+**Verknüpft mit.** Eine Person zeigt unter *Verknüpft mit*, wer auf sie verweist, z. B. ihre **Direkten Mitarbeitenden** oder die Firma, bei der sie Geschäftsführer ist.
+
 ### Verlauf
 
 Der Reiter **Verlauf** zeigt jede Änderung am Kontakt: wer wann was geändert hat, mit altem und neuem Wert. Auch Vorschläge, Prüfungen, Entscheidungen und Löschungen stehen dort.
@@ -376,6 +382,20 @@ Kontakte, die als vCard (`.vcf`) kommen – etwa im Anhang einer E-Mail, vom Han
 ![Kontakt aus einer vCard importieren](../img/de/vcard-import.png)
 
 Werte ohne passendes Feld (z. B. eine Pager-Nummer) stehen über dem Formular, damit du sie bei Bedarf von Hand übernimmst. Mit der Rolle *Nur Lesen* werden aus den Karten stattdessen [Vorschläge](#neuen-kontakt-vorschlagen).
+
+### Aus einer E-Mail-Signatur {#aus-einer-e-mail-signatur}
+
+Die meisten neuen Kontakte kommen als E-Mail mit Signatur. Statt jede Zeile abzutippen:
+
+1. Kopiere die Signatur aus der E-Mail.
+2. Klick oben rechts auf **Neu** und wähle **Aus E-Mail-Signatur …**.
+3. Füge den Text ein und klick auf **Einlesen**.
+
+Kartei erkennt Name (mit akademischem Titel), Funktion, Firma (an der Rechtsform, z. B. *GmbH*, *AG*, *Ltd*), Straße, PLZ und Ort (deutsch, österreichisch, schweizerisch), Land, Telefonnummern (*Tel.*, *Mobil*, *Fax*, *T*, *M*, *F* …; deutsche Mobilnummern auch ohne Bezeichnung), E-Mail und Webseite. Das Ergebnis öffnet sich als dasselbe ausgefüllte Formular wie bei einer vCard; Zeilen, die Kartei nicht zuordnen konnte, stehen über dem Formular. Grußformeln und Pflichtangaben (*Geschäftsführer*, *HRB*, Haftungshinweise) werden übergangen. Der Text verlässt deinen Browser nicht.
+
+![Eine eingefügte Signatur als ausgefülltes Formular](../img/de/signature-import.png)
+
+**Vom Handy (Android):** Ist Kartei [als App installiert](#als-app-installieren), erscheint Kartei im Teilen-Menü anderer Apps. Ein geteilter Kontakt (vCard) oder ein markierter Text, z. B. eine Signatur, öffnet sich direkt hier. Auf dem iPhone bieten installierte Web-Apps das nicht an.
 
 ### Angaben von der Firma übernehmen
 
@@ -548,6 +568,15 @@ Prüf vor dem Anlegen, ob es den Kontakt schon gibt: Das Formular zeigt dazu wie
 | **Firmen ohne Personen** | Firmen ohne Mitarbeiter in Kartei |
 | **Noch nie geprüft** | Kontakte, die noch nie geprüft wurden |
 | **Prüfung überfällig** | die letzte Prüfung ist älter als das Prüfintervall |
+| **Aufbewahrung abgelaufen** | nur wenn die Administration eine Aufbewahrungsdauer eingestellt hat: Kontakte, die länger als diese weder geändert noch geprüft wurden |
+
+**Verlauf.** Oben zeigt eine Grafik, wie sich der Anteil der innerhalb des Intervalls geprüften Kontakte in den letzten zwei Jahren entwickelt hat. Die Auswahl schaltet auf die Anzahl eines Bereichs um, z. B. *Ungültige Werte*. Kartei hält die Zahlen einmal täglich fest; *Werte als Tabelle* listet sie auf. Zeigt man auf die Linie, erscheint der Wert des Tages.
+
+**Aufbewahrung abgelaufen.** Kontakte, die niemand mehr braucht, sollen nicht ewig bleiben (DSGVO, Speicherbegrenzung). Für jeden Kontakt in diesem Bereich entscheidest du:
+- **Behalten**: der Kontakt wird noch gebraucht. Er gilt als geprüft und erscheint erst nach einer weiteren Aufbewahrungsdauer wieder.
+- **In den Papierkorb**: mit den Knöpfen über der Liste für alle aufgeführten Kontakte auf einmal (nach Rückfrage). Aus dem Papierkorb lassen sie sich wie gewohnt wiederherstellen.
+
+Automatisch gelöscht wird nichts.
 
 ## Dubletten zusammenführen
 

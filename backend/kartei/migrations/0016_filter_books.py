@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('kartei', '0013_directory_id'),
+        ('kartei', '0015_phonebook'),
     ]
 
     operations = [

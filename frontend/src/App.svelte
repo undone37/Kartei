@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import logo from './assets/logo.svg'
-  import { Bookmark, Building2, ChevronDown, Copy, Download, FileUp, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, Printer, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
+  import { Bookmark, Building2, ChevronDown, ClipboardPaste, Copy, Download, FileUp, Filter, ListChecks, LogOut, Monitor, Moon, Sun, Plus, Printer, RefreshCw, Search, Settings, ShieldCheck, SlidersHorizontal, Trash2, User, UserRound, WifiOff, X } from '@lucide/svelte'
   import AdvancedFilter from './components/AdvancedFilter.svelte'
   import Combobox from './components/Combobox.svelte'
   import Login from './components/Login.svelte'
@@ -64,7 +64,8 @@
     if (a === 'new' && (b === 'person' || b === 'company')) return { name: 'new' as const, kind: b as Kind }
     if (a === 'proposal' && b) return { name: 'proposal' as const, id: Number(b) }
     if (a === 'phonelist') return { name: 'phonelist' as const }
-    if (a === 'import' && b === 'vcard') return { name: 'vcard' as const }
+    if (a === 'import' && (b === 'vcard' || b === 'text')) return { name: 'vcard' as const, from: b as 'vcard' | 'text' }
+    if (a === 'share') return { name: 'vcard' as const, from: 'share' as const }
     if (a === 'report' && b) return { name: 'report' as const, uid: b }
     if (a === 'trash') return { name: 'trash' as const }
     if (a === 'settings') return { name: 'settings' as const, tab: b ?? 'fields' }
@@ -287,6 +288,8 @@
             <Building2 size={16} />{store.canEdit ? t('kind.company') : t('new.propose_company')}<kbd>⇧ N</kbd></a>
           <a href="/import/vcard" onclick={() => document.getElementById('new-menu')?.hidePopover()}>
             <FileUp size={16} />{t('vcardimport.menu')}</a>
+          <a href="/import/text" onclick={() => document.getElementById('new-menu')?.hidePopover()}>
+            <ClipboardPaste size={16} />{t('vcardimport.menu_text')}</a>
         </div>
         <button class="btn icon ghost user" popovertarget="user-menu" aria-label={userLabel}><User size={18} /></button>
         <div id="user-menu" popover class="menu" style="right: 12px">
@@ -397,7 +400,7 @@
             {/key}
           </div>
         {:else if view.name === 'vcard'}
-          <VcardImport />
+          {#key view.from}<VcardImport from={view.from} />{/key}
         {:else if view.name === 'report'}
           {#key view.uid}<ReportPage uid={view.uid} />{/key}
         {:else if view.name === 'phonelist'}

@@ -1,8 +1,10 @@
 import re
 
 from django.conf import settings
-from django.http import FileResponse, HttpResponse, HttpResponseNotFound, HttpResponsePermanentRedirect
+from django.http import (FileResponse, HttpResponse, HttpResponseNotFound, HttpResponsePermanentRedirect,
+                         HttpResponseRedirect)
 from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_exempt
 
 from .api import rank_of, totp_due, visible_fields
 from .models import Record, Settings, ref_names
@@ -23,6 +25,15 @@ def legacy_redirect(request, rest=""):
     otherwise redirect to //evil.example, another host."""
     qs = request.META.get("QUERY_STRING", "")
     return HttpResponsePermanentRedirect("/" + (rest or "").lstrip("/\\") + (f"?{qs}" if qs else ""))
+
+
+@csrf_exempt
+def share(request):
+    """Something was shared to the installed app, but its service worker didn't take it (first start, cleared
+    storage). Nothing is stored here: the page asks to share again."""
+    if request.method == "POST":
+        return HttpResponseRedirect("/share?retry=1")
+    return spa(request)
 
 
 @never_cache

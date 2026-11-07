@@ -7,12 +7,14 @@
   import Avatar from './Avatar.svelte'
   import History from './History.svelte'
   import RecordForm from './RecordForm.svelte'
+  import OrgChart from './OrgChart.svelte'
   import { ApiError, del, post } from '../lib/api'
   import { go } from '../lib/router.svelte'
   import { store } from '../lib/store.svelte'
   import { fmt, isEmpty, isMulti, relTime, dateTime } from '../lib/format'
   import { L, t, terr } from '../lib/i18n.svelte'
   import { groupFields } from '../lib/sections'
+  import { hasOrg, managerField } from '../lib/orgchart'
   import { copyText, toast } from '../lib/toast.svelte'
   import { hasEditDraft } from '../lib/drafts'
   import { confirmDialog } from '../lib/confirm.svelte'
@@ -34,7 +36,7 @@
     const address = [part('street'), [part('zip'), part('city')].filter(Boolean).join(' '), part('country')].filter(Boolean).join(', ')
     return store.mapUrl.replaceAll('{address}', encodeURIComponent(address))
   }
-  let tab = $state<'details' | 'persons' | 'history'>('details')
+  let tab = $state<'details' | 'persons' | 'org' | 'history'>('details')
   // edit form that proposes (new or own pending proposal) or adjusts a proposal before applying it
   let proposing = $state<{ mode: 'propose' | 'adjust'; proposal: Proposal | null } | null>(null)
   let deleting = $state(false) // delete-proposal composer
@@ -87,6 +89,18 @@
 
   const company = $derived(rec.company ? store.byUid.get(rec.company) : undefined)
   const persons = $derived(rec.kind === 'company' ? store.persons.get(rec.uid) ?? [] : [])
+  const manager = $derived(managerField(store.fields))
+  const showOrg = $derived(!!manager && rec.kind === 'company' && hasOrg(persons, manager.key))
+  /** who points at this person through a contact field, grouped by field: "Direct reports", "As Managing director of" */
+  const linked = $derived.by(() => {
+    const groups = new Map<string, { field: Field; recs: Rec[] }>()
+    for (const { rec: r, field } of store.refs.get(rec.uid) ?? []) {
+      const g = groups.get(field.key) ?? { field, recs: [] }
+      g.recs.push(r)
+      groups.set(field.key, g)
+    }
+    return [...groups.values()]
+  })
   /** filled-in fields by section, in section order */
   const sections = $derived(
     groupFields(store.fieldsFor(rec.kind).filter((f) => !isEmpty(rec.data[f.key])), store.sections).map((g) => ({
@@ -201,6 +215,7 @@
       <button class:on={tab === 'details'} onclick={() => (tab = 'details')}>{t('view.details')}</button>
       {#if rec.kind === 'company'}
         <button class:on={tab === 'persons'} onclick={() => (tab = 'persons')}>{t('view.persons')} <span class="count">{persons.length}</span></button>
+        {#if showOrg}<button class:on={tab === 'org'} onclick={() => (tab = 'org')}>{t('view.org')}</button>{/if}
       {/if}
       <button class:on={tab === 'history'} onclick={() => (tab = 'history')}>{t('view.history')}</button>
     </nav>
@@ -250,6 +265,21 @@
           </dl>
         </section>
       {/each}
+      {#if linked.length}
+        <section>
+          <h3>{t('view.linked')}</h3>
+          <dl>
+            {#each linked as g (g.field.key)}
+              <div class="row wide">
+                <dt>{g.field.vcard === 'related_manager' ? t('view.direct_reports') : t('view.linked_as', { field: L(g.field.label) })}</dt>
+                <dd>
+                  {#each g.recs as r, i (r.uid)}<a href="/{r.kind}/{r.uid}">{store.name(r)}</a>{#if i < g.recs.length - 1}<span>, </span>{/if}{/each}
+                </dd>
+              </div>
+            {/each}
+          </dl>
+        </section>
+      {/if}
       <footer class="meta">
         {#if rec.legacy_id}<span>{t('view.legacy_id', { id: rec.legacy_id })}</span>{/if}
         <span title={dateTime(rec.updated_at)}>{rec.updated_by ? t('view.updated', { when: relTime(rec.updated_at), user: store.userName(rec.updated_by) })
@@ -268,6 +298,8 @@
           <li class="muted">{t('view.no_persons')}</li>
         {/each}
       </ul>
+    {:else if tab === 'org' && manager}
+      <OrgChart staff={persons} field={manager.key} />
     {:else}
       <History uid={rec.uid} />
     {/if}

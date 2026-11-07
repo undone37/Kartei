@@ -63,6 +63,7 @@ const SHOTS = [
       const r = await (await api(ctx, 'get', `/api/records/${h.person}`)).json()
       await api(ctx, 'patch', `/api/records/${h.person}`, { version: r.version, data: h.restoreBack })
     } },
+  { name: 'org-chart', user: 'mmuster', path: (h) => `/company/${h.company}`, steps: open('nav.tabs button:nth-child(3)') },
   { name: 'company-persons', user: 'mmuster', path: (h) => `/company/${h.company}`, steps: open('nav.tabs button:nth-child(2)') },
   { name: 'edit', user: 'mmuster', path: (h) => `/person/${h.person}`, steps: async (p) => { await p.keyboard.press('e'); await wait(400) } },
   { name: 'new-person', user: 'mmuster', path: (h) => `/new/person?company=${h.company}` },
@@ -87,6 +88,13 @@ const SHOTS = [
   { name: 'trash', user: 'mmuster', path: '/trash' },
   { name: 'report', user: 'admin', path: (h) => `/report/${h.person}` },
   { name: 'phonelist', user: 'mmuster', path: '/phonelist' },
+  { name: 'signature-import', user: 'mmuster', path: '/import/text', steps: async (p) => {
+      await p.locator('textarea').fill(['Mit freundlichen Grüßen', '', 'Johanna Albers', 'Leitung Einkauf', 'Musterfirma Energie AG',
+        'Industriestraße 1, 45127 Essen', 'Tel. +49 201 123456-30 | Mobil +49 170 5550130', 'johanna.albers@musterfirma.example',
+        'www.musterfirma.example'].join('\n'))
+      await p.locator('.page button.primary').click()
+      await wait(500)
+    } },
   { name: 'vcard-import', user: 'mmuster', path: '/import/vcard', steps: async (p) => {
       const vcf = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lehmann;Jonas;;;', 'ORG:Musterfirma Energie AG;Vertrieb', 'TITLE:Vertrieb',
         'EMAIL;TYPE=WORK:jonas.lehmann@musterfirma.example', 'TEL;TYPE=WORK:+49 511 1000-88', 'TEL;TYPE=CELL:+49 170 5550188',
@@ -149,10 +157,13 @@ const SHOTS = [
   { name: 'proposal-new', user: 'mmuster', path: (h) => `/proposal/${h.newProp}?list=proposals` },
   { name: 'propose-delete-person', user: 'kkramer', path: (h) => `/person/${h.reviewPerson}`, steps: open('.panel.review .actions button:nth-child(3)') },
   { name: 'proposal-company-gone', user: 'mmuster', path: (h) => `/company/${h.gone}` },
-  { name: 'quality-open', user: 'admin', path: '/quality', steps: async (p) => { await p.locator('details.card summary').nth(5).click(); await wait(300) } },
+  { name: 'quality-open', user: 'admin', path: '/quality', steps: async (p) => { await p.locator('details.card summary').last().click(); await p.locator('details.card').last().evaluate((e) => e.scrollIntoView({ block: 'end' })); await wait(300) } },
   { name: 'settings-field-editor', user: 'admin', path: '/settings/fields', steps: open('tr.click >> nth=2') },
   { name: 'settings-export-editor', user: 'admin', path: '/settings/exports', steps: open('tr.click') },
   { name: 'settings-review-rolling', user: 'admin', path: '/settings/review', steps: open('input[type=radio][value=rolling]') },
+  { name: 'settings-phonebook', user: 'admin', path: '/settings/carddav', before: publicUrl, after: restoreUrl, steps: async (p) => {
+      await p.locator('h2', { hasText: /Telefonbuch|Phonebook/ }).evaluate((e) => e.scrollIntoView({ block: 'start' })); await wait(300)
+    } },
   { name: 'settings-general-phones', user: 'admin', path: '/settings/general', steps: open('button:has(.lucide-phone)') },
   { name: 'settings-carddav-password', user: 'admin', path: '/settings/carddav', steps: open('button:has(.lucide-key-round)') },
   { name: 'settings-api-token', user: 'admin', path: '/settings/api', steps: async (p) => {
