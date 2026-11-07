@@ -16,7 +16,8 @@ Kartei ist das zentrale Adressverzeichnis für Personen und Firmen. Admins legen
 | Ziel | Weg | Eingerichtet unter |
 |---|---|---|
 | Telefone mit Exchange-Online-Postfach (iPhone und Android) | Kontaktordner in jedem Postfach, den die Outlook-App auf dem Telefon speichert | *Einstellungen → Outlook / Exchange* |
-| Telefone ohne Postfach (z. B. Sammeltelefone) oder ohne Microsoft 365 | schreibgeschütztes CardDAV-Adressbuch (iPhone; Android braucht eine CardDAV-App) | *Einstellungen → CardDAV* |
+| Tischtelefone (Yealink, Snom, Grandstream) und die Anruferanzeige von Telefonanlagen | Online-Telefonbuch (XML) und Rufnummernsuche | *Einstellungen → Telefone & CardDAV* |
+| Telefone ohne Postfach (z. B. Sammeltelefone) oder ohne Microsoft 365 | schreibgeschütztes CardDAV-Adressbuch (iPhone; Android braucht eine CardDAV-App) | *Einstellungen → Telefone & CardDAV* |
 | Systeme, die Kontakte aus dem Active Directory lesen (z. B. Anruferkennung einer Telefonanlage, Adressbücher von Kommunikations-Clients) | AD-Kontaktobjekte in einer OU | *Einstellungen → Active Directory* |
 | Skripte, andere Anwendungen, Tabellenkalkulation | CSV-/XLSX-Dateien in einem Verzeichnis | *Einstellungen → Exporte* |
 | Andere Systeme (z. B. Intranet, Telefonanlage) | REST-API mit Token (nur lesen oder lesen und schreiben) | *Einstellungen → API* |
@@ -795,7 +796,7 @@ Kartei bringt einen schreibgeschützten CardDAV-Server mit einem Adressbuch mit,
 
 ### Einrichten
 
-1. *Einstellungen → CardDAV*: *Eingebauter CardDAV-Server aktiv* anhaken und *Speichern*.
+1. *Einstellungen → Telefone & CardDAV*: *Eingebauter CardDAV-Server aktiv* anhaken und *Speichern*.
 2. Ändere bei Bedarf den *Benutzername* des Kontos (Standard `carddav`).
 3. Klick auf *Passwort erzeugen*. Das Passwort wird **nur jetzt** angezeigt; kopier es in den Passwortsafe.
 4. Prüf die Serveradresse unter *Einrichtung auf Telefonen*. Sie ergibt sich aus der *Öffentlichen Adresse* (*Einstellungen → Allgemein*): `https://kartei.example.de/carddav/`.
@@ -839,7 +840,7 @@ Der Relay ist dasselbe Image mit anderen Einstellungen (`docker build --target r
 **Einrichten**
 
 1. Kopier auf dem DMZ-Host das Repository (oder nur `Dockerfile`, `backend/`, `compose.relay.yaml`), dann `cp .env.relay.example .env.relay` und setz `SECRET_KEY` und `ALLOWED_HOSTS` (den Hostnamen, den die Telefone nutzen).
-2. In Kartei unter *Einstellungen → CardDAV → Externer Relay (DMZ)*: Trag die *Relay-URL* ein (`https://carddav.example.de`, nur HTTPS) und klick auf *Token erzeugen*. Kartei speichert das Push-Token verschlüsselt und zeigt nur seinen SHA-256-Wert. Kopier diesen Wert in die `.env.relay` als `RELAY_PUSH_TOKEN_SHA256`. Das Token selbst kommt nie auf den DMZ-Host.
+2. In Kartei unter *Einstellungen → Telefone & CardDAV → Externer Relay (DMZ)*: Trag die *Relay-URL* ein (`https://carddav.example.de`, nur HTTPS) und klick auf *Token erzeugen*. Kartei speichert das Push-Token verschlüsselt und zeigt nur seinen SHA-256-Wert. Kopier diesen Wert in die `.env.relay` als `RELAY_PUSH_TOKEN_SHA256`. Das Token selbst kommt nie auf den DMZ-Host.
 3. Starte den Relay: `docker compose -f compose.relay.yaml up -d --build`. Er lauscht auf Port 8080 (`RELAY_PORT`); setz einen TLS-Reverse-Proxy davor, eingerichtet wie der für Kartei (`Authorization`, `PROPFIND`/`REPORT` und `X-Forwarded-For` durchreichen, `client_max_body_size 20m`). Die SQLite-Datei liegt im Volume `relaydata`.
 4. *TLS*: Mit *TLS-Zertifikat prüfen* (Standard) prüft Kartei das Zertifikat des Relays gegen die System-CAs oder, falls eingetragen, gegen das *CA-Zertifikat* (PEM) deiner internen CA. Schalte die Prüfung nur für Tests ab.
 5. Klick auf *Speichern & testen*: Kartei erreicht den Relay und prüft das Token. Dann *Zum Relay übertragen* anhaken, *Max. Löschungen (%)* einstellen und *Speichern*.
@@ -862,6 +863,32 @@ Der Relay ist dasselbe Image mit anderen Einstellungen (`docker build --target r
 | Relay antwortet auf alles mit 400 | Der Hostname fehlt in `ALLOWED_HOSTS` in der `.env.relay`. |
 
 Der Relay schreibt jede Anfrage ins Container-Log (`docker compose -f compose.relay.yaml logs`). Für einen Neuanfang stoppst du ihn und löschst das Volume `relaydata`; die nächste Übertragung füllt es wieder.
+
+## Telefonbuch für Tischtelefone {#phonebook}
+
+Tischtelefone laden die Kontakte als *Online-Telefonbuch* (Remote Phonebook), und Telefonanlagen fragen Kartei, wer anruft. Wie bei CardDAV enthält es, was *Nur-Lesen*-Benutzer sehen, und nur Felder mit einer Telefon-vCard-Zuordnung (geschäftlich, mobil, privat, Assistenz, eigene; kein Fax).
+
+![Einstellungen des Telefonbuchs](../img/de/settings-phonebook.png)
+
+1. *Einstellungen → Telefone & CardDAV*, Abschnitt *Telefonbuch für Tischtelefone*: **Passwort erzeugen** (wird nur einmal angezeigt) und den Benutzernamen notieren (Standard `telefon`).
+2. Optional unter *Erlaubte Adressen* auf das Telefon-Netz beschränken, z. B. `10.0.5.0/24`.
+3. *Telefonbuch und Rufnummernsuche an* anhaken und **Speichern**.
+4. Die Adresse für die Telefonmarke mit Benutzername und Passwort als Online-Telefonbuch eintragen (Provisionierung oder Weboberfläche des Telefons):
+
+| Telefone | Adresse | Hinweis |
+|---|---|---|
+| Yealink | `https://kartei.example.de/phonebook/yealink.xml` | bei großen Listen die Such-Adresse `…/yealink.xml?q=#SEARCH` (das Telefon schickt, was eingetippt wurde) |
+| Snom | `…/phonebook/snom.xml` | ein Eintrag pro Nummer: *Name – Firma (Mobil)* |
+| Grandstream | `…/phonebook/grandstream.xml` | Vorname, Nachname, Firma, Nummern nach Art |
+| SwyxWare | `…/phonebook/swyx.csv` | Datei für den Import ins Globale Telefonbuch, siehe unten |
+
+Alle drei verstehen `?q=` mit einem Teil von Name, Firma oder Nummer. Ohne geht das ganze Telefonbuch hinaus; bei Zehntausenden Kontakten sind das mehrere MB, zu viel für die meisten Telefone: dann die Such-Adresse nutzen. Telefone, die stattdessen LDAP lesen (z. B. Gigaset), können den [Active-Directory-Sync](#active-directory) nutzen.
+
+**SwyxWare.** Swyx zeigt Anrufernamen aus seinem *Globalen Telefonbuch*, auf jedem SwyxIt!-Client und Swyx-Telefon. `swyx.csv` ist das Telefonbuch im Importformat von Swyx: eine Zeile pro Nummer (`"Name";"Nummer";"Beschreibung"`, alles in Anführungszeichen, Nummern ohne Leerzeichen), Namen im Swyx-Stil (`Muster,Erika`) und eindeutig, wie Swyx es verlangt (bei mehreren Nummern mit deren Bezeichnung, z. B. `Muster,Erika (Mobil)`); die Beschreibung enthält Firma und Bezeichnung. Im Browser mit der Telefonbuch-Anmeldung herunterladen, dann in der Swyx Administration beim Globalen Telefonbuch den Import starten, die Datei wählen und bestehende Einträge aktualisieren lassen. Alle vorhandenen Einträge vor dem Import zu löschen, nur wählen, wenn das Globale Telefonbuch nichts außer den Kartei-Kontakten enthält. Die Datei ist UTF-8; zeigt eine ältere SwyxWare Umlaute falsch an, `swyx.csv?charset=windows-1252` verwenden. `?q=` geht auch hier, z. B. für eine Firma. Einen dokumentierten automatischen Import bietet Swyx nicht; nach größeren Änderungen den Import wiederholen.
+
+**Rufnummernsuche** für Telefonanlagen (3CX, Starface, Asterisk …): `GET /phonebook/lookup?number=+495111000` mit derselben Anmeldung liefert `Name · Firma` als Text, mit `&format=json` `{"found": true, "name", "company", "kind", "uid"}`. Unbekannte Nummern ergeben `404`. Nummern werden in jeder Schreibweise verglichen (`+49…`, `0049…`, `0…`); ist die genaue Nummer unbekannt, gewinnt die längste gespeicherte Nummer, mit der sie beginnt – eine unbekannte Durchwahl zeigt so noch die Firma. Ein nicht kodiertes `+` in der Adresse wird auch verstanden.
+
+Kartei hält das Telefonbuch im Speicher und schaut höchstens einmal pro Minute nach Änderungen; eine Suche dauert so auch bei 50 000 Kontakten unter einer Millisekunde, eine neue oder geänderte Nummer ist nach spätestens einer Minute da. Fehlgeschlagene Anmeldungen stehen im Protokoll (Kanal *phonebook*) und zählen zur üblichen Sperre.
 
 ## Outlook-/Exchange-Sync {#outlook-sync}
 

@@ -3,7 +3,7 @@ import os
 from django.contrib import admin
 from django.urls import path, re_path
 
-from kartei import api, api_v1, carddav, dashboard, monitoring, quality, scim, views
+from kartei import api, api_v1, carddav, dashboard, monitoring, phonebook, quality, scim, views
 
 M = api.methods
 urlpatterns = [
@@ -58,6 +58,7 @@ urlpatterns = [
     path("api/admin/users/<int:pk>/totp-reset", M(POST=api.user_totp_reset)),
     path("api/admin/settings", M(GET=api.settings_get, PUT=api.settings_put)),
     path("api/admin/carddav/password", M(POST=api.carddav_password)),
+    path("api/admin/phonebook/password", M(POST=api.phonebook_password)),
     path("api/admin/ldap/test", M(POST=api.ldap_test)),
     path("api/admin/graph/test", M(POST=api.graph_test)),
     path("api/admin/graph/sync", M(POST=api.graph_sync)),
@@ -105,9 +106,12 @@ urlpatterns = [
     path("api/duplicates/dismiss", M(POST=quality.dismiss_view)),
     path("api/admin/phones/normalize", M(POST=quality.normalize_view)),
     path("sw.js", views.service_worker),
+    path("phonebook/lookup", phonebook.lookup),
+    re_path(r"^phonebook/(?P<brand>yealink|snom|grandstream)\.xml$", phonebook.directory),
+    re_path(r"^phonebook/(?P<brand>swyx)\.csv$", phonebook.directory),
     path("share", views.share),  # the service worker answers this; only reached without one
     re_path(r"^crm(?:/(?P<rest>.*))?$", views.legacy_redirect),  # links from before the rename (mails, vCards)
-    re_path(r"^(?!api/|static/|carddav|scim/|django-admin|\.well-known/).*$", views.spa),
+    re_path(r"^(?!api/|static/|carddav|phonebook/|scim/|django-admin|\.well-known/).*$", views.spa),
 ]
 
 # Django's own admin is an emergency tool: it signs in without the second factor, lockout or audit entry, so it

@@ -122,6 +122,11 @@ class Settings(models.Model):
     carddav_enabled = models.BooleanField(default=False)
     carddav_username = models.CharField(max_length=64, default="carddav")
     carddav_password_hash = models.CharField(max_length=255, blank=True)
+    # phonebook for desk phones (Yealink/Snom/Grandstream XML) and number lookup for phone systems
+    phonebook_enabled = models.BooleanField(default=False)
+    phonebook_username = models.CharField(max_length=100, default="telefon")
+    phonebook_password_hash = models.CharField(max_length=255, blank=True)
+    phonebook_allowlist = models.JSONField(default=list, blank=True)  # IPs/networks; empty = any address
     # CardDAV relay in the DMZ (relaypush.py): Kartei pushes the cards there, phones read them there
     carddav_relay_enabled = models.BooleanField(default=False)
     carddav_relay_url = models.CharField(max_length=255, blank=True)  # https://carddav.example.de

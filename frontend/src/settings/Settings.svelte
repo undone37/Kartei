@@ -10,6 +10,7 @@
   import ActiveDirectory from './ActiveDirectory.svelte'
   import Monitoring from './Monitoring.svelte'
   import Backup from './Backup.svelte'
+  import Phonebook from './Phonebook.svelte'
   import { store } from '../lib/store.svelte'
   import { t } from '../lib/i18n.svelte'
 
@@ -29,7 +30,7 @@
     </nav>
     {#if tab === 'fields'}<Fields />
     {:else if tab === 'users'}<Users />
-    {:else if ['ldap', 'sso', 'carddav', 'outlook', 'review', 'mail', 'general'].includes(tab)}{#key tab}<System section={tab as any} />{/key}
+    {:else if ['ldap', 'sso', 'carddav', 'outlook', 'review', 'mail', 'general'].includes(tab)}{#key tab}<System section={tab as any} />{/key}{#if tab === 'carddav'}<Phonebook />{/if}
     {:else if tab === 'exports'}<Exports />
     {:else if tab === 'import'}<Import />
     {:else if tab === 'audit'}<Audit />
