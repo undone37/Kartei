@@ -140,6 +140,7 @@ class Settings(models.Model):
     graph_folder_responsible = models.CharField(max_length=100, blank=True)  # per user: contacts they're responsible for
     graph_folder_internal = models.CharField(max_length=100, blank=True)  # per user: contacts listing them internally
     graph_mailboxes = models.JSONField(default=list, blank=True)  # user ids synced last run, to clean up leavers
+    graph_filter_folders = models.JSONField(default=dict, blank=True)  # {mailbox id: [folder names]} from saved filters
     graph_status = models.JSONField(default=dict, blank=True)  # last run, written by the exporter
     graph_sync_requested = models.DateTimeField(null=True, blank=True)  # "sync now"; the exporter polls it
 
@@ -522,6 +523,9 @@ class SavedFilter(models.Model):
     shared = models.BooleanField(default=False)  # with everyone
     share_roles = models.JSONField(default=list, blank=True)  # e.g. ["read", "maintainer"]
     share_users = models.ManyToManyField(User, blank=True, related_name="filters_shared_with_me")
+    # published: an Outlook folder in the mailbox of everyone who sees the filter, a CardDAV address book for all phones
+    outlook_folder = models.BooleanField(default=False)
+    carddav_book = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

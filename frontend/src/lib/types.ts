@@ -127,4 +127,6 @@ export interface ListState { q: string; scope: string; kind: 'all' | Kind; filte
 
 /** a named list state, own or shared by a maintainer */
 /** share (own filters only): "all", "role:<role>", "user:<username>" */
-export interface SavedFilter { id: number; name: string; state: ListState; shared: boolean; owner: string; mine: boolean; share?: string[] }
+export interface SavedFilter { id: number; name: string; state: ListState; shared: boolean; owner: string; mine: boolean; share?: string[]
+  /** published as an Outlook folder / a CardDAV address book (maintainers) */
+  outlook_folder?: boolean; carddav_book?: boolean }

@@ -174,6 +174,14 @@ To use a saved filter, click it in the same menu or on the dashboard under **Sav
 
 Maintainers can share a filter when saving it: under **Share with** (*Only me* by default), pick **Everyone**, one or more roles (e.g. *Role: Read only*), or individual colleagues (type to search). The filter is then offered to exactly those people and marked **Shared**; hovering over the mark shows who it is shared with (or, on someone else's filter, who shared it). To change this later, click the share icon next to your own filter on the dashboard.
 
+**Publishing a filter (maintainers).** In the same place (share icon next to your filter) two switches turn a saved filter into contacts on the phone:
+- **As Outlook folder**: everyone who sees the filter gets a contact folder with its name in their mailbox, with the contacts the filter shows *them*. A filter "My customers" (list *Responsible*, keyword *Customer*) gives every colleague their own customers.
+- **As address book for phones (CardDAV)**: an additional address book next to *Kartei Kontakte* on all CardDAV phones. Only for filters shared with **Everyone** and the list *All contacts*, and without fields Read Only users can't see, because every phone gets the same book.
+
+A folder and a phone icon next to the name show what a filter is published as; at most 10 filters can be. The filters *To review* and *Proposals* can't be published.
+
+![Publishing a saved filter](../img/en/filter-publish.png)
+
 ### Exporting a list
 
 The download button above the list exports exactly the contacts currently shown (including all filters), in the same order, as **Excel (XLSX)** or **CSV**. The file contains all fields you are allowed to see.

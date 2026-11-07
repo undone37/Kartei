@@ -3,6 +3,7 @@ import uuid
 
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 
@@ -58,7 +59,8 @@ def ser_filter(f, user, keys=None):
     mine = f.owner_id == user.id
     state = f.state if mine or keys is None else _visible_state(f.state, keys)
     return {"id": f.id, "name": f.name, "state": state, "shared": bool(share), "owner": f.owner.username,
-            "mine": mine, **({"share": share} if mine else {})}
+            "mine": mine, "outlook_folder": f.outlook_folder, "carddav_book": f.carddav_book,
+            **({"share": share} if mine else {})}
 
 
 def visible_filters(user, role):
@@ -187,6 +189,46 @@ def _filter_from_body(f, b, rank):
             errors["share"] = "forbidden"
         else:
             f.shared, f.share_roles, f._users = "all" in share, sorted(set(roles)), users
+    for flag in ("outlook_folder", "carddav_book"):
+        if flag in b:
+            if rank < MAINT and b[flag]:
+                errors[flag] = "forbidden"
+            else:
+                setattr(f, flag, b[flag] is True)
+    errors.update(publish_errors(f))
+    return errors
+
+
+PUBLISH_MAX = 10  # filters published as Outlook folders or CardDAV books: each costs a sync per mailbox / a book
+
+
+def _condition_keys(state):
+    keys = set(state.get("filters", {}))
+
+    def walk(g):
+        for x in g.get("items", []):
+            walk(x) if "items" in x else keys.add(x.get("field", ""))
+    walk(state.get("adv") or {})
+    return {k for k in keys if not k.startswith("@")}
+
+
+def publish_errors(f):
+    """What keeps a filter from becoming an Outlook folder or a CardDAV address book."""
+    errors = {}
+    scope = f.state.get("scope", "all")
+    if (f.outlook_folder or f.carddav_book) and scope in ("review", "proposals"):
+        errors["outlook_folder" if f.outlook_folder else "carddav_book"] = "publish_scope"
+    if f.carddav_book:  # one shared login for all phones: only what everybody may see, the same for everybody
+        read_keys = {x.key for x in visible_fields(READ)}
+        if not f.shared:
+            errors["carddav_book"] = "carddav_book_shared"
+        elif scope != "all":
+            errors["carddav_book"] = "publish_scope"
+        elif not _condition_keys(f.state) <= read_keys:
+            errors["carddav_book"] = "carddav_book_fields"
+    if (f.outlook_folder or f.carddav_book) and SavedFilter.objects.exclude(pk=f.pk).filter(
+            Q(outlook_folder=True) | Q(carddav_book=True)).count() >= PUBLISH_MAX:
+        errors["outlook_folder" if f.outlook_folder else "carddav_book"] = "publish_limit"
     return errors
 
 

@@ -32,6 +32,13 @@ const SHOTS = [
   { name: 'login', user: null, path: '/' },
   { name: 'dashboard', user: 'mmuster', path: '/' },
   { name: 'dashboard-read', user: 'kkramer', path: '/' },
+  { name: 'filter-publish', user: 'mmuster', path: '/', before: async (ctx, h) => {
+      const f = (await (await api(ctx, 'get', '/api/bootstrap')).json()).filters.find((x) => x.mine && x.shared)
+      h.published = f.id
+      await api(ctx, 'patch', `/api/filters/${f.id}`, { outlook_folder: true, carddav_book: true })
+    }, steps: async (p) => {
+      await p.locator('.filters li').filter({ has: p.locator('.pub') }).locator('button:has(.lucide-share-2)').click(); await wait(400)
+    }, after: async (ctx, h) => { await api(ctx, 'patch', `/api/filters/${h.published}`, { outlook_folder: false, carddav_book: false }) } },
   { name: 'search', user: 'admin', path: '/', steps: async (p) => { await p.keyboard.press('/'); await p.keyboard.type('koch'); await wait(300) } },
   { name: 'filter-menu', user: 'admin', path: '/', steps: open('[popovertarget="filter-menu"]') },
   { name: 'advanced-filter', user: 'mmuster', path: '/', steps: async (p) => {

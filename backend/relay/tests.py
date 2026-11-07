@@ -40,7 +40,7 @@ class PushTests(RelayTestBase):
     def test_auth(self):
         self.assertEqual(self.client.get("/push").status_code, 401)
         self.push({}, token="wrong", status=401)
-        self.assertEqual(self.client.get("/push", HTTP_AUTHORIZATION=f"Bearer {TOKEN}").json(), {"cards": {}})
+        self.assertEqual(self.client.get("/push", HTTP_AUTHORIZATION=f"Bearer {TOKEN}").json(), {"cards": {}, "books": {}})
         with override_settings(RELAY_PUSH_TOKEN_SHA256=""):  # no token configured: push is off
             self.push({}, status=401)
 
@@ -70,7 +70,7 @@ class PushTests(RelayTestBase):
         self.assertEqual((r["updated"], r["deleted"], r["total"]), (1, 1, 1))
         self.assertNotEqual(Book.get().ctag, ctag)
         self.assertIn("v2", Card.objects.get(uid=A).ios)
-        self.assertEqual(self.client.get("/push", HTTP_AUTHORIZATION=f"Bearer {TOKEN}").json(), {"cards": {A: '"2-abc"'}})
+        self.assertEqual(self.client.get("/push", HTTP_AUTHORIZATION=f"Bearer {TOKEN}").json(), {"cards": {A: '"2-abc"'}, "books": {}})
 
     def test_credentials(self):
         self.push({"credentials": self.cred("first")})

@@ -1,10 +1,11 @@
 """Read-only CardDAV protocol (RFC 6352), independent of where the cards come from.
 
-Serves one address book: /carddav/ is principal + addressbook home, /carddav/kontakte/ the book. Used by the built-in
+Serves address books: /carddav/ is principal + addressbook home, /carddav/kontakte/ all contacts, /carddav/f-<id>/ a
+saved filter's contacts. Used by the built-in
 server (carddav.py, cards rendered from the Kartei database) and by the DMZ relay (relay app, pushed cards).
 No model imports here: the relay runs without the kartei app.
 
-A book is created per request (after authentication) by `book(flavour)` and offers:
+A book is created per request (after authentication) by `book(flavour, slug)` (None: no such book) and offers:
   ctag() -> str
   etags(uid=None) -> [(uid, etag)]           all cards, or the one card
   cards(uids=None) -> [(uid, etag, vcard)]   all cards, or those with these uids
@@ -28,7 +29,8 @@ D, CARD, CS = "DAV:", "urn:ietf:params:xml:ns:carddav", "http://calendarserver.o
 ET.register_namespace("d", D)
 ET.register_namespace("card", CARD)
 ET.register_namespace("cs", CS)
-ROOT, BOOK = "/carddav/", "/carddav/kontakte/"
+ROOT = "/carddav/"
+MAIN = [("kontakte", "Kartei Kontakte")]  # (slug, display name) of the books a server offers
 q = lambda ns, tag: f"{{{ns}}}{tag}"
 
 
@@ -115,7 +117,7 @@ def _root_props():
     }
 
 
-def _book_props(ctag, token):
+def _book_props(ctag, token, name):
     def resourcetype(e):
         ET.SubElement(e, q(D, "collection"))
         ET.SubElement(e, q(CARD, "addressbook"))
@@ -132,7 +134,7 @@ def _book_props(ctag, token):
 
     return {
         q(D, "resourcetype"): resourcetype,
-        q(D, "displayname"): _text("Kartei Kontakte"),
+        q(D, "displayname"): _text(name),
         q(CS, "getctag"): _text(ctag),
         q(D, "sync-token"): _text(token),
         q(D, "current-user-principal"): lambda e: _href(e, ROOT),
@@ -153,7 +155,7 @@ def _card_props(etag, vcf=None):
     return props
 
 
-def _sync_collection(b, root, requested):
+def _sync_collection(b, root, requested, base):
     """RFC 6578: what changed since the client's token (empty token: everything), plus the new token."""
     token = (root.findtext(q(D, "sync-token")) or "").strip()
     new_token = b.sync_token()  # taken first: changes while answering are reported again next time
@@ -170,10 +172,10 @@ def _sync_collection(b, root, requested):
         cards, removed = b.cards(), []
     ms = ET.Element(q(D, "multistatus"))
     for u, etag, vcf in cards:
-        _response(ms, f"{BOOK}{u}.vcf", _card_props(etag, vcf), requested)
+        _response(ms, f"{base}{u}.vcf", _card_props(etag, vcf), requested)
     for u in removed:
         resp = ET.SubElement(ms, q(D, "response"))
-        ET.SubElement(resp, q(D, "href")).text = f"{BOOK}{u}.vcf"
+        ET.SubElement(resp, q(D, "href")).text = f"{base}{u}.vcf"
         ET.SubElement(resp, q(D, "status")).text = "HTTP/1.1 404 Not Found"
     ET.SubElement(ms, q(D, "sync-token")).text = new_token
     return _multistatus(ms)
@@ -183,8 +185,9 @@ def well_known(request):
     return HttpResponseRedirect(ROOT)
 
 
-def serve(request, uid, username, password_hash, book, on_fail=None):
-    """One CardDAV request. uid: card from the URL (validated by the URL pattern) or None for root/book."""
+def serve(request, uid, username, password_hash, book, on_fail=None, slug=None, books=MAIN):
+    """One CardDAV request. uid: card from the URL (validated by the URL pattern) or None for root/book; slug: the book
+    from the URL ("kontakte", None for the root); books: [(slug, display name)] listed under the root."""
     if request.method == "OPTIONS":
         r = HttpResponse()
         r["DAV"] = "1, 3, addressbook"
@@ -195,7 +198,14 @@ def serve(request, uid, username, password_hash, book, on_fail=None):
     if request.method not in ("GET", "HEAD", "PROPFIND", "REPORT"):
         return HttpResponse("read-only", status=403)
 
-    b = book(flavour_for(request.META.get("HTTP_USER_AGENT")))
+    flavour = flavour_for(request.META.get("HTTP_USER_AGENT"))
+    names = dict(books)
+    if slug is not None and slug not in names:
+        return HttpResponse(status=404)
+    b = book(flavour, slug) if slug else None
+    if slug and b is None:
+        return HttpResponse(status=404)
+    base = f"{ROOT}{slug}/"
     path = request.path
 
     if uid is not None:  # single card
@@ -223,23 +233,25 @@ def serve(request, uid, username, password_hash, book, on_fail=None):
         if path == ROOT:
             _response(ms, ROOT, _root_props(), requested)
             if depth != "0":
-                _response(ms, BOOK, _book_props(b.ctag(), b.sync_token()), requested)
-        elif path == BOOK:
-            _response(ms, BOOK, _book_props(b.ctag(), b.sync_token()), requested)
+                for s, name in books:
+                    if bk := book(flavour, s):
+                        _response(ms, f"{ROOT}{s}/", _book_props(bk.ctag(), bk.sync_token(), name), requested)
+        elif b and path == base:
+            _response(ms, base, _book_props(b.ctag(), b.sync_token(), names[slug]), requested)
             if depth != "0":
                 for u, etag in b.etags():
-                    _response(ms, f"{BOOK}{u}.vcf", _card_props(etag), requested)
+                    _response(ms, f"{base}{u}.vcf", _card_props(etag), requested)
         else:
             return HttpResponse(status=404)
         return _multistatus(ms)
 
-    if request.method == "REPORT" and path == BOOK:
+    if request.method == "REPORT" and b and path == base:
         try:
             root = ET.fromstring(request.body or b"<x/>")
         except ET.ParseError:
             return HttpResponse(status=400)
         if root.tag == q(D, "sync-collection"):
-            return _sync_collection(b, root, _requested(request.body))
+            return _sync_collection(b, root, _requested(request.body), base)
         uids = None
         if root.tag == q(CARD, "addressbook-multiget"):
             uids = []
@@ -256,7 +268,7 @@ def serve(request, uid, username, password_hash, book, on_fail=None):
         requested = _requested(request.body)
         ms = ET.Element(q(D, "multistatus"))
         for u, etag, vcf in b.cards(uids):
-            _response(ms, f"{BOOK}{u}.vcf", _card_props(etag, vcf), requested)
+            _response(ms, f"{base}{u}.vcf", _card_props(etag, vcf), requested)
         return _multistatus(ms)
 
     if request.method in ("GET", "HEAD"):

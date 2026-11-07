@@ -818,6 +818,7 @@ Die Kontakte erscheinen als eigener Account in der Kontakte-App und werden autom
 - Fotos der Personen und Logos der Firmen.
 - Namen von Benutzern und verknüpften Personen (z. B. *Ansprechpartner intern*) als Text.
 - Gelöschte Kontakte verschwinden von den Telefonen.
+- **Adressbücher aus gespeicherten Filtern:** Ein als Adressbuch veröffentlichter Filter erscheint als zusätzliches Buch (`/carddav/f-<id>/`) im selben Konto, für alle Telefone. DAVx⁵ (Android) zeigt jedes Buch einzeln; ob und wie das iPhone weitere Bücher eines Kontos zeigt, hängt von der iOS-Version ab – vorher mit einem Gerät ausprobieren. Nur Filter, die mit allen geteilt sind, die Liste *Alle Kontakte* nutzen und nur Felder, die alle sehen, kommen infrage; wird ein Feld später eingeschränkt, verschwindet das Buch. Kommen Kontakte in den Filter oder fallen heraus, laden die Telefone dieses Buch neu. Der Relay liefert diese Bücher auch aus (Relay ab dieser Version).
 - Telefone, die es unterstützen (iPhone, DAVx⁵ und die meisten anderen), holen nur, was sich seit ihrem letzten Abgleich geändert hat (`sync-collection`) – das hält den Abgleich auch bei vielen Kontakten schnell. Nach einer Änderung der vCard-Zuordnung, der *Öffentlichen Adresse* oder nach endgültigem Löschen aus dem Papierkorb gleicht jedes Telefon einmal von selbst vollständig ab.
 
 Ist CardDAV deaktiviert, meldet die Adresse „nicht gefunden“, und die Telefone behalten ihren letzten Stand, bis der Account entfernt wird. Android hat kein eingebautes CardDAV – dafür gibt es den [Outlook-/Exchange-Sync](#outlook-sync) oder eine CardDAV-App.
@@ -914,6 +915,7 @@ Auf dem Telefon (iPhone oder Android) installieren die Benutzer die Outlook-App,
   - *meine internen Kontakte*: Kontakte, bei denen der Benutzer in einem Mehrfach-Benutzerfeld steht.
 
   Kartei ordnet ein Postfach über E-Mail-Adresse, UPN oder den Teil vor dem `@` (AD-Kontoname) einem Kartei-Benutzer zu. Postfächer ohne passenden Kartei-Benutzer bekommen nur den Ordner mit allen Kontakten.
+- **Ordner aus gespeicherten Filtern:** Bearbeiter können einen gespeicherten Filter als Outlook-Ordner veröffentlichen (siehe Benutzerhandbuch, *Gespeicherte Filter*). Alle Postfach-Inhaber, die den Filter sehen, bekommen einen Ordner mit seinem Namen und den Kontakten, die der Filter ihnen zeigt (ihre eigenen Listen *Verantwortlich*/*Intern*, nur Felder ihrer Rolle). Wird ein Filter zurückgezogen, umbenannt oder nicht mehr mit jemandem geteilt, verschwindet sein Ordner beim nächsten Lauf. Ein Filter kann nicht den Namen des Haupt- oder eines persönlichen Ordners tragen. Höchstens 10 Filter können veröffentlicht sein (Outlook-Ordner und Adressbücher zusammen).
 - Drosselungen durch Microsoft fängt Kartei mit automatischen Wiederholungen ab; ein großer erster Lauf kann etwas dauern.
 
 > Achtung: Änderst du später einen Ordnernamen oder leerst den Namen eines persönlichen Ordners, legt Kartei einen neuen Ordner an und lässt den alten in den Postfächern liegen. Leg den Namen vor dem ersten Sync fest.

@@ -708,6 +708,25 @@ test.describe('vCard import', () => {
   })
 })
 
+test.describe('published filters', () => {
+  test('a maintainer publishes a saved filter as Outlook folder; an address book needs sharing with everyone', async ({ as }) => {
+    const page = await as('mmuster')
+    await page.goto('/')
+    const f = (await page.api('get', '/api/bootstrap')).filters.find((x) => x.mine && !x.shared)
+    const row = page.locator('.filters li').filter({ hasText: f.name })
+    await row.getByRole('button', { name: 'Share with' }).click()
+    try {
+      await row.getByLabel('As Outlook folder').check()
+      await expect(row.locator('.pub')).toHaveCount(1)  // the folder icon next to the name
+      await row.getByLabel('As address book for phones (CardDAV)').check()
+      await expect(page.getByText('share the filter with everyone first')).toBeVisible()
+      await expect(row.getByLabel('As address book for phones (CardDAV)')).not.toBeChecked()
+    } finally {
+      await page.api('patch', `/api/filters/${f.id}`, { outlook_folder: false, carddav_book: false })
+    }
+  })
+})
+
 test.describe('deleting', () => {
   test('delete asks first; the contact goes to the recycle bin and comes back', async ({ as }) => {
     const page = await as('mmuster')

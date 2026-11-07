@@ -174,6 +174,14 @@ Einen gespeicherten Filter rufst du im selben Menü auf oder auf der Startseite 
 
 Als Bearbeiter kannst du einen Filter beim Speichern teilen: Unter **Teilen mit** (Standard *Nur ich*) wählst du **Alle**, eine oder mehrere Rollen (z. B. *Rolle: Nur Lesen*) oder einzelne Kolleginnen und Kollegen (zum Suchen tippen). Der Filter steht dann genau diesen Personen zur Verfügung und ist mit **Geteilt** markiert; fährst du mit der Maus darüber, siehst du, mit wem er geteilt ist (bzw. bei fremden Filtern, wer ihn geteilt hat). Ändern kannst du das später auf der Startseite über das Teilen-Symbol neben deinem Filter.
 
+**Filter veröffentlichen (Bearbeiter).** An derselben Stelle (Teilen-Symbol neben deinem Filter) machen zwei Schalter aus einem gespeicherten Filter Kontakte auf dem Telefon:
+- **Als Outlook-Ordner**: Alle, die den Filter sehen, bekommen in ihrem Postfach einen Kontaktordner mit seinem Namen – mit den Kontakten, die der Filter *ihnen* zeigt. Ein Filter „Meine Kunden“ (Liste *Verantwortlich*, Schlagwort *Kunde*) gibt so allen Kolleginnen und Kollegen ihre eigenen Kunden.
+- **Als Adressbuch für Telefone (CardDAV)**: ein zusätzliches Adressbuch neben *Kartei Kontakte* auf allen CardDAV-Telefonen. Nur für Filter, die mit **Alle** geteilt sind und die Liste *Alle Kontakte* nutzen, und ohne Felder, die Nur-Lesen-Benutzer nicht sehen – jedes Telefon bekommt dasselbe Buch.
+
+Ein Ordner- und ein Telefon-Symbol neben dem Namen zeigen, als was ein Filter veröffentlicht ist; höchstens 10 Filter können es sein. Mit den Listen *Zu prüfen* und *Vorschläge* geht es nicht.
+
+![Einen gespeicherten Filter veröffentlichen](../img/de/filter-publish.png)
+
 ### Liste exportieren
 
 Der Download-Knopf über der Liste exportiert genau die gerade angezeigten Kontakte (mit allen Filtern) in derselben Reihenfolge, wahlweise als **Excel (XLSX)** oder **CSV**. Die Datei enthält alle Felder, die du sehen darfst.

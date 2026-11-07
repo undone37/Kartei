@@ -18,7 +18,7 @@ from django.core.mail.backends.base import BaseEmailBackend
 from django.utils import timezone
 
 from .msg import msg
-from .models import FieldDef, Record, Settings, ref_names
+from .models import FieldDef, Record, SavedFilter, Settings, ref_names
 from .vcard import _ADR_PARTS, collect
 
 GRAPH = "https://graph.microsoft.com/v1.0"
@@ -257,7 +257,7 @@ def _sync(s):
     wanted, names = {}, ref_names()
     # ponytail: every photo is read once per run to hash it, but not kept: memory stays small; a stored image hash
     # would save the reads if photo counts get large
-    for r in Record.objects.filter(deleted_at__isnull=True).select_related("company").iterator(chunk_size=200):
+    for r in Record.objects.filter(deleted_at__isnull=True).select_related("company", "updated_by").iterator(chunk_size=200):
         p = contact(r, fields, names)
         ph = hashlib.sha256(bytes(r.image)).hexdigest()[:12] if r.image else ""
         r.image = None  # hashed above; the bytes are fetched again only for an upload
@@ -272,7 +272,11 @@ def _sync(s):
     keys = lambda t: list(FieldDef.objects.filter(type=t, archived=False).values_list("key", flat=True))
     personal = [(name, ks, t) for name, ks, t in ((s.graph_folder_responsible, keys("user"), "user"),
                                                   (s.graph_folder_internal, keys("users"), "users")) if name and ks]
-    users = kartei_users() if personal else {}
+    published = list(SavedFilter.objects.filter(outlook_folder=True))
+    users = kartei_users() if personal or published else {}
+    by_filter = FilterFolders(wanted) if published else None
+    reserved = {n for n in (s.graph_folder, s.graph_folder_responsible, s.graph_folder_internal) if n}
+    folders_now = {}
     out = {"mailboxes": len(boxes), "created": 0, "updated": 0, "deleted": 0, "photos": 0, "failed": []}
     for user, member in boxes.items():
         jobs = [(s.graph_folder, wanted)]
@@ -282,6 +286,10 @@ def _sync(s):
                 mine = (lambda d: any(d.get(k) == name for k in ks)) if t == "user" else \
                     (lambda d: any(name in (d.get(k) or []) for k in ks))
                 jobs.append((folder, {uid: w for uid, w in wanted.items() if mine(w[3].data or {})}))
+            if by_filter:
+                extra = by_filter.jobs(name, reserved)
+                jobs += extra
+                folders_now[user] = [f for f, _ in extra]
         for folder, want in jobs:
             try:
                 counts, failed = sync_mailbox(c, user, folder, want)
@@ -293,17 +301,68 @@ def _sync(s):
     keep = set(boxes)
     # ponytail: folders of a renamed or cleared setting stay behind (found by name), like a renamed main folder
     names = [n for n in (s.graph_folder, s.graph_folder_responsible, s.graph_folder_internal) if n]
+    before = s.graph_filter_folders or {}
     for user in set(s.graph_mailboxes) - keep:  # left the group: remove the folders
         try:
-            for name in names:
+            for name in names + before.get(user, []):
                 if fid := _folder(c, user, name, create=False):
                     c.call("DELETE", f"/users/{user}/contactFolders/{fid}")
         except GraphError as e:
             keep.add(user)  # retry next run
+            folders_now[user] = before.get(user, [])
             out["failed"].append(f"{user}: {e}")
-    Settings.objects.filter(pk=1).update(graph_mailboxes=sorted(keep))
+    for user in set(boxes):  # filters unpublished, renamed or no longer visible: their folders go
+        gone = [n for n in before.get(user, []) if n not in folders_now.get(user, []) and n not in reserved]
+        try:
+            for name in gone:
+                if fid := _folder(c, user, name, create=False):
+                    c.call("DELETE", f"/users/{user}/contactFolders/{fid}")
+        except GraphError as e:
+            folders_now[user] = folders_now.get(user, []) + gone  # retry next run
+            out["failed"].append(f"{boxes[user]['mail']}: {e}")
+    Settings.objects.filter(pk=1).update(graph_mailboxes=sorted(keep),
+                                         graph_filter_folders={u: n for u, n in folders_now.items() if n})
     out["failed"] = out["failed"][:20]
     return out
+
+
+class FilterFolders:
+    """Saved filters published as Outlook folders: for a mailbox owner, one folder per filter they can see, with the
+    contacts the filter shows them (their "responsible" and "internal" lists, only fields they may see)."""
+
+    def __init__(self, wanted):
+        self.wanted = wanted
+        self.per_rank = {}  # rank -> (field dicts, rows, text index): built once per run
+
+    def _view(self, rank):
+        from . import filters
+        from .api import visible_fields
+        if rank not in self.per_rank:
+            fs = visible_fields(rank)
+            keys = {f.key for f in fs}
+            rows = [filters.row(w[3], keys) for w in self.wanted.values()]
+            self.per_rank[rank] = (filters.field_dicts(fs), rows, {})
+        return self.per_rank[rank]
+
+    def jobs(self, username, reserved):
+        from . import dashboard, filters
+        from .api import profile_of, rank_of
+        user = User.objects.filter(username=username, is_active=True).select_related("profile").first()
+        if not user:
+            return []
+        rank = rank_of(user)
+        role = "admin" if user.is_superuser else profile_of(user).role
+        fields, rows, indexed = self._view(rank)
+        keys = {f["key"] for f in fields}
+        out, seen = [], set(reserved)
+        for f in dashboard.visible_filters(user, role):
+            if not f.outlook_folder or f.name in seen:  # two filters with one name: the first wins
+                continue
+            seen.add(f.name)
+            state = f.state if f.owner_id == user.id else dashboard._visible_state(f.state, keys)
+            uids = filters.match(state, rows, fields, username, indexed=indexed)
+            out.append((f.name, {u: self.wanted[u] for u in uids}))
+        return out
 
 
 def run():

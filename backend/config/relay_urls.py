@@ -6,8 +6,8 @@ from relay import views
 
 urlpatterns = [
     path(".well-known/carddav", views.well_known),
-    re_path(r"^carddav/kontakte/(?P<uid>[0-9a-f-]{36})\.vcf$", views.carddav),
-    re_path(r"^carddav/(?:kontakte/)?$", views.carddav),
+    re_path(r"^carddav/(?P<slug>kontakte|f-\d+)/(?P<uid>[0-9a-f-]{36})\.vcf$", views.carddav),
+    re_path(r"^carddav/(?:(?P<slug>kontakte|f-\d+)/)?$", views.carddav),
     path("push", views.push),
     path("healthz", lambda request: JsonResponse({"status": "ok"})),  # container healthcheck and monitoring
 ]
