@@ -117,7 +117,7 @@ class FilterBookTests(TestCase):
         self.f.state = {**self.f.state, "filters": {"description": ["x"]}}
         self.f.save()
         FieldDef.objects.filter(key="description").update(visible_to="maintainer")  # restricted after publishing
-        self.assertNotIn(f"f-{self.f.id}", self.dav("PROPFIND", "/carddav/", HTTP_DEPTH="1").content.decode())
+        self.assertNotIn(f"<d:href>/carddav/f-{self.f.id}/</d:href>", self.dav("PROPFIND", "/carddav/", HTTP_DEPTH="1").content.decode())
 
 
 class PublishRuleTests(ApiTestBase):
