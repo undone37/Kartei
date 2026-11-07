@@ -555,7 +555,7 @@ Jede Änderung an Abschnitten steht im Protokoll.
 | *Datum*, *Ja/Nein* | Echte Datums- und Ja/Nein-Werte (auch in Excel richtig typisiert). |
 | *Benutzer* | Ein Kartei-Benutzer, z. B. der interne Zuständige. Das **erste** Feld vom Typ *Benutzer* bestimmt, wer den Kontakt prüft. Administratoren und inaktive Benutzer werden nicht angeboten; ein früher eingetragener Wert bleibt erhalten. |
 | *Mehrere Benutzer* | Mehrere Kartei-Benutzer, z. B. interne Kontakte. Auch hier werden Administratoren und inaktive Benutzer nicht angeboten. |
-| *Kontakt (Person der Firma)* | Verweist auf eine Person derselben Firma, z. B. den Geschäftsführer. |
+| *Kontakt (Person der Firma)* | Verweist auf eine Person derselben Firma, z. B. den Geschäftsführer. Die verknüpfte Person zeigt den Kontakt unter *Verknüpft mit*. Mit der vCard-Zuordnung *Beziehung: Vorgesetzte(r)* (`related_manager`) bedeutet das Feld „berichtet an“: Firmen bekommen dann den Reiter **Organigramm**, der daraus entsteht (der Beispiel-Feldbestand hat es als *Vorgesetzter*). |
 
 Exporte, vCards und der AD-Sync zeigen die Namen der Benutzer und verknüpften Personen, nicht ihre IDs.
 

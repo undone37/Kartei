@@ -1467,3 +1467,9 @@ class CsvReadTests(ApiTestBase):
     def test_large_upload(self):
         rows = "".join(f"Max{i};Muster{i};m{i}@example.com;{'x' * 120}\n" for i in range(80000))  # ~12 MB
         self.assertEqual(len(self.preview(("Vorname;Nachname;E-Mail;Notiz\n" + rows).encode())["headers"]), 4)
+
+
+class ShareTargetTests(TestCase):
+    def test_post_without_service_worker_asks_again(self):
+        r = self.client.post("/share", {"text": "Erika Muster"})  # no CSRF token: the phone's share sheet has none
+        self.assertEqual((r.status_code, r["Location"]), (302, "/share?retry=1"))

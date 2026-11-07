@@ -555,7 +555,7 @@ Every change to a section is recorded in the audit log.
 | *Date*, *Yes/No* | Real date and checkbox values (also typed correctly in Excel). |
 | *User* | One Kartei user, e.g. the internal person responsible. The **first** *User* field of a contact determines who reviews it. Administrators and inactive users are not offered; a value set earlier stays. |
 | *Multiple users* | Several Kartei users, e.g. internal contacts. Here too, administrators and inactive users are not offered. |
-| *Contact (person of the company)* | Links a person of the same company, e.g. the managing director. |
+| *Contact (person of the company)* | Links a person of the same company, e.g. the managing director. The linked person lists the contact under *Linked from*. With the vCard assignment *Relation: manager* (`related_manager`) the field means "reports to": companies then get an **Org chart** tab built from it (the example field set has it as *Manager*). |
 
 Exports, vCards and the AD sync show the names of users and linked persons, not their IDs.
 
