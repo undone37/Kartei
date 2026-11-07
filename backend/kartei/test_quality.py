@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from . import batch, quality
 
-from .models import AuditEntry, FieldDef, NotDuplicate, Proposal, Record, Review, Settings
+from .models import AuditEntry, FieldDef, NotDuplicate, Proposal, QualitySnapshot, Record, Review, Settings
 from .tests import ApiTestBase, import_test_csv
 from .validation import normalize_phone
 
@@ -216,3 +216,58 @@ class QualityReportTests(ApiTestBase):
         self.assertEqual(ids("never_reviewed"), u(co))
         self.assertEqual(ids("overdue"), u(p1))
         self.assertEqual(q["duplicates"]["count"], 0)
+
+
+class RetentionTrendTests(ApiTestBase):
+    def old(self, r, days):
+        t = timezone.now() - timedelta(days=days)
+        Record.objects.filter(pk=r.pk).update(created_at=t, updated_at=t)  # bypass auto_now
+
+    def test_retention_due_and_keep(self):
+        stale = Record.objects.create(kind="person", last_name="Alt")
+        checked = Record.objects.create(kind="person", last_name="Geprüft", reviewed_at=timezone.now())
+        fresh = Record.objects.create(kind="person", last_name="Neu")
+        self.old(stale, 800)
+        self.old(checked, 800)
+        self.as_("maintainer")
+        self.assertNotIn("retention_due", self.j("get", "/api/quality"))  # off by default
+        Settings.objects.filter(pk=1).update(retention_months=24)
+        q = self.j("get", "/api/quality")
+        self.assertEqual(set(q["retention_due"]["items"]), {str(stale.uid)})  # a recent check or change counts
+        self.as_("read")
+        self.j("post", "/api/quality/keep", {"uids": [str(stale.uid)]}, status=403)
+        self.as_("maintainer")
+        self.j("post", "/api/quality/keep", {"uids": "x"}, status=400)
+        r = self.j("post", "/api/quality/keep", {"uids": [str(stale.uid), str(fresh.uid), "nope"]})
+        self.assertEqual(set(r["kept"]), {str(stale.uid), str(fresh.uid)})
+        self.assertEqual(self.j("get", "/api/quality")["retention_due"]["count"], 0)
+        self.assertTrue(AuditEntry.objects.filter(action="retention_keep", target_id=str(stale.uid)).exists())
+        stale.refresh_from_db()
+        self.assertEqual(stale.reviewed_by.username, "maintainer")
+
+    def test_snapshot_once_a_day_and_trend(self):
+        Record.objects.create(kind="person", last_name="A", reviewed_at=timezone.now())
+        Record.objects.create(kind="person", last_name="B")
+        c = quality.take_snapshot()
+        self.assertEqual((c["total"], c["reviewed_ok"], c["never_reviewed"]), (2, 1, 1))
+        self.assertIsNone(quality.take_snapshot())  # already taken today
+        today = timezone.localdate()
+        for days in (5, 100, 110, 400, 800):  # 100/110 days back: same month only once if in one month
+            QualitySnapshot.objects.create(day=today - timedelta(days=days), counts={"total": days})
+        self.as_("maintainer")
+        days = [p["day"] for p in self.j("get", "/api/quality")["trend"]]
+        self.assertEqual(days, sorted(days))
+        self.assertIn(today.isoformat(), days)
+        self.assertIn((today - timedelta(days=5)).isoformat(), days)
+        self.assertNotIn((today - timedelta(days=800)).isoformat(), days)  # older than two years
+        months = [d[:7] for d in days if d < (today - timedelta(days=90)).isoformat()]
+        self.assertEqual(len(months), len(set(months)))  # older points: one per month
+        from .monitoring import metrics
+        m = metrics(Settings.get())
+        self.assertEqual(m["reviewed_ok_percent"], 50.0)
+
+    def test_retention_setting_validated(self):
+        self.as_("admin")
+        self.j("put", "/api/admin/settings", {"retention_months": -1}, status=400)
+        self.j("put", "/api/admin/settings", {"retention_months": 36})
+        self.assertEqual(Settings.get().retention_months, 36)

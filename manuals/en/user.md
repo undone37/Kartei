@@ -560,6 +560,15 @@ Before creating, check that the contact doesn't exist yet: the form shows the us
 | **Companies without persons** | companies with no employees in Kartei |
 | **Never reviewed** | contacts that have never been checked |
 | **Review overdue** | the last review is older than the review interval |
+| **Retention expired** | only if the administration has set a retention period: contacts nobody has changed or reviewed for longer than that |
+
+**Trend.** At the top, a chart shows how the share of contacts reviewed within the interval developed over the last two years. The selection switches to the count of one area, e.g. *Invalid values*. Kartei records the numbers once a day; *Values as a table* lists them. Point at the line to see the value of a day.
+
+**Retention expired.** Contacts nobody needs any more should not stay forever (GDPR storage limitation). For each contact in this area, decide:
+- **Keep**: the contact is still needed. It counts as reviewed, so it only shows up again after another retention period.
+- **Move to the recycle bin**: with the buttons above the list, for all listed contacts at once (after a confirmation). From the recycle bin they can be restored as usual.
+
+Nothing is deleted automatically.
 
 ## Duplicates and merging
 

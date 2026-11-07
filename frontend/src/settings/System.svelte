@@ -245,6 +245,10 @@
           <label class="label" for="iv">{t('general.export_interval')}</label>
           <input id="iv" class="input" type="number" min="1" bind:value={s.export_interval_minutes} />
           {#if errors.export_interval_minutes}<div class="error-text">{terr(errors.export_interval_minutes)}</div>{/if}
+          <label class="label" for="retention">{t('general.retention_months')}</label>
+          <input id="retention" class="input" type="number" min="0" bind:value={s.retention_months} />
+          <p class="hint">{t('general.retention_hint')}</p>
+          {#if errors.retention_months}<div class="error-text">{terr(errors.retention_months)}</div>{/if}
         </div>
       </div>
       <h3>{t('phone.title')}</h3>

@@ -150,7 +150,7 @@ const SHOTS = [
   { name: 'proposal-new', user: 'mmuster', path: (h) => `/proposal/${h.newProp}?list=proposals` },
   { name: 'propose-delete-person', user: 'kkramer', path: (h) => `/person/${h.reviewPerson}`, steps: open('.panel.review .actions button:nth-child(3)') },
   { name: 'proposal-company-gone', user: 'mmuster', path: (h) => `/company/${h.gone}` },
-  { name: 'quality-open', user: 'admin', path: '/quality', steps: async (p) => { await p.locator('details.card summary').nth(5).click(); await wait(300) } },
+  { name: 'quality-open', user: 'admin', path: '/quality', steps: async (p) => { await p.locator('details.card summary').last().click(); await p.locator('details.card').last().evaluate((e) => e.scrollIntoView({ block: 'end' })); await wait(300) } },
   { name: 'settings-field-editor', user: 'admin', path: '/settings/fields', steps: open('tr.click >> nth=2') },
   { name: 'settings-export-editor', user: 'admin', path: '/settings/exports', steps: open('tr.click') },
   { name: 'settings-review-rolling', user: 'admin', path: '/settings/review', steps: open('input[type=radio][value=rolling]') },

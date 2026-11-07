@@ -21,7 +21,7 @@ from django.db.models import Count
 from django.http import JsonResponse
 from django.utils import timezone
 
-from .models import AuditEntry, ExportProfile, Profile, Proposal, Record, Review, Settings, Webhook
+from .models import AuditEntry, ExportProfile, Profile, Proposal, QualitySnapshot, Record, Review, Settings, Webhook
 from .net import client_ip
 
 LEVEL = {"ok": 0, "warn": 1, "crit": 2}
@@ -202,7 +202,18 @@ def metrics(s):
         "auth_failures_24h": count("auth_failed", 24),
         "audit_entries_24h": AuditEntry.objects.filter(at__gte=now - timedelta(hours=24)).count(),
         "syslog_sent": st.get("sent", 0), "syslog_dropped": st.get("dropped", 0),
+        **_quality(),
     }
+
+
+def _quality():
+    """From the daily snapshot: the full quality report is too heavy for every monitoring poll."""
+    q = QualitySnapshot.objects.order_by("-day").first()
+    if not q or not q.counts.get("total"):
+        return {}
+    c = q.counts
+    return {"reviewed_ok_percent": round(100 * c.get("reviewed_ok", 0) / c["total"], 1),
+            **({"retention_due": c["retention_due"]} if "retention_due" in c else {})}
 
 
 def collect(s=None):

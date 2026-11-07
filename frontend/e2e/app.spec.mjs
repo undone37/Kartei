@@ -708,6 +708,26 @@ test.describe('vCard import', () => {
   })
 })
 
+test.describe('data quality', () => {
+  test('the trend shows the history; a contact past retention is kept', async ({ as }) => {
+    const page = await as('mmuster')
+    await page.goto('/quality')
+    const trend = page.locator('section.trend')
+    await expect(trend.getByRole('img')).toBeVisible()  // seed_demo writes a year of snapshots
+    await trend.getByText('Values as a table').click()
+    await expect(trend.locator('tbody tr').first()).toBeVisible()
+    const section = page.locator('details', { hasText: 'Retention expired' })
+    await section.locator('summary').click()
+    const rows = section.locator('li')
+    const before = await rows.count()
+    if (before) {  // keeping can't be undone: once all are kept on a reused database, only the trend is checked
+      await rows.first().getByRole('button', { name: 'Keep' }).click()
+      await expect(page.getByText('1 contact kept')).toBeVisible()
+      await expect(rows).toHaveCount(before - 1)
+    }
+  })
+})
+
 test.describe('org chart', () => {
   test('a company shows its org chart; a person lists their direct reports', async ({ as }) => {
     const page = await as('kkramer')  // read only is enough to look

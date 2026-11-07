@@ -6,6 +6,8 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- **Data quality over time:** the data-quality page shows a trend chart of the last two years: the share of contacts reviewed within the interval, or the count of any area (e.g. invalid values). The exporter records the numbers once a day; a table view lists them. Monitoring reports `reviewed_ok_percent`.
+- **Retention rules:** with *Settings → General → Retention (months)*, contacts nobody has changed or reviewed for that long appear under *Data quality → Retention expired*. Maintainers keep them (counts as reviewed) or move them to the recycle bin. Nothing is deleted automatically; off by default. Monitoring reports `retention_due`.
 - **Org chart:** a *Contact* field with the vCard assignment *Relation: manager* (`related_manager`) means "reports to". Companies then get an **Org chart** tab: a tree of their people along that field (cycles and people reporting outside the company handled). In the example field set, *Manager* (`manager`) becomes such a *Contact* field (a typed name still works), and the demo data has two to three levels per company.
 - **Linked from:** a person lists who points at them through *Contact* fields, e.g. their direct reports or the company where they are managing director.
 - **New contact from an email signature:** *New → From an email signature …* reads a pasted signature (name, academic title, job title, company, address in German/Austrian/Swiss style, labelled phone numbers, email, website) and opens the usual filled-in form, with the company linked if Kartei knows it. Unrecognised lines are listed; greetings and legal footers are skipped. Everything happens in the browser.

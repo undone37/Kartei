@@ -11,9 +11,10 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from kartei import audit, exports, reviews
+from kartei import audit, exports, quality, reviews
 from kartei.api import delete_tree, import_fields
-from kartei.models import ExportProfile, FieldDef, Profile, Proposal, Record, Role, SavedFilter, Settings
+from kartei.models import (ExportProfile, FieldDef, Profile, Proposal, QualitySnapshot, Record, Role, SavedFilter,
+                           Settings)
 
 FIELDS = Path(dj.BASE_DIR).parent / "examples" / "fields-example.json"
 
@@ -178,5 +179,21 @@ class Command(BaseCommand):
             audit.log(None, "create", "record", r.uid, r.display_name, {"last_name": [None, last]})
             delete_tree(users[who], r)
             Record.objects.filter(pk=r.pk).update(deleted_at=timezone.now() - timedelta(days=days, hours=3 * days))
+        # retention: a few persons nobody has touched for years, so the quality page has something to decide
+        Settings.objects.filter(pk=1).update(retention_months=36)
+        old = timezone.now() - timedelta(days=40 * 30)
+        Record.objects.filter(pk__in=[p.pk for p in rnd.sample(persons, 4)]).update(
+            created_at=old, updated_at=old, reviewed_at=None, reviewed_by=None)
+        # quality trend: today's snapshot, plus a made-up year before it in which things slowly got better
+        now = quality.take_snapshot()
+        today = timezone.localdate()
+        days = [*range(91, 366, 30), *range(1, 91)]
+        for age in days:
+            f = age / 365
+            counts = {k: max(0, round(v * (1 + 1.2 * f) + rnd.randint(-1, 1))) for k, v in now.items()
+                      if k not in ("total", "reviewed_ok")}
+            counts["total"] = now["total"] - round(6 * f)
+            counts["reviewed_ok"] = round(counts["total"] * (now["reviewed_ok"] / now["total"]) * (1 - 0.55 * f))
+            QualitySnapshot.objects.create(day=today - timedelta(days=age), counts=counts)
         self.stdout.write(self.style.SUCCESS(
             f"{len(companies)} companies, {len(persons)} persons, users {', '.join(names)} (password: {password})"))
