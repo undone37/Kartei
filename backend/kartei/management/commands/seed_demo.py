@@ -97,6 +97,14 @@ class Command(BaseCommand):
             if ceo and "ceo" in known:
                 c.data["ceo"] = str(ceo.uid)
                 c.save(update_fields=["data"])
+            # org chart: the managing director at the top, the first person of each department its head
+            staff = [p for p in persons if p.company_id == c.id]
+            top, heads = ceo or staff[0], {}
+            for p in staff:
+                if p is not top and "manager" in known:
+                    head = heads.setdefault(p.data.get("department", ""), p)
+                    p.data["manager"] = str((top if head is p else head).uid)
+                    p.save(update_fields=["data"])
         # data quality cases: a duplicate pair, a person without company, an invalid email
         twin = persons[3]
         persons.append(Record.objects.create(kind="person", first_name=twin.first_name, last_name=twin.last_name,

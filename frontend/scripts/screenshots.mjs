@@ -56,6 +56,7 @@ const SHOTS = [
       const r = await (await api(ctx, 'get', `/api/records/${h.person}`)).json()
       await api(ctx, 'patch', `/api/records/${h.person}`, { version: r.version, data: h.restoreBack })
     } },
+  { name: 'org-chart', user: 'mmuster', path: (h) => `/company/${h.company}`, steps: open('nav.tabs button:nth-child(3)') },
   { name: 'company-persons', user: 'mmuster', path: (h) => `/company/${h.company}`, steps: open('nav.tabs button:nth-child(2)') },
   { name: 'edit', user: 'mmuster', path: (h) => `/person/${h.person}`, steps: async (p) => { await p.keyboard.press('e'); await wait(400) } },
   { name: 'new-person', user: 'mmuster', path: (h) => `/new/person?company=${h.company}` },

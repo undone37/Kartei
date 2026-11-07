@@ -127,6 +127,10 @@ export default {
 
   'view.details': 'Details',
   'view.persons': 'People',
+  'view.org': 'Org chart',
+  'view.linked': 'Linked from',
+  'view.direct_reports': 'Direct reports',
+  'view.linked_as': 'As {field} of',
   'view.history': 'History',
   'view.vcard': 'Download vCard',
   'view.copy': 'Copy',

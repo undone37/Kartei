@@ -4,6 +4,11 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- **Org chart:** a *Contact* field with the vCard assignment *Relation: manager* (`related_manager`) means "reports to". Companies then get an **Org chart** tab: a tree of their people along that field (cycles and people reporting outside the company handled). In the example field set, *Manager* (`manager`) becomes such a *Contact* field (a typed name still works), and the demo data has two to three levels per company.
+- **Linked from:** a person lists who points at them through *Contact* fields, e.g. their direct reports or the company where they are managing director.
+
 ## [0.6.1-beta] – 2026-11-07
 
 Dependency updates only; nothing to configure. Pull the new image or rebuild; there is no database migration.

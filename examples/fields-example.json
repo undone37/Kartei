@@ -1019,9 +1019,9 @@
         "en": "Manager"
       },
       "applies_to": "person",
-      "type": "text",
+      "type": "contact",
       "options": [],
-      "open_options": false,
+      "open_options": true,
       "quick_filter": false,
       "required": false,
       "min": null,
@@ -1033,8 +1033,8 @@
       "searchable": true,
       "regex": "",
       "help": {
-        "de": "",
-        "en": ""
+        "de": "Die Person, an die sie oder er berichtet – daraus entsteht das Organigramm der Firma. Ein Name ohne eigenen Kontakt geht auch.",
+        "en": "The person this person reports to – builds the company's org chart. A name without a contact of its own works too."
       },
       "vcard": "related_manager",
       "vcard_label": "",
