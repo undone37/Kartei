@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import time
 from datetime import datetime
@@ -31,16 +32,18 @@ class BackupFileTests(TempBackupDir, TransactionTestCase):
         load_fields()
 
     def test_backup_restore_test_and_retention(self):
+        if backup._postgres() and not shutil.which("pg_dump"):
+            self.skipTest("pg_dump not installed")
         st = backup.run()
-        self.assertTrue(st["ok"], st)
-        self.assertTrue(st["file"].startswith("kartei-") and st["file"].endswith(".sqlite3"))
+        self.assertTrue(st.get("ok"), st)
+        self.assertTrue(st["file"].startswith("kartei-") and st["file"].endswith(".dump" if backup._postgres() else ".sqlite3"))
         self.assertEqual([f["name"] for f in st["files"]], [st["file"]])
         self.assertEqual(Settings.get().backup_status["file"], st["file"])
         rt = backup.restore_test()
         self.assertTrue(rt.get("ok"), rt)
         self.assertEqual(rt["tables"]["kartei_fielddef"][0], rt["tables"]["kartei_fielddef"][1])  # restored = live
         # retention: older files go, the newest always stays
-        old = Path(self.dir.name) / "kartei-20200101-023000.sqlite3"
+        old = Path(self.dir.name) / f"kartei-20200101-023000{Path(st['file']).suffix}"
         old.write_bytes(b"x")
         os.utime(old, (time.time() - 30 * 86400,) * 2)
         backup.prune(14)
