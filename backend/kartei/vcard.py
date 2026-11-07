@@ -69,14 +69,26 @@ def collect(record_data, fields, names=None):
     return got
 
 
-# a line break inside a value, as written by esc(); "\\n" (an escaped backslash before an n) is not one
-_ESCAPED_NEWLINES = re.compile(r"(?<!\\)(?:\\n)+")
+# for one_line: vCard's escapes, as written by esc() (\\n line break, \\, \\; \\\\ for the characters themselves)
+_ESCAPE = re.compile(r"\\([\\,;nN])")
+_STRUCTURED = {"N", "ADR", "ORG"}  # their ";" separates parts: there an escaped one must stay escaped
+
+
+def _plain(line):
+    """One content line without vCard escapes, line breaks as " · " (Android's QR scanner reads values literally)."""
+    head, sep, value = line.partition(":")
+    if not sep or head.upper() in ("BEGIN", "END", "VERSION"):
+        return line
+    keep_semicolon = head.split(";")[0].split(".")[-1].upper() in _STRUCTURED
+    value = _ESCAPE.sub(lambda m: m.group(0) if m.group(1) == ";" and keep_semicolon
+                        else "\n" if m.group(1) in "nN" else m.group(1), value)
+    return head + sep + re.sub(r"(?:\s*\n\s*)+", " · ", value).strip(" ·")
 
 
 def render(record, fields, flavour, base_url="", names=None, photo=True, one_line=False):
     """record: kartei.Record (or duck-type); fields: FieldDefs visible to the CardDAV user.
-    photo=False leaves out photo/logo (QR codes hold about 2 KB). one_line: line breaks inside values become " · "
-    (the QR scanner of Android phones shows vCard's \\n literally and knows no other way to encode them)."""
+    photo=False leaves out photo/logo (QR codes hold about 2 KB). one_line: values without vCard escapes, line breaks
+    as " · " (the QR scanner of Android phones shows \\n and \\, literally and knows no other way to encode them)."""
     ios = flavour == "ios"
     g = collect(record.data or {}, fields, names)
     one = lambda t: " ".join(v for v, _ in g.get(t, []))
@@ -195,5 +207,5 @@ def render(record, fields, flavour, base_url="", names=None, photo=True, one_lin
     lines.append("END:VCARD")
     # a raw line break inside a value would start a new property (or card) on the phone: never let one through
     if one_line:
-        lines = [_ESCAPED_NEWLINES.sub(" · ", line) for line in lines]
+        lines = [_plain(line) for line in lines]
     return "\r\n".join(fold(l.replace("\r", " ").replace("\n", " ")) for l in lines) + "\r\n"
