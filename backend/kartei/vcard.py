@@ -4,6 +4,7 @@ Admin-defined fields pick a target from TARGETS; the renderer turns collected
 values into flavour-specific lines. Pure functions, no DB access.
 """
 import base64
+import re
 from collections import defaultdict
 
 _ADR_PARTS = ["pobox", "extra", "street", "city", "state", "zip", "country"]  # vCard ADR order
@@ -68,9 +69,14 @@ def collect(record_data, fields, names=None):
     return got
 
 
-def render(record, fields, flavour, base_url="", names=None, photo=True):
+# a line break inside a value, as written by esc(); "\\n" (an escaped backslash before an n) is not one
+_ESCAPED_NEWLINES = re.compile(r"(?<!\\)(?:\\n)+")
+
+
+def render(record, fields, flavour, base_url="", names=None, photo=True, one_line=False):
     """record: kartei.Record (or duck-type); fields: FieldDefs visible to the CardDAV user.
-    photo=False leaves out photo/logo (QR codes hold about 2 KB)."""
+    photo=False leaves out photo/logo (QR codes hold about 2 KB). one_line: line breaks inside values become " · "
+    (the QR scanner of Android phones shows vCard's \\n literally and knows no other way to encode them)."""
     ios = flavour == "ios"
     g = collect(record.data or {}, fields, names)
     one = lambda t: " ".join(v for v, _ in g.get(t, []))
@@ -188,4 +194,6 @@ def render(record, fields, flavour, base_url="", names=None, photo=True):
 
     lines.append("END:VCARD")
     # a raw line break inside a value would start a new property (or card) on the phone: never let one through
+    if one_line:
+        lines = [_ESCAPED_NEWLINES.sub(" · ", line) for line in lines]
     return "\r\n".join(fold(l.replace("\r", " ").replace("\n", " ")) for l in lines) + "\r\n"
