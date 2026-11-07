@@ -26,8 +26,8 @@
   import { go, route } from './lib/router.svelte'
   import { store } from './lib/store.svelte'
   import { L, i18n, t, terr } from './lib/i18n.svelte'
-  import { compile, count, defs, emptyGroup, type Group } from './lib/advanced'
-  import { matcher } from './lib/search'
+  import { count, defs, emptyGroup, type Group } from './lib/advanced'
+  import { inScope as inMyScope, listTest, scopeKeys, type Scope } from './lib/listfilter'
   import { setTheme, theme } from './lib/theme.svelte'
   import { isMulti, isSingle, type Kind, type ListState, type Rec } from './lib/types'
   import { fmt } from './lib/format'
@@ -49,7 +49,6 @@
   const urlOf = (fs: Record<string, string[]>) => JSON.stringify(Object.entries(fs).filter(([, v]) => v.length).sort())
   let filters = $state<Record<string, string[]>>(fromUrl(location.search))
   let adv = $state<Group>(emptyGroup())
-  type Scope = 'all' | 'responsible' | 'internal' | 'review' | 'proposals'
   // the review mail links to /?list=review
   let scope = $state<Scope>((new URLSearchParams(location.search).get('list') as Scope) ||
                             (localStorage.getItem('kartei:scope') as Scope) || 'all')
@@ -90,24 +89,13 @@
   const activeFilters = $derived(Object.entries(filters).filter(([, v]) => v.length))
   // advanced filter: compiled once per edit, not per record
   const advDefs = $derived(defs(store.fields))
-  const advTest = $derived(compile(adv, advDefs))
   const advCount = $derived(count(adv, advDefs))
 
-  // "my contacts": every single-user field counts as responsible, every multi-user field as internal contacts
-  const userKeys = $derived({
-    responsible: store.fields.filter((f) => f.type === 'user' && !f.archived).map((f) => f.key),
-    internal: store.fields.filter((f) => f.type === 'users' && !f.archived).map((f) => f.key),
-  })
+  const userKeys = $derived(scopeKeys(store.fields))
   const reviewUids = $derived(new Set(store.reviews.map((r) => r.record)))
   const proposalUids = $derived(new Set(store.proposals.flatMap((p) => (p.record ? [p.record] : []))))
   const proposalCount = $derived(proposalUids.size + store.newProposals.length)
-  const inScope = (r: Rec, s: Scope) => {
-    if (s === 'all') return true
-    if (s === 'review') return reviewUids.has(r.uid)
-    if (s === 'proposals') return proposalUids.has(r.uid)
-    const me = store.user?.username
-    return userKeys[s].some((k) => (Array.isArray(r.data[k]) ? r.data[k].includes(me) : r.data[k] === me))
-  }
+  const inScope = (r: Rec, s: Scope) => inMyScope(r, s, userKeys, store.user?.username, { review: reviewUids, proposals: proposalUids })
   // review/proposal lists only appear while there is something in them
   const scopes = $derived([
     ...(['responsible', 'internal'] as const).filter((s) => userKeys[s].length),
@@ -158,20 +146,9 @@
   }
 
   const results = $derived.by(() => {
-    const match = matcher(query)
-    const fs = activeFilters
-    const sc = activeScope
-    const at = advTest
-    return store.index.filter((x) => {
-      if (kind !== 'all' && x.rec.kind !== kind) return false
-      if (!inScope(x.rec, sc)) return false
-      if (at && !at(x.rec)) return false
-      for (const [key, vals] of fs) {
-        const v = x.rec.data[key]
-        if (!(Array.isArray(v) ? v : [v]).some((y) => vals.includes(y))) return false
-      }
-      return match(x)
-    })
+    const test = listTest({ q: query, scope: activeScope, kind, filters: activeFilters, adv }, store.fields,
+                          store.user?.username, new Date(), { review: reviewUids, proposals: proposalUids })
+    return store.index.filter(test)
   })
   const counts = $derived.by(() => {
     const rs = store.records.filter((r) => inScope(r, activeScope))

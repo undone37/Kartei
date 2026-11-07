@@ -70,8 +70,8 @@ urlpatterns = [
     path("api/admin/import", M(POST=api.import_csv)),
     path("api/admin/import/preview", M(POST=api.import_preview)),
     path(".well-known/carddav", carddav.well_known),
-    re_path(r"^carddav/kontakte/(?P<uid>[0-9a-f-]{36})\.vcf$", carddav.dav),
-    re_path(r"^carddav/(?:kontakte/)?$", carddav.dav),
+    re_path(r"^carddav/(?P<slug>kontakte|f-\d+)/(?P<uid>[0-9a-f-]{36})\.vcf$", carddav.dav),
+    re_path(r"^carddav/(?:(?P<slug>kontakte|f-\d+)/)?$", carddav.dav),
     re_path(r"^(?P<kind>person|company)/(?P<uid>[0-9a-f-]{36})\.vcf$", views.vcf),
     # notify
     path("api/v1/contacts", api_v1.contacts),

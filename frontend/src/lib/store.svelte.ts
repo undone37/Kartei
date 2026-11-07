@@ -363,6 +363,12 @@ class Store {
     this.persist()
   }
 
+  async publishFilter(id: number, flags: { outlook_folder?: boolean; carddav_book?: boolean }) {
+    const f = await patch<SavedFilter>(`/api/filters/${id}`, flags)
+    this.filters = this.filters.map((x) => (x.id === id ? f : x))
+    this.persist()
+  }
+
   async shareFilter(id: number, share: string[]) {
     const f = await patch<SavedFilter>(`/api/filters/${id}`, { share })
     this.filters = this.filters.map((x) => (x.id === id ? f : x))

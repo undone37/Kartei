@@ -67,7 +67,8 @@ def _sync(s):
     wanted = dict(_etags(schema))
     if not wanted:  # never wipe the phones because of an empty database
         raise RelayError(msg("relay_no_records"))
-    have = call(s, "GET").get("cards", {})
+    state = call(s, "GET")
+    have = state.get("cards", {})
     delete = sorted(set(have) - set(wanted))
     if have and len(delete) > len(have) * s.carddav_relay_max_delete_percent / 100:
         raise RelayError(msg("relay_too_many_deletes", n=len(delete), total=len(have),
@@ -76,8 +77,11 @@ def _sync(s):
     cred = {"username": s.carddav_username, "password_hash": s.carddav_password_hash}
     out, batch, size = {"updated": 0, "deleted": 0, "total": len(have)}, [], 0
 
-    def send(cards, delete=()):
-        res = call(s, "POST", {"cards": cards, "delete": list(delete), "credentials": cred})
+    books = _books(wanted, state.get("books"))
+
+    def send(cards, delete=(), books=None):
+        res = call(s, "POST", {"cards": cards, "delete": list(delete), "credentials": cred,
+                               **({"books": books} if books is not None else {})})
         out["updated"] += res.get("updated", 0)
         out["deleted"] += res.get("deleted", 0)
         out["total"] = res.get("total", out["total"])
@@ -90,8 +94,24 @@ def _sync(s):
             if size >= CHUNK:
                 send(batch, delete)
                 batch, size, delete = [], 0, ()
-    send(batch, delete)  # also when nothing changed: keeps the login current
+    send(batch, delete, books)  # also when nothing changed: keeps the login current; books after their cards
+    if books is not None:
+        out["books"] = len(books)
     return out
+
+
+def _books(wanted, have):
+    """Saved filters published as address books, for the relay: None when nothing changed or the relay is older and
+    doesn't know books (it reports no "books" then)."""
+    if have is None:
+        return None
+    from .carddav import filter_books, members
+    out = []
+    for slug, f in filter_books():
+        uids = sorted(members(f) & wanted.keys())  # only cards the relay has
+        digest = hashlib.sha256((f.name + "\0" + ",".join(uids)).encode()).hexdigest()[:16]
+        out.append({"slug": slug, "name": f.name, "members": uids, "digest": digest})
+    return None if {b["slug"]: b["digest"] for b in out} == have else out
 
 
 def run():

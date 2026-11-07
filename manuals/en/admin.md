@@ -819,6 +819,7 @@ The contacts appear as a separate account in the Contacts app and are updated au
 - Photos of persons and logos of companies.
 - Names of users and linked persons (e.g. *Internal contact*) as text.
 - Deleted contacts disappear from the phones.
+- **Address books from saved filters:** a saved filter published as an address book appears as an extra book (`/carddav/f-<id>/`) in the same account, for all phones. DAVx⁵ (Android) shows each book separately; whether and how the iPhone shows additional books of one account depends on the iOS version, so try it on one device first. Only filters shared with everyone, with the list *All contacts* and fields everybody sees qualify; if a field is restricted later, the book disappears. When contacts enter or leave the filter, phones load that book again. The relay serves these books too (relay from this version on).
 - Phones that support it (iPhone, DAVx⁵ and most other clients) only fetch what changed since their last sync (`sync-collection`), which keeps syncs fast with many contacts. After a change to the vCard mapping, the *Public URL* or contacts deleted permanently from the recycle bin, each phone does one full sync on its own.
 
 If CardDAV is disabled, the address returns "not found" and the phones keep their last state until the account is removed. Android has no built-in CardDAV; use the [Outlook / Exchange sync](#outlook-sync) or a CardDAV app.
@@ -941,6 +942,7 @@ On the phone (iPhone or Android), users install the Outlook app, sign in with th
   - *my internal contacts*: contacts where the user is entered in a multi-user field.
 
   Kartei matches a mailbox to a Kartei user by email address, UPN, or the part before the `@` (the AD account name). Mailboxes without a matching Kartei user get only the folder with all contacts.
+- **Folders from saved filters:** maintainers can publish a saved filter as an Outlook folder (see the user manual, *Saved filters*). Each mailbox owner who sees the filter gets a folder named after it, with the contacts the filter shows them (their own *Responsible*/*Internal* lists, only fields their role sees). When a filter is unpublished, renamed or no longer shared with someone, its folder is removed at the next run. A filter can't use the name of the main or a personal folder. At most 10 filters can be published (Outlook folders and address books together).
 - Throttling by Microsoft is handled with automatic retries; a large first run can take a while.
 
 > Warning: If you rename a folder or clear a personal folder's name, Kartei creates a new folder and leaves the old one in the mailboxes. Choose the name before the first sync.

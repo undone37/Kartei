@@ -1,0 +1,1681 @@
+{
+ "today": "2026-11-07",
+ "me": "mmuster",
+ "fields": [
+  {
+   "key": "email",
+   "type": "email",
+   "searchable": true,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "phone",
+   "type": "phone",
+   "searchable": true,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "city",
+   "type": "text",
+   "searchable": true,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "keywords",
+   "type": "multiselect",
+   "searchable": true,
+   "archived": false,
+   "options": [
+    {
+     "value": "kunde",
+     "de": "Kunde",
+     "en": "Customer"
+    },
+    {
+     "value": "partner",
+     "de": "Partner",
+     "en": "Partner"
+    },
+    {
+     "value": "lieferant",
+     "de": "Lieferant",
+     "en": "Supplier"
+    }
+   ]
+  },
+  {
+   "key": "status",
+   "type": "select",
+   "searchable": true,
+   "archived": false,
+   "options": [
+    {
+     "value": "aktiv",
+     "de": "Aktiv",
+     "en": "Active"
+    },
+    {
+     "value": "ruhend",
+     "de": "Ruhend",
+     "en": "Dormant"
+    }
+   ]
+  },
+  {
+   "key": "internal_contact",
+   "type": "user",
+   "searchable": true,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "internal_contacts",
+   "type": "users",
+   "searchable": true,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "since",
+   "type": "date",
+   "searchable": false,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "size",
+   "type": "integer",
+   "searchable": false,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "revenue",
+   "type": "decimal",
+   "searchable": false,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "vip",
+   "type": "checkbox",
+   "searchable": false,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "boss",
+   "type": "contact",
+   "searchable": true,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "note",
+   "type": "longtext",
+   "searchable": true,
+   "archived": false,
+   "options": []
+  },
+  {
+   "key": "old",
+   "type": "text",
+   "searchable": true,
+   "archived": true,
+   "options": []
+  }
+ ],
+ "records": [
+  {
+   "uid": "c1",
+   "kind": "company",
+   "first_name": "",
+   "last_name": "",
+   "name": "Müller Logistik GmbH",
+   "legacy_id": "F-1",
+   "company": null,
+   "created_at": "2024-01-10T12:00:00Z",
+   "updated_at": "2026-11-01T12:00:00Z",
+   "reviewed_at": "2026-06-01T12:00:00Z",
+   "updated_by": "kkramer",
+   "data": {
+    "email": "info@mueller.example",
+    "phone": "+49 511 1000",
+    "city": "Lübeck",
+    "keywords": [
+     "kunde"
+    ],
+    "status": "aktiv",
+    "internal_contact": "mmuster",
+    "internal_contacts": [
+     "kkramer"
+    ],
+    "since": "2019-05-01",
+    "size": 120,
+    "revenue": "1234,5",
+    "vip": true
+   }
+  },
+  {
+   "uid": "c2",
+   "kind": "company",
+   "first_name": "",
+   "last_name": "",
+   "name": "Straße & Söhne KG",
+   "legacy_id": "",
+   "company": null,
+   "created_at": "2025-03-02T12:00:00Z",
+   "updated_at": "2025-03-02T12:00:00Z",
+   "reviewed_at": null,
+   "updated_by": "mmuster",
+   "data": {
+    "city": "München",
+    "keywords": [
+     "partner",
+     "lieferant"
+    ],
+    "status": "ruhend",
+    "internal_contact": "kkramer",
+    "internal_contacts": [
+     "mmuster",
+     "tbauer"
+    ],
+    "size": 8,
+    "old": "versteckt"
+   }
+  },
+  {
+   "uid": "p1",
+   "kind": "person",
+   "first_name": "Anna",
+   "last_name": "Weiß",
+   "name": "",
+   "legacy_id": "P-7",
+   "company": "c1",
+   "created_at": "2026-10-30T12:00:00Z",
+   "updated_at": "2026-11-06T12:00:00Z",
+   "reviewed_at": null,
+   "updated_by": "mmuster",
+   "data": {
+    "email": "anna.weiss@mueller.example",
+    "phone": "0511 1000-12",
+    "city": "Lübeck",
+    "keywords": [
+     "kunde",
+     "partner"
+    ],
+    "internal_contact": "mmuster",
+    "since": "2026-11-01",
+    "size": 3,
+    "note": "Mag Kaffee\nzweite Zeile",
+    "boss": "p2"
+   }
+  },
+  {
+   "uid": "p2",
+   "kind": "person",
+   "first_name": "Jörg",
+   "last_name": "Groß",
+   "name": "",
+   "legacy_id": "",
+   "company": "c1",
+   "created_at": "2023-07-01T12:00:00Z",
+   "updated_at": "2024-01-01T12:00:00Z",
+   "reviewed_at": "2024-01-01T12:00:00Z",
+   "updated_by": "tbauer",
+   "data": {
+    "phone": "+49 (511) 1000-99",
+    "city": "Luebeck",
+    "internal_contact": "tbauer",
+    "internal_contacts": [
+     "mmuster"
+    ],
+    "since": "2010-01-15",
+    "size": 1000,
+    "vip": false
+   }
+  },
+  {
+   "uid": "p3",
+   "kind": "person",
+   "first_name": "Zoë",
+   "last_name": "Çelik",
+   "name": "",
+   "legacy_id": "",
+   "company": "c2",
+   "created_at": "2026-11-07T12:00:00Z",
+   "updated_at": "2026-11-07T12:00:00Z",
+   "reviewed_at": null,
+   "updated_by": null,
+   "data": {
+    "email": "zoe@soehne.example",
+    "phone": "0049 89 4711",
+    "keywords": [
+     "lieferant"
+    ],
+    "boss": "Herr Unbekannt",
+    "revenue": "99.9"
+   }
+  },
+  {
+   "uid": "p4",
+   "kind": "person",
+   "first_name": "",
+   "last_name": "Ohnefirma",
+   "name": "",
+   "legacy_id": "",
+   "company": null,
+   "created_at": "2026-01-01T12:00:00Z",
+   "updated_at": "2026-01-01T12:00:00Z",
+   "reviewed_at": null,
+   "updated_by": null,
+   "data": {
+    "phone": "+43 1 234567",
+    "internal_contacts": []
+   }
+  }
+ ],
+ "cases": [
+  {
+   "name": "everything",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c1",
+    "c2",
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "persons",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "person",
+    "filters": {}
+   },
+   "expect": [
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "companies",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "company",
+    "filters": {}
+   },
+   "expect": [
+    "c1",
+    "c2"
+   ]
+  },
+  {
+   "name": "search lubeck",
+   "state": {
+    "q": "lubeck",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c1",
+    "p1"
+   ]
+  },
+  {
+   "name": "search luebeck",
+   "state": {
+    "q": "luebeck",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c1",
+    "p1",
+    "p2"
+   ]
+  },
+  {
+   "name": "search Lübeck",
+   "state": {
+    "q": "Lübeck",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c1",
+    "p1"
+   ]
+  },
+  {
+   "name": "search two words AND",
+   "state": {
+    "q": "anna lübeck",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "p1"
+   ]
+  },
+  {
+   "name": "search company name finds employees",
+   "state": {
+    "q": "müller",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c1",
+    "p1",
+    "p2"
+   ]
+  },
+  {
+   "name": "search sohne",
+   "state": {
+    "q": "sohne",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c2",
+    "p3"
+   ]
+  },
+  {
+   "name": "search soehne",
+   "state": {
+    "q": "söhne",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c2",
+    "p3"
+   ]
+  },
+  {
+   "name": "search strasse",
+   "state": {
+    "q": "strasse",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c2",
+    "p3"
+   ]
+  },
+  {
+   "name": "search option label",
+   "state": {
+    "q": "customer",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c1",
+    "p1"
+   ]
+  },
+  {
+   "name": "search option value",
+   "state": {
+    "q": "lieferant",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c2",
+    "p3"
+   ]
+  },
+  {
+   "name": "search linked person name",
+   "state": {
+    "q": "groß",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "p1",
+    "p2"
+   ]
+  },
+  {
+   "name": "search free-text contact",
+   "state": {
+    "q": "unbekannt",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "p3"
+   ]
+  },
+  {
+   "name": "search archived field ignored",
+   "state": {
+    "q": "versteckt",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": []
+  },
+  {
+   "name": "search legacy id",
+   "state": {
+    "q": "p-7",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "p1"
+   ]
+  },
+  {
+   "name": "search phone digits",
+   "state": {
+    "q": "1000-12",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "p1"
+   ]
+  },
+  {
+   "name": "search phone +49",
+   "state": {
+    "q": "+49 511 1000",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c1",
+    "p1",
+    "p2"
+   ]
+  },
+  {
+   "name": "search phone 0049",
+   "state": {
+    "q": "0049 89",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "p3"
+   ]
+  },
+  {
+   "name": "search phone national",
+   "state": {
+    "q": "08947",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "p3"
+   ]
+  },
+  {
+   "name": "search number not phone",
+   "state": {
+    "q": "120",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": []
+  },
+  {
+   "name": "search zoe accent",
+   "state": {
+    "q": "zoe",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "p3"
+   ]
+  },
+  {
+   "name": "search celik",
+   "state": {
+    "q": "celik",
+    "scope": "all",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "p3"
+   ]
+  },
+  {
+   "name": "scope responsible",
+   "state": {
+    "q": "",
+    "scope": "responsible",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c1",
+    "p1"
+   ]
+  },
+  {
+   "name": "scope internal",
+   "state": {
+    "q": "",
+    "scope": "internal",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": [
+    "c2",
+    "p2"
+   ]
+  },
+  {
+   "name": "scope review (no sets)",
+   "state": {
+    "q": "",
+    "scope": "review",
+    "kind": "all",
+    "filters": {}
+   },
+   "expect": []
+  },
+  {
+   "name": "quick filter keywords",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {
+     "keywords": [
+      "partner"
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p1"
+   ]
+  },
+  {
+   "name": "quick filter two values",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {
+     "keywords": [
+      "kunde",
+      "lieferant"
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "c2",
+    "p1",
+    "p3"
+   ]
+  },
+  {
+   "name": "quick filter user",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {
+     "internal_contact": [
+      "mmuster"
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "p1"
+   ]
+  },
+  {
+   "name": "quick filter empty list ignored",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {
+     "keywords": []
+    }
+   },
+   "expect": [
+    "c1",
+    "c2",
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv text contains",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "city",
+       "op": "contains",
+       "value": "beck"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "p1",
+    "p2"
+   ]
+  },
+  {
+   "name": "adv text eq folded",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "city",
+       "op": "eq",
+       "value": "lubeck"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "p1"
+   ]
+  },
+  {
+   "name": "adv text ne",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "city",
+       "op": "ne",
+       "value": "lübeck"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv text starts",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "@name",
+       "op": "starts",
+       "value": "str"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2"
+   ]
+  },
+  {
+   "name": "adv text not_contains",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "email",
+       "op": "not_contains",
+       "value": "mueller"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv phone eq digits",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "phone",
+       "op": "eq",
+       "value": "+49 511 1000"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1"
+   ]
+  },
+  {
+   "name": "adv phone starts",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "phone",
+       "op": "starts",
+       "value": "0511"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "p1",
+    "p2"
+   ]
+  },
+  {
+   "name": "adv empty",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "email",
+       "op": "empty"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p2",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv not_empty",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "keywords",
+       "op": "not_empty"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "c2",
+    "p1",
+    "p3"
+   ]
+  },
+  {
+   "name": "adv number gt",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "size",
+       "op": "gt",
+       "value": "100"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "p2"
+   ]
+  },
+  {
+   "name": "adv number le",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "size",
+       "op": "le",
+       "value": "8"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p1"
+   ]
+  },
+  {
+   "name": "adv number between",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "size",
+       "op": "between",
+       "value": [
+        "3",
+        "120"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "c2",
+    "p1"
+   ]
+  },
+  {
+   "name": "adv decimal comma",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "revenue",
+       "op": "ge",
+       "value": "100"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1"
+   ]
+  },
+  {
+   "name": "adv number ne",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "size",
+       "op": "ne",
+       "value": "8"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv date before",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "since",
+       "op": "before",
+       "value": "2019-05-01"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "p2"
+   ]
+  },
+  {
+   "name": "adv date on_after",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "since",
+       "op": "on_after",
+       "value": "2019-05-01"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "p1"
+   ]
+  },
+  {
+   "name": "adv date last 7",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "since",
+       "op": "last",
+       "value": "7"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "p1"
+   ]
+  },
+  {
+   "name": "adv date older 365",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "since",
+       "op": "older",
+       "value": "365"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "p2"
+   ]
+  },
+  {
+   "name": "adv created last 10",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "@created_at",
+       "op": "last",
+       "value": "10"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "p1",
+    "p3"
+   ]
+  },
+  {
+   "name": "adv reviewed empty",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "@reviewed_at",
+       "op": "empty"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p1",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv updated_at on",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "@updated_at",
+       "op": "on",
+       "value": "2026-11-06"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "p1"
+   ]
+  },
+  {
+   "name": "adv choice in",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "status",
+       "op": "in",
+       "value": [
+        "aktiv"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1"
+   ]
+  },
+  {
+   "name": "adv choice not_in",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "status",
+       "op": "not_in",
+       "value": [
+        "aktiv"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv multi any",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "keywords",
+       "op": "any",
+       "value": [
+        "partner",
+        "lieferant"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p1",
+    "p3"
+   ]
+  },
+  {
+   "name": "adv multi all",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "keywords",
+       "op": "all",
+       "value": [
+        "kunde",
+        "partner"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "p1"
+   ]
+  },
+  {
+   "name": "adv multi none",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "keywords",
+       "op": "none",
+       "value": [
+        "kunde"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv users any",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "internal_contacts",
+       "op": "any",
+       "value": [
+        "mmuster"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p2"
+   ]
+  },
+  {
+   "name": "adv bool yes",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "vip",
+       "op": "yes"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1"
+   ]
+  },
+  {
+   "name": "adv bool no",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "vip",
+       "op": "no"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv kind core",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "@kind",
+       "op": "in",
+       "value": [
+        "company"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "c2"
+   ]
+  },
+  {
+   "name": "adv company core",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "@company",
+       "op": "in",
+       "value": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "p1",
+    "p2"
+   ]
+  },
+  {
+   "name": "adv updated_by",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "@updated_by",
+       "op": "in",
+       "value": [
+        "mmuster"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p1"
+   ]
+  },
+  {
+   "name": "adv contact field",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "boss",
+       "op": "in",
+       "value": [
+        "p2"
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "p1"
+   ]
+  },
+  {
+   "name": "adv any group",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "any",
+     "items": [
+      {
+       "field": "city",
+       "op": "eq",
+       "value": "münchen"
+      },
+      {
+       "field": "size",
+       "op": "gt",
+       "value": "500"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p2"
+   ]
+  },
+  {
+   "name": "adv none group",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "none",
+     "items": [
+      {
+       "field": "city",
+       "op": "contains",
+       "value": "beck"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv nested",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "@kind",
+       "op": "in",
+       "value": [
+        "person"
+       ]
+      },
+      {
+       "mode": "any",
+       "items": [
+        {
+         "field": "email",
+         "op": "not_empty"
+        },
+        {
+         "field": "vip",
+         "op": "no"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "expect": [
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv incomplete ignored",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "city",
+       "op": "contains",
+       "value": ""
+      },
+      {
+       "field": "size",
+       "op": "between",
+       "value": [
+        "",
+        ""
+       ]
+      },
+      {
+       "field": "unknown",
+       "op": "eq",
+       "value": "x"
+      },
+      {
+       "field": "old",
+       "op": "eq",
+       "value": "versteckt"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "c2",
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "adv bad op ignored",
+   "state": {
+    "q": "",
+    "scope": "all",
+    "kind": "all",
+    "filters": {},
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "city",
+       "op": "gt",
+       "value": "5"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "c1",
+    "c2",
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ]
+  },
+  {
+   "name": "everything combined",
+   "state": {
+    "q": "lübeck",
+    "scope": "responsible",
+    "kind": "person",
+    "filters": {
+     "keywords": [
+      "kunde"
+     ]
+    },
+    "adv": {
+     "mode": "all",
+     "items": [
+      {
+       "field": "since",
+       "op": "after",
+       "value": "2020-01-01"
+      }
+     ]
+    }
+   },
+   "expect": [
+    "p1"
+   ]
+  }
+ ]
+}

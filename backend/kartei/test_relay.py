@@ -71,6 +71,36 @@ class PushJobTests(TestCase):
         self.assertIsNone(relaypush.run())
         self.assertEqual(self.relay.requests, [])
 
+    def test_filter_books_on_the_relay(self):
+        from django.contrib.auth.models import User
+        from relay.models import FilterBook
+        from . import carddav
+        from .models import Profile, SavedFilter
+        carddav._members.update(stamp=None, at=0.0, sets={}, view=None)
+        configure()
+        owner = User.objects.create(username="m")
+        Profile.objects.create(user=owner, role="maintainer")
+        f = SavedFilter.objects.create(owner=owner, name="Firmen", shared=True, carddav_book=True,
+                                       state={"q": "", "scope": "all", "kind": "company", "filters": {}})
+        self.assertEqual(relaypush.run()["books"], 1)
+        book = FilterBook.objects.get()
+        companies = sorted(str(u) for u in Record.objects.filter(kind="company").values_list("uid", flat=True))
+        self.assertEqual((book.slug, book.name, sorted(book.members)), (f"f-{f.id}", "Firmen", companies))
+        self.assertNotIn("books", relaypush.run())  # unchanged: not sent again
+        self.assertNotIn("books", self.relay.requests[-1][1])
+        r = self.relay.dav(f"/carddav/f-{f.id}/{self.person.uid}.vcf")
+        self.assertEqual(r.status_code, 404)  # not in the book
+        self.assertEqual(self.relay.dav(f"/carddav/f-{f.id}/{self.company.uid}.vcf").status_code, 200)
+        f.carddav_book = False
+        f.save()
+        relaypush.run()
+        self.assertFalse(FilterBook.objects.exists())
+
+    def test_older_relay_gets_no_books(self):
+        configure()
+        with mock.patch.object(relaypush, "call", lambda s, m, b=None: {k: v for k, v in self.relay(s, m, b).items() if k != "books"}):
+            self.assertNotIn("books", relaypush.run())
+
     def test_push_diff_and_serve(self):
         configure()
         st = relaypush.run()

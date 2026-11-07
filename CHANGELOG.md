@@ -6,6 +6,9 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- **Saved filters as Outlook folders:** a maintainer publishes a saved filter as an Outlook folder. Everyone who sees the filter gets a folder with its name in their mailbox, with the contacts the filter shows *them* (e.g. "My customers": each colleague their own). Unpublished, renamed or unshared filters' folders are removed.
+- **Saved filters as CardDAV address books:** a filter shared with everyone becomes an extra address book on all CardDAV phones (`/carddav/f-<id>/`), also through the relay. Only the list *All contacts* and fields everybody sees.
+- At most 10 filters can be published. The server evaluates filters exactly like the list in the browser; shared test cases (`frontend/tests/filter-cases.json`) keep both in step.
 - **Phonebook for desk phones:** Yealink, Snom and Grandstream phones load the contacts as their remote phonebook (`/phonebook/yealink.xml`, `snom.xml`, `grandstream.xml`, each with `?q=` for the phones' remote search). Same contacts and fields as CardDAV, only dialable numbers. Own login (password shown once), optionally limited to certain addresses; *Settings → Phones & CardDAV* (renamed from *CardDAV*).
 - **SwyxWare:** `/phonebook/swyx.csv` is the phonebook in the import format of Swyx's Global Phonebook (unique names, one line per number), so Swyx shows caller names from Kartei.
 - **Number lookup for phone systems:** `/phonebook/lookup?number=…` tells a phone system (3CX, Starface, Asterisk …) who is calling, as `Name · Company` or JSON. Any notation of the number; an unknown extension finds the company's switchboard. Under a millisecond with 50 000 contacts.
@@ -15,6 +18,10 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 - **Linked from:** a person lists who points at them through *Contact* fields, e.g. their direct reports or the company where they are managing director.
 - **New contact from an email signature:** *New → From an email signature …* reads a pasted signature (name, academic title, job title, company, address in German/Austrian/Swiss style, labelled phone numbers, email, website) and opens the usual filled-in form, with the company linked if Kartei knows it. Unrecognised lines are listed; greetings and legal footers are skipped. Everything happens in the browser.
 - **Share to Kartei (Android):** with Kartei installed as an app, it appears in the share menu of other apps; a shared vCard or text (e.g. a signature) opens as a new contact or proposal.
+
+### Changed
+
+- **Relay:** serves address books from saved filters (migration `0003_filter_books`). Update the relay together with Kartei; an older relay keeps working without them.
 
 ## [0.6.1-beta] – 2026-11-07
 

@@ -12,6 +12,14 @@ class Card(models.Model):
     deleted = models.BooleanField(default=False)
 
 
+class FilterBook(models.Model):
+    """A saved filter Kartei publishes as an address book: just its name and which cards belong to it."""
+    slug = models.CharField(max_length=20, primary_key=True)  # "f-<id>"
+    name = models.CharField(max_length=100)
+    members = models.JSONField(default=list)  # card uids
+    digest = models.CharField(max_length=16)  # of name and members, so Kartei only pushes what changed
+
+
 class Book(models.Model):
     """Singleton (pk=1): address book version and the CardDAV login, both pushed by Kartei."""
     ctag = models.CharField(max_length=40, default="0")
