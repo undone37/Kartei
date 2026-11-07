@@ -23,6 +23,7 @@ Kartei is a contact directory for persons and companies. It suits organizations 
   - a REST API with tokens (read only, or read and write)
 - **Sign-in:** single sign-on with any OpenID Connect provider and SCIM provisioning (Entra ID, Okta, Authentik, …), LDAP/Active Directory with role groups, plus local accounts.
 - **Email:** via SMTP or Microsoft 365 (OAuth2), with editable texts.
+- **Operations:** daily database backups with a restore test, health and status endpoints for monitoring systems (Checkmk, Zabbix, PRTG), sign-ins and changes in the audit log, sent to your SIEM via syslog.
 - **Interface:** German and English, light and dark theme, and it can be installed as an app (PWA).
 
 ## Documentation
@@ -34,7 +35,7 @@ Kartei is a contact directory for persons and companies. It suits organizations 
 | REST API (read and write, for other systems) | [docs/API.md](docs/API.md), [docs/openapi.yaml](docs/openapi.yaml) | |
 | Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | |
 
-The manuals are published at [undone37.github.io/Kartei](https://undone37.github.io/Kartei/) by the *Documentation* workflow (`.github/workflows/pages.yml`) with every release. Every [release](https://github.com/undone37/Kartei/releases) has the manuals attached as PDF; `cd frontend && npm run manuals-pdf` builds them locally into `dist/` (needs pandoc and poppler-utils).
+Every [release](https://github.com/undone37/Kartei/releases) also has the manuals attached as PDF.
 
 ## Quick start with Docker
 
@@ -47,9 +48,17 @@ Instead of building, you can use the released images: set `KARTEI_IMAGE=ghcr.io/
 
 To use a dedicated PostgreSQL server or cluster instead of the bundled database container, set `DATABASE_URL` and use `compose.external-db.yaml`; the administrator manual (Installation) has the details.
 
-Logs are JSON lines. To forward the container logs to a SIEM via syslog, add `compose.logging.yaml` (Fluent Bit); Kartei sends its audit events to syslog itself (*Settings → Monitoring & logging*), where the health and status endpoints for monitoring systems are set up too.
+Kartei listens on port 8000; put a TLS reverse proxy in front of it. On the first start it creates the database, a few starter fields (`examples/fields-default.json`) and the admin account from `.env`. Everything else is configured in the browser under *Settings*: the [administrator manual](https://undone37.github.io/Kartei/en/admin.html) walks through it, including backups, monitoring and forwarding logs to a SIEM (`compose.logging.yaml`).
 
-Kartei listens on port 8000; put a TLS reverse proxy in front of it. On the first start it creates the database, a few starter fields (`examples/fields-default.json`) and the admin account from `.env`. Everything else is configured in the browser under *Settings*; the administrator manual walks through it.
+### Try it with sample data
+
+Seed an empty installation:
+
+```sh
+docker compose exec web python manage.py seed_demo --password demo12345
+```
+
+This loads the example field set and creates fictional companies and persons, demo users (`mmuster`, `tbauer`: Maintainer; `kkramer`, `lschmidt`: Read only), open reviews, proposals, saved filters, sample exports and a few data-quality cases. It refuses to run if contacts already exist.
 
 ### Optional: CardDAV relay in the DMZ
 
@@ -61,50 +70,6 @@ docker compose -f compose.relay.yaml up -d --build   # port 8080, own SQLite vol
 ```
 
 Then enter the relay URL in Kartei under *Settings → CardDAV*. The administrator manual (CardDAV chapter) has the firewall rule, TLS and troubleshooting.
-
-To try Kartei with sample data, seed an empty installation:
-
-```sh
-docker compose exec web python manage.py seed_demo --password demo12345
-```
-
-This loads the example field set and creates fictional companies and persons, demo users (`mmuster`, `tbauer`: Maintainer; `kkramer`, `lschmidt`: Read only), open reviews, proposals, saved filters, sample exports and a few data-quality cases. It refuses to run if contacts already exist.
-
-## Development
-
-```sh
-uv venv .venv -p 3.14 && uv pip install -p .venv -r backend/requirements.txt
-cd backend
-export DEBUG=1                                   # SQLite, insecure development key
-../.venv/bin/python manage.py migrate
-ADMIN_USERNAME=admin ADMIN_PASSWORD=admin12345 ../.venv/bin/python manage.py init_app
-../.venv/bin/python manage.py seed_demo --password demo12345    # optional sample data
-../.venv/bin/python manage.py runserver
-
-cd ../frontend && nvm use && npm ci && npm run dev   # http://localhost:5173, proxies /api to :8000
-```
-
-Without the Vite dev server, `npm run build` lets Django serve the app at http://localhost:8000/.
-
-### Tests and CI
-
-```sh
-cd backend && DEBUG=1 ../.venv/bin/python manage.py test kartei relay
-cd frontend && npm test && npm run check
-cd frontend && npm run test:e2e   # browser tests against a running server with seed_demo data (once: npx playwright install chromium)
-```
-
-GitHub Actions runs the backend tests on SQLite and PostgreSQL 18, the frontend checks, the browser tests, an upgrade test (the latest release's image with sample data, then this version's migrations: the data must be unchanged) and the Docker build on every push, keeps SBOMs (SPDX and CycloneDX) of the source tree and both images as a build artifact, and scans both images for known vulnerabilities (Grype; results under *Security → Code scanning*; a critical vulnerability with an available fix fails the build). The images of the latest release are scanned again every day. Dependabot proposes weekly updates for Python, npm, the Docker base images and the actions; it stays on the Django LTS and on the newest Python that Django supports. Security fixes for known vulnerabilities arrive as Dependabot PRs right away.
-
-Every night, a dynamic security scan (OWASP ZAP, `.github/workflows/zap.yml`) starts Kartei from `main` with demo data and scans the web app signed in as a read-only user and the REST API with a read token (active attacks). Findings of high risk fail it; the reports are attached to the run. Overrides need a reason in `.zap/rules.tsv`. Locally: `.zap/scan.sh` in a clean checkout without `.env` (Docker, curl, jq).
-
-### Releases
-
-Move the *Unreleased* entries in `CHANGELOG.md` under a new version heading (`## [1.2.0] – date`), then push a tag such as `v1.2.0`. The *Release* workflow publishes `ghcr.io/undone37/kartei` and `ghcr.io/undone37/kartei-relay` for amd64 and arm64 (tags `1.2.0`, `1.2`, `1`, with SBOM and provenance attestations; a tag like `v1.2.0-beta` becomes a pre-release with only the `1.2.0-beta` image tag) and creates the GitHub release – its text is that version's changelog section plus GitHub's generated notes – with the manuals as PDF, the OpenAPI description (`openapi.yaml`) and the SBOM files.
-
-### Screenshots for the manuals
-
-With a development server on port 8000 on a fresh, seeded database (`seed_demo --password demo12345`, and `EXPORT_ROOT=/export BACKUP_ROOT=/backup` for neutral paths), `cd frontend && npm run screenshots` regenerates all screenshots in `manuals/img/` in German and English (Playwright; run `npx playwright install chromium` once).
 
 ## Keyboard shortcuts
 
@@ -120,4 +85,4 @@ With a development server on port 8000 on a fresh, seeded database (`seed_demo -
 
 ## Contributing and license
 
-Contributions are welcome – see [CONTRIBUTING.md](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md); changes are listed in the [changelog](CHANGELOG.md). Kartei is free software under the [GNU Affero General Public License v3.0](LICENSE): if you run a modified version for others over a network, you must offer them its source code.
+Contributions are welcome – see [CONTRIBUTING.md](CONTRIBUTING.md) (development setup, tests, releases) and the [code of conduct](CODE_OF_CONDUCT.md); changes are listed in the [changelog](CHANGELOG.md). Kartei is free software under the [GNU Affero General Public License v3.0](LICENSE): if you run a modified version for others over a network, you must offer them its source code.
