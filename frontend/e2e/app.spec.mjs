@@ -224,7 +224,22 @@ test.describe('phone list', () => {
       person.data.phone_work.slice(-3))
     await page.getByLabel('by name').check()
     await expect(sheet.locator('tr.co')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Print / PDF' })).toBeEnabled()
+    await expect(page.getByRole('button', { name: 'Print' })).toBeEnabled()
+  })
+
+  test('the phone list downloads as a real PDF with the listed contacts', async ({ as }) => {
+    const page = await as('kkramer')
+    await page.goto('/phonelist')
+    const download = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Download PDF' }).click()
+    const file = await download
+    expect(file.suggestedFilename()).toMatch(/^Phone list-\d{4}-\d{2}-\d{2}\.pdf$/)
+    const pdf = (await import('node:fs')).readFileSync(await file.path()).toString('latin1')
+    expect(pdf.startsWith('%PDF-1.4')).toBeTruthy()
+    expect(pdf).toContain('(Phone list)')
+    const someone = (await page.records()).find((r) => r.kind === 'person' && r.data.phone_work)
+    expect(pdf).toContain(someone.last_name.replace(/[()\\]/g, ''))
+    await expect(page.getByRole('button', { name: 'Print' })).toBeVisible()  // printing stays
   })
 })
 

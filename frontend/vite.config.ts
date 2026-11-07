@@ -11,6 +11,7 @@ export default defineConfig(({ command }) => ({
     proxy: {
       '/api': backend,
       '/carddav': backend,
+      '/phonebook': backend,
       '/.well-known': backend,
       '/django-admin': backend,
       '^/(person|company)/.*\\.vcf$': backend,

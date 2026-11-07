@@ -4,6 +4,10 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Changed
+
+- **Phone list as PDF:** *Download PDF* saves the phone list as a real PDF file (A4, landscape for many columns, headings and page numbers on every page); before, only the browser's print dialog could make one. *Print* stays.
+
 ## [0.7.0-beta] – 2026-11-07
 
 Kartei reaches more phones and keeps its data cleaner:
