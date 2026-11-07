@@ -35,6 +35,8 @@ def esc(value):
 
 def fold(line):
     """Fold at 75 octets without splitting UTF-8 sequences (RFC 6350 3.2)."""
+    if line.isascii():  # one byte per character: slice (photos are long base64 lines)
+        return "\r\n ".join([line[:75]] + [line[i:i + 74] for i in range(75, len(line), 74)])
     out, cur, size, limit = [], [], 0, 75
     for ch in line:
         n = len(ch.encode())
