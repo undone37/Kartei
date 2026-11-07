@@ -4,6 +4,11 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- **Data quality over time:** the data-quality page shows a trend chart of the last two years: the share of contacts reviewed within the interval, or the count of any area (e.g. invalid values). The exporter records the numbers once a day; a table view lists them. Monitoring reports `reviewed_ok_percent`.
+- **Retention rules:** with *Settings → General → Retention (months)*, contacts nobody has changed or reviewed for that long appear under *Data quality → Retention expired*. Maintainers keep them (counts as reviewed) or move them to the recycle bin. Nothing is deleted automatically; off by default. Monitoring reports `retention_due`.
+
 ## [0.6.1-beta] – 2026-11-07
 
 Dependency updates only; nothing to configure. Pull the new image or rebuild; there is no database migration.

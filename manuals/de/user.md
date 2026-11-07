@@ -540,6 +540,15 @@ Prüf vor dem Anlegen, ob es den Kontakt schon gibt: Das Formular zeigt dazu wie
 | **Firmen ohne Personen** | Firmen ohne Mitarbeiter in Kartei |
 | **Noch nie geprüft** | Kontakte, die noch nie geprüft wurden |
 | **Prüfung überfällig** | die letzte Prüfung ist älter als das Prüfintervall |
+| **Aufbewahrung abgelaufen** | nur wenn die Administration eine Aufbewahrungsdauer eingestellt hat: Kontakte, die länger als diese weder geändert noch geprüft wurden |
+
+**Verlauf.** Oben zeigt eine Grafik, wie sich der Anteil der innerhalb des Intervalls geprüften Kontakte in den letzten zwei Jahren entwickelt hat. Die Auswahl schaltet auf die Anzahl eines Bereichs um, z. B. *Ungültige Werte*. Kartei hält die Zahlen einmal täglich fest; *Werte als Tabelle* listet sie auf. Zeigt man auf die Linie, erscheint der Wert des Tages.
+
+**Aufbewahrung abgelaufen.** Kontakte, die niemand mehr braucht, sollen nicht ewig bleiben (DSGVO, Speicherbegrenzung). Für jeden Kontakt in diesem Bereich entscheidest du:
+- **Behalten**: der Kontakt wird noch gebraucht. Er gilt als geprüft und erscheint erst nach einer weiteren Aufbewahrungsdauer wieder.
+- **In den Papierkorb**: mit den Knöpfen über der Liste für alle aufgeführten Kontakte auf einmal (nach Rückfrage). Aus dem Papierkorb lassen sie sich wie gewohnt wiederherstellen.
+
+Automatisch gelöscht wird nichts.
 
 ## Dubletten zusammenführen
 

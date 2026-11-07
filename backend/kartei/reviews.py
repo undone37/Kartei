@@ -102,12 +102,12 @@ def finish(review_qs, outcome, user=None):
     return reviews
 
 
-def confirm(record, user):
+def confirm(record, user, action="review"):
     reviews = finish(record.reviews.all(), "confirmed", user)
     if not reviews:  # confirming without an open review is fine too
         record.reviewed_at, record.reviewed_by = timezone.now(), user
         record.save(update_fields=["reviewed_at", "reviewed_by"])
-    audit.log(user, "review", "record", record.uid, record.display_name, {"reviewed": [None, "confirmed"]})
+    audit.log(user, action, "record", record.uid, record.display_name, {"reviewed": [None, "confirmed"]})
 
 
 def reassign(record):

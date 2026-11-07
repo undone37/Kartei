@@ -98,6 +98,7 @@ urlpatterns = [
     path("api/records/bulk", M(POST=dashboard.bulk)),
     # quality
     path("api/quality", M(GET=quality.quality_view)),
+    path("api/quality/keep", M(POST=quality.keep_view)),
     path("api/duplicates", M(GET=quality.duplicates_view)),
     path("api/duplicates/preview", M(GET=quality.merge_preview)),
     path("api/duplicates/merge", M(POST=quality.merge_view)),

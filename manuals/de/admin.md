@@ -1022,6 +1022,7 @@ Jeder Empfänger bekommt den Text in seiner Sprache (oder in der Standardsprache
 | *Öffentliche Adresse* | z. B. `https://kartei.example.de`. Für Links in E-Mails, in vCards (`SOURCE`) und für die CardDAV-Adresse. |
 | *Kartenlink* | Link neben Adressen in der Kontaktansicht. `{address}` wird durch Straße, PLZ, Ort und Land ersetzt. Standard: Google Maps (`https://www.google.com/maps/search/?api=1&query={address}`); z. B. `https://www.openstreetmap.org/search?query={address}` für OpenStreetMap. Kartei baut nur den Link und spricht den Kartendienst nie selbst an; der Browser öffnet ihn beim Klick. Leer: kein Link. Die Adressfelder erkennt Kartei an ihrer vCard-Zuordnung (Adresse geschäftlich und privat). |
 | *Papierkorb automatisch leeren nach (Tagen)* | Kontakte im Papierkorb werden nach so vielen Tagen endgültig gelöscht. *0* = nie (Standard). |
+| *Aufbewahrung (Monate)* | Kontakte, die so lange weder geändert noch geprüft wurden, erscheinen unter *Datenqualität → Aufbewahrung abgelaufen*; Bearbeiter behalten sie dort oder verschieben sie in den Papierkorb. Automatisch gelöscht wird nichts. *0* = aus (Standard). Üblich sind z. B. 36. |
 | *Beim endgültigen Löschen den Verlauf anonymisieren* | An (Standard): Ein endgültig gelöschter Kontakt verliert auch im Verlauf und im Protokoll Name und Werte; siehe [Datenschutz](#datenschutz). |
 | *Export-Intervall (Minuten)* | Takt aller Hintergrundaufgaben (siehe [Hintergrundaufgaben](#hintergrundaufgaben)). Standard 15, mindestens 1. |
 
@@ -1206,7 +1207,7 @@ curl -H "Authorization: Bearer kmon_…" https://kartei.example.de/api/monitorin
 | `syslog` (wenn aktiv) | – | Versand in der letzten Stunde fehlgeschlagen |
 | `export_disk` | unter 10 % frei auf `/export` | unter 5 % frei |
 
-Kennzahlen: Kontakte (`persons`, `companies`, `recycle_bin`), aktive Benutzer je Rolle, offene Prüfungen und Vorschläge, Anmeldungen und Fehlversuche der letzten Stunde und des letzten Tages, abgelehnte CardDAV-/API-Zugriffe, Protokolleinträge pro Tag und die Syslog-Zähler.
+Kennzahlen: Kontakte (`persons`, `companies`, `recycle_bin`), aktive Benutzer je Rolle, offene Prüfungen und Vorschläge, Anmeldungen und Fehlversuche der letzten Stunde und des letzten Tages, abgelehnte CardDAV-/API-Zugriffe, Protokolleinträge pro Tag, die Syslog-Zähler sowie aus dem täglichen Datenqualitäts-Stand der Anteil der innerhalb des Intervalls geprüften Kontakte (`reviewed_ok_percent`) und, mit Aufbewahrungsdauer, die Kontakte darüber hinaus (`retention_due`).
 
 **Beispiele:**
 
