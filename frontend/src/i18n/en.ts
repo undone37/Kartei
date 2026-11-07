@@ -1285,4 +1285,6 @@ export default {
   'msg.import_trashed': "Line {line} ({id}): skipped, “{name}” is in the recycle bin (restore it first)",
   'msg.import_too_long': "Line {line} ({id}): skipped, too long: {column}",
   'view.copy_failed': "Copying failed – select the text and copy it yourself",
+  'form.draft_restored': "Your unsaved input was restored",
+  'msg.export_rows_lossy': "{n} rows written – {lossy} values contain characters {encoding} can't hold; they appear as “?”. Choose UTF-8 if the reading program supports it.",
 } as Record<string, string>

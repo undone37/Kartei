@@ -151,3 +151,15 @@ class ScimTests(ApiTestBase):
         self.scim("get", "Nothing", status=404)
         page = self.scim("get", "Users?startIndex=1&count=0")
         self.assertEqual((page["totalResults"], page["itemsPerPage"]), (1, 0))
+
+    def test_rename_moves_the_contacts_along(self):
+        from .models import Record
+        self.scim("post", "Users", ALICE, status=201)
+        u = self.alice()
+        rec = Record.objects.create(kind="company", name="ACME", data={"internal_contact": u.username,
+                                                                       "internal_contacts": ["read", u.username]})
+        self.scim("patch", f"Users/{u.id}", self.ops(("replace", "userName", "alice.new@example.com")))
+        rec.refresh_from_db()
+        self.assertEqual(rec.data["internal_contact"], "alice.new@example.com")
+        self.assertEqual(rec.data["internal_contacts"], ["read", "alice.new@example.com"])
+        self.assertTrue(AuditEntry.objects.filter(target_type="user", changes__has_key="renamed_from").exists())

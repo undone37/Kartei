@@ -7,6 +7,7 @@
   import FieldInput from './FieldInput.svelte'
   import { ApiError, api, patch, post } from '../lib/api'
   import { store } from '../lib/store.svelte'
+  import { draftKeyFor, readDraft } from '../lib/drafts'
   import { isEmpty } from '../lib/format'
   import { validate } from '../lib/validate'
   import { L, i18n, t, terr } from '../lib/i18n.svelte'
@@ -47,6 +48,26 @@
   let conflict = $state<Rec | null>(null)
   let confirmDiscard = $state(false)
   for (const [k, v] of Object.entries(untrack(() => prefill) ?? {})) (draft as any)[k] = k === 'data' ? { ...draft.data, ...(v as object) } : v
+  // the input survives an expired session: kept per tab, restored after signing in again (same user only)
+  const draftKey = untrack(() => draftKeyFor(mode, rec?.uid ?? null, kind))
+  const kept = readDraft(draftKey, store.user?.username)
+  if (kept && !untrack(() => prefill) && !untrack(() => proposal)) {
+    Object.assign(draft, kept.draft) // in place: the form keeps working on the same state
+    comment = kept.comment
+    baseVersion = kept.baseVersion // a change by someone else meanwhile still shows as a conflict
+    toast(t('form.draft_restored'))
+  }
+  const pristine = JSON.stringify([untrack(() => $state.snapshot(draft)), untrack(() => comment)])
+  $effect(() => { // kept only once something was typed: opening a form leaves nothing behind
+    const now = [$state.snapshot(draft), comment]
+    if (JSON.stringify(now) === pristine) sessionStorage.removeItem(draftKey)
+    else sessionStorage.setItem(draftKey, JSON.stringify({ user: store.user?.username, at: Date.now(), baseVersion,
+                                                           comment, draft: now[0] }))
+  })
+  function close(saved?: Rec, proposalId?: number) {
+    sessionStorage.removeItem(draftKey)
+    onclose(saved, proposalId)
+  }
   let pendingImage = $state<Blob | null>(null)
   let pendingPreview = $state<string | null>(null)
   let firstInput: HTMLInputElement | undefined = $state()
@@ -155,7 +176,7 @@
                              : await post<{ proposal: Proposal }>('/api/proposals', payload)
           toast(t('proposal.sent'))
           await store.sync()
-          onclose(undefined, r.proposal.id)
+          close(undefined, r.proposal.id)
           return
         }
         if (mode === 'adjust') {
@@ -164,7 +185,7 @@
           store.upsert(r.record)
           toast(t('proposal.accepted'))
           store.sync()
-          onclose(r.record)
+          close(r.record)
           return
         }
         saved = await post<Rec>('/api/records', body)
@@ -189,7 +210,7 @@
           else await post(`/api/records/${rec.uid}/proposals`, payload)
           toast(t('proposal.sent'))
           store.sync()
-          onclose()
+          close()
           return
         }
         if (mode === 'adjust') {
@@ -198,13 +219,13 @@
           store.upsert(r.record)
           toast(t('proposal.accepted'))
           store.sync()
-          onclose(r.record)
+          close(r.record)
           return
         }
         saved = Object.keys(body).length > 1 ? await patch<Rec>(`/api/records/${rec.uid}`, body) : rec
       }
       store.upsert(saved)
-      onclose(saved)
+      close(saved)
     } catch (e) {
       if (e instanceof ApiError && e.code === 'validation') {
         errors = e.fields
@@ -228,12 +249,12 @@
 
   function takeTheirs() {
     store.upsert(conflict!)
-    onclose(conflict!)
+    close(conflict!)
   }
 
   function cancel() {
     if (dirty && !confirmDiscard) confirmDiscard = true
-    else onclose()
+    else close()
   }
 
   function onkey(e: KeyboardEvent) {
@@ -311,7 +332,7 @@
     <div class="banner">
       <span>{t('form.discard_q')}</span>
       <button type="button" class="btn sm" onclick={() => (confirmDiscard = false)}>{t('form.keep_editing')}</button>
-      <button type="button" class="btn sm danger" onclick={() => onclose()}>{t('form.discard')}</button>
+      <button type="button" class="btn sm danger" onclick={() => close()}>{t('form.discard')}</button>
     </div>
   {/if}
 

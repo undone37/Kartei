@@ -102,8 +102,8 @@ class CardDavTests(RelayTestBase):
             self.assertEqual(self.dav("GET", path).status_code, 404, path)
 
     def test_lockout(self):
-        bad = "Basic " + base64.b64encode(b"carddav:wrong").decode()
-        for _ in range(20):
+        for i in range(20):  # different wrong passwords: the same one repeated counts once
+            bad = "Basic " + base64.b64encode(f"carddav:wrong{i}".encode()).decode()
             self.client.generic("PROPFIND", "/carddav/", HTTP_AUTHORIZATION=bad, REMOTE_ADDR="10.9.9.9")
         r = self.client.generic("PROPFIND", "/carddav/", HTTP_AUTHORIZATION=self.auth, REMOTE_ADDR="10.9.9.9")
         self.assertEqual(r.status_code, 401)

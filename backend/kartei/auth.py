@@ -3,9 +3,11 @@ import hashlib
 import logging
 import os
 import tempfile
+import uuid
 from pathlib import Path
 
 import ldap
+from django.contrib.auth.models import User
 from django_auth_ldap.backend import LDAPBackend, LDAPSettings, _LDAPUser
 from django_auth_ldap.config import LDAPSearch
 from ldap.filter import escape_filter_chars
@@ -38,6 +40,7 @@ def ldap_settings(s):
     conf.CONNECTION_OPTIONS = opts
     conf.USER_SEARCH = LDAPSearch(s.ldap_user_base, ldap.SCOPE_SUBTREE, s.ldap_user_filter)
     conf.USER_ATTR_MAP = {"first_name": "givenName", "last_name": "sn", "email": "mail"}
+    conf.USER_ATTRLIST = ["*", "objectGUID", "entryUUID"]  # entryUUID is operational: only returned when asked for
     conf.ALWAYS_UPDATE_USER = True
     return conf
 
@@ -89,6 +92,11 @@ class DbLDAPBackend(LDAPBackend):
         return super().authenticate(request, username=username, password=password, **kwargs)
 
     def get_or_build_user(self, username, ldap_user):
+        # an account renamed in the directory signs in under its new name: rename the Kartei user it already has
+        # (found by the directory id) instead of creating a second one
+        if (did := directory_id(ldap_user.attrs or {})) and not User.objects.filter(username__iexact=username).exists():
+            if p := Profile.objects.filter(directory_id=did, source="ldap").select_related("user").first():
+                rename(p.user, username.lower())
         user, built = super().get_or_build_user(username, ldap_user)
         # never let a directory account take over a local (fallback/admin) or SCIM account. A local account may have
         # no Profile yet (createsuperuser), and user.profile then raises: look it up explicitly
@@ -105,9 +113,33 @@ class DbLDAPBackend(LDAPBackend):
         if role is None:
             log.info("LDAP user %s has no Kartei group, login refused", user.username)
             return None
-        Profile.objects.update_or_create(user=user, defaults={"role": role, "source": "ldap"})
+        Profile.objects.update_or_create(user=user, defaults={"role": role, "source": "ldap",
+                                                              **({"directory_id": did} if (did := directory_id(ldap_user.attrs or {})) else {})})
         if not user.is_active:  # deactivated by the user import, back in a role group now
             user.is_active = True
             user.save(update_fields=["is_active"])
             audit.log(user, "update", "user", user.id, user.username, {"is_active": [False, True]})
         return user
+
+
+def directory_id(attrs):
+    """The account's id in the directory, which survives a rename: AD's objectGUID (as UUID), else entryUUID."""
+    for k, v in attrs.items():
+        if k.lower() == "objectguid" and v:
+            raw = v[0] if isinstance(v[0], bytes) else v[0].encode("utf-8", "surrogateescape")  # str: valid UTF-8 by chance
+            if len(raw) == 16:
+                return str(uuid.UUID(bytes_le=raw))
+    for k, v in attrs.items():
+        if k.lower() == "entryuuid" and v:
+            return (v[0].decode() if isinstance(v[0], bytes) else v[0]).strip().lower()
+    return ""
+
+
+def rename(user, new_name, actor=None):
+    """The directory renamed an account: same Kartei user under the new name, contacts naming them follow."""
+    from . import handover
+    old = user.username
+    user.username = new_name
+    user.save(update_fields=["username"])
+    audit.log(actor, "update", "user", user.id, new_name, {"username": [old, new_name]})
+    handover.renamed(old, user, actor)

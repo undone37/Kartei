@@ -16,7 +16,7 @@ from ldap.controls import SimplePagedResultsControl
 from ldap.filter import escape_filter_chars
 
 from . import audit
-from .auth import ldap_settings, role_groups
+from .auth import directory_id, ldap_settings, rename, role_groups
 from .msg import msg
 from .models import Profile, Settings
 
@@ -79,7 +79,7 @@ def members(conn, s):
     out = {}
     for role, group in role_groups(s):
         flt = f"(&(objectCategory=person)(objectClass=user){ENABLED}(memberOf:{IN_CHAIN}:={escape_filter_chars(group)}))"
-        for _, a in search(conn, s.ldap_user_base, flt, [attr, "givenName", "sn", "mail"]):
+        for _, a in search(conn, s.ldap_user_base, flt, [attr, "givenName", "sn", "mail", "objectGUID", "entryUUID"]):
             if name := first(a, attr).lower():  # django-auth-ldap stores usernames lower-case too
                 out.setdefault(name, (role, a))
     return out
@@ -94,8 +94,18 @@ def _snapshot(u, p):
 def apply(found, actor=None, limit=None):
     """Create/update/deactivate users from members(). -> counts. limit: the most directory users (percent of the
     active ones) one run may deactivate; more raises LdapError before anything changes. Two always pass (small teams)."""
-    counts = {"created": 0, "updated": 0, "deactivated": 0, "skipped_local": 0}
+    counts = {"created": 0, "updated": 0, "deactivated": 0, "skipped_local": 0, "renamed": 0}
     users = {u.username.lower(): u for u in User.objects.select_related("profile")}
+    # renamed in the directory: the user with that directory id gets the new name (found by name otherwise)
+    by_id = {u.profile.directory_id: u for u in users.values()
+             if getattr(u, "profile", None) and u.profile.source == "ldap" and u.profile.directory_id}
+    for name, (role, a) in found.items():
+        u = by_id.get(directory_id(a))
+        if u and u.username.lower() != name and name not in users:
+            users.pop(u.username.lower(), None)
+            rename(u, name, actor)
+            users[name] = u
+            counts["renamed"] += 1
     ldap_active = [n for n, u in users.items() if getattr(u, "profile", None) and u.profile.source == "ldap" and u.is_active]
     leaving = [n for n in ldap_active if n not in found]
     if limit is not None and len(leaving) > max(2, len(ldap_active) * limit / 100):
@@ -118,6 +128,8 @@ def apply(found, actor=None, limit=None):
             counts["updated" if before else "created"] += 1
             audit.log(actor, "update" if before else "create", "user", u.id, u.username,
                       audit.diff(before, _snapshot(u, p)))
+        if (did := directory_id(a)) and p.directory_id != did:  # also for users imported before ids were kept
+            Profile.objects.filter(user=u).update(directory_id=did)
     for name, u in users.items():
         p = getattr(u, "profile", None)
         if p and p.source == "ldap" and u.is_active and name not in found:

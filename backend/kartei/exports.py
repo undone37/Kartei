@@ -190,6 +190,20 @@ FORMULA = re.compile(r"[=@\t\r]|[+-](?![\d\s()/.,-]*$)")
 CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")  # not allowed in XLSX cells
 
 
+def lossy_values(header, rows, o):
+    """How many values the CSV encoding can't hold (written as "?"): e.g. Polish or Turkish names in Windows-1252."""
+    if o["encoding"].startswith("utf"):
+        return 0
+    n = 0
+    for row in [header, *rows]:
+        for v in row:
+            try:
+                _csv_text(v, o).encode(o["encoding"])
+            except UnicodeEncodeError:
+                n += 1
+    return n
+
+
 def render_csv(header, rows, o):
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=o["delimiter"], quotechar=o["quotechar"], quoting=QUOTING[o["quoting"]],
@@ -214,13 +228,13 @@ def render_xlsx(header, rows, o):
         if o["bold_header"]:
             for cell in ws[1]:
                 cell.font = Font(bold=True)
-    for row in rows:
+    first = 2 if o["header"] else 1
+    for r, row in enumerate(rows, first):
         cells = [", ".join(map(str, v)) if isinstance(v, list) else (float(v) if isinstance(v, Decimal) else v) for v in row]
         ws.append([CONTROL.sub("", v) if isinstance(v, str) else v for v in cells])
-        for cell in ws[ws.max_row]:
-            if cell.data_type == "f":  # contact data is never a formula: "=HYPERLINK(…)" stays text
-                cell.data_type = "s"
-    first = 2 if o["header"] else 1
+        for c, v in enumerate(cells, 1):  # not ws.max_row: that scans every cell, quadratic on large exports
+            if isinstance(v, str) and v.startswith("="):  # contact data is never a formula: "=HYPERLINK(…)" stays text
+                ws.cell(r, c).data_type = "s"
     for row in ws.iter_rows(min_row=first):
         for cell in row:
             if isinstance(cell.value, date):
@@ -302,7 +316,9 @@ def run(p, force=False, user=None):
             guard(p, path, len(rows), force)
             data = render_csv(header, rows, o) if p.format == "csv" else render_xlsx(header, rows, o)
             atomic_write(path, data)
-            p.last_status, p.last_message, p.last_rows, p.last_hash = "ok", msg("export_rows", n=len(rows)), len(rows), digest
+            lossy = lossy_values(header, rows, o) if p.format == "csv" else 0
+            text = msg("export_rows_lossy", n=len(rows), lossy=lossy, encoding=o["encoding"]) if lossy else msg("export_rows", n=len(rows))
+            p.last_status, p.last_message, p.last_rows, p.last_hash = "ok", text, len(rows), digest
     except (GuardError, OSError) as e:
         log.error("export %s failed: %s", p.name, e)
         p.last_status, p.last_message = "error", str(e)

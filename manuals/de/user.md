@@ -388,7 +388,7 @@ Schon während der Eingabe prüft Kartei, ob es einen ähnlichen Kontakt gibt: g
 
 ### Einen Kontakt bearbeiten
 
-Öffne den Kontakt und klick auf **Bearbeiten** (oder drück <kbd>E</kbd>). Ändere die Felder und klick auf **Speichern** (<kbd>Strg</kbd>+<kbd>S</kbd>). **Abbrechen** (<kbd>Esc</kbd>) verlässt das Formular; bei ungespeicherten Änderungen fragt Kartei *Ungespeicherte Änderungen verwerfen?* – mit **Weiter bearbeiten** oder **Verwerfen**.
+Öffne den Kontakt und klick auf **Bearbeiten** (oder drück <kbd>E</kbd>). Ändere die Felder und klick auf **Speichern** (<kbd>Strg</kbd>+<kbd>S</kbd>). **Abbrechen** (<kbd>Esc</kbd>) verlässt das Formular; bei ungespeicherten Änderungen fragt Kartei *Ungespeicherte Änderungen verwerfen?* – mit **Weiter bearbeiten** oder **Verwerfen**. Läuft deine Sitzung beim Bearbeiten ab, behält Kartei deine Eingaben: Nach der erneuten Anmeldung öffnet sich das Formular mit ihnen.
 
 ![Kontakt bearbeiten](../img/de/edit.png)
 

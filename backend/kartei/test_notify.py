@@ -212,6 +212,6 @@ class TokenApiTests(NotifyBase):
         self.assertEqual(self.client.get("/api/v1/contacts").status_code, 401)
         self.client.logout()
         cache.clear()  # the cookie-only request above counted as a failure
-        for _ in range(20):
-            self.bearer("/api/v1/contacts", token="kt_wrong", status=401)
+        for i in range(20):  # different wrong tokens: the same one repeated counts once
+            self.bearer("/api/v1/contacts", token=f"kt_wrong{i}", status=401)
         self.bearer("/api/v1/contacts", status=429)  # even the right token, until the window passes

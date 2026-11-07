@@ -17,7 +17,7 @@ from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
-from . import audit
+from . import audit, handover
 from .api import _admins_left
 from .models import ApiToken, Profile, Role, ScimGroup, Settings
 from .net import client_ip, count_failure
@@ -248,9 +248,12 @@ def write_user(request, u, body, method):
     if state is None:
         p.scim_active = False
     else:
+        old_name = u.username
         u.username, u.first_name, u.last_name = name, state["givenName"][:150], state["familyName"][:150]
         u.email, p.external_id, p.scim_active = state["email"][:254], state["externalId"][:255], state["active"]
         u.save()
+        if before:  # renamed at the identity provider: the contacts naming them follow
+            handover.renamed(old_name, u)
     p.save()
     sync(u, s)
     if change := audit.diff(before, _snap(u)):

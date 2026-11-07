@@ -388,7 +388,7 @@ While you type, Kartei checks whether a similar contact already exists: same ema
 
 ### Editing a contact
 
-Open the contact and click **Edit** (or press <kbd>E</kbd>). Change the fields and click **Save** (<kbd>Ctrl</kbd>+<kbd>S</kbd>). **Cancel** (<kbd>Esc</kbd>) leaves the form; if you have unsaved changes, Kartei asks *Discard unsaved changes?* with **Keep editing** or **Discard**.
+Open the contact and click **Edit** (or press <kbd>E</kbd>). Change the fields and click **Save** (<kbd>Ctrl</kbd>+<kbd>S</kbd>). **Cancel** (<kbd>Esc</kbd>) leaves the form; if you have unsaved changes, Kartei asks *Discard unsaved changes?* with **Keep editing** or **Discard**. If your session expires while you are editing, Kartei keeps your input: sign in again and the form opens with it.
 
 ![Editing a contact](../img/en/edit.png)
 

@@ -6,12 +6,25 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- **Input survives an expired session:** if the session expires while a contact is being edited, the input is kept in the browser tab, and after signing in again the form opens with it. Signing out on purpose removes it.
+- **`manage.py reset_2fa <user>`:** switches off a user's two-factor sign-in, e.g. for the only admin after losing the authenticator.
+- **Export warning:** CSV exports in Windows-1252 report how many values hold characters the encoding can't represent (written as `?`).
 - **Nightly security scan:** OWASP ZAP scans a running Kartei every night: the web app signed in as a read-only user (passive), and the REST API with a read token (active). High-risk findings fail the run, and the reports are attached. `.zap/scan.sh` runs it locally.
 - **Share a contact:** a QR-code button in the contact header opens a window with the contact as a QR code (iPhone or Android flavour, without photo) to scan with a phone's camera, and *Download vCard*. It replaces the download icon. In the Android QR code, multi-line text (e.g. a description) is written on one line with " · " between the lines, because Android's scanner shows vCard line breaks as a literal \n.
 - **Map link:** a pin next to a street opens the address in a map service. The link template is a setting under *General* (default Google Maps; empty = off). Kartei only builds the link.
 - **Share saved filters with roles or people:** besides *everyone*, a maintainer can share a saved filter with one or more roles and individual colleagues. The choice is made when saving (*Share with*, default *Only me*) and can be changed later from the dashboard. Each user sees their own filters and those shared with them, their role or everyone.
 - **Built-in backups:** the exporter backs up the database every day (default 02:30, kept 14 days) to its own `/backup` volume (`BACKUP_HOST_DIR`, never the export share). Each file is checked with `pg_restore --list`. *Settings → Backup* has *Back up now*, the list of backups, and *Test restore*, which restores the newest backup into a scratch database and compares the row counts. Monitoring reports missing or failed backups. Restoring is a single documented command. The Kartei image now includes the PostgreSQL 18 client tools.
 - **Nightly images:** `ghcr.io/undone37/kartei:nightly` and `kartei-relay:nightly` are built from `main` every night when it has changed, plus `:sha-<commit>` per build, for amd64 and arm64. The user menu shows the version as `nightly-<date>-<commit>`. They are for testing only, not releases.
+
+### Changed
+
+- **Renamed users keep their contacts:**
+  - A user renamed by the identity provider (SCIM `userName`) keeps their contacts: *Ansprechpartner intern*, *Kontakte intern* and other user fields follow the new name.
+  - LDAP/AD users are recognised by their directory id (`objectGUID`/`entryUUID`), so a renamed account stays the same Kartei user and its contacts follow too. Matching by name remains as fallback.
+- **CardDAV and API lockout:** the same wrong CardDAV login or API token repeated counts only once towards the lockout, so one phone with an old password no longer locks out everybody behind the same address.
+- **Faster with many contacts:**
+  - Excel exports no longer slow down with every extra row. With 55 000 contacts an export takes about 10 s; before, it took well over 10 minutes.
+  - A phone's first CardDAV sync of all contacts is twice as fast.
 
 ### Security
 
