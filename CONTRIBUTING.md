@@ -12,7 +12,41 @@ Everyone taking part is expected to follow the [code of conduct](CODE_OF_CONDUCT
 
 ## Development setup
 
-The [README](README.md#development) has the full setup. In short: Python 3.14 with the packages from `backend/requirements.txt`, Node 26 (`nvm use`) for the frontend, SQLite in development (`DEBUG=1`). `manage.py seed_demo --password demo12345` fills an empty database with sample data.
+```sh
+uv venv .venv -p 3.14 && uv pip install -p .venv -r backend/requirements.txt
+cd backend
+export DEBUG=1                                   # SQLite, insecure development key
+../.venv/bin/python manage.py migrate
+ADMIN_USERNAME=admin ADMIN_PASSWORD=admin12345 ../.venv/bin/python manage.py init_app
+../.venv/bin/python manage.py seed_demo --password demo12345    # optional sample data
+../.venv/bin/python manage.py runserver
+
+cd ../frontend && nvm use && npm ci && npm run dev   # http://localhost:5173, proxies /api to :8000
+```
+
+Without the Vite dev server, `npm run build` lets Django serve the app at http://localhost:8000/.
+
+### Tests and CI
+
+```sh
+cd backend && DEBUG=1 ../.venv/bin/python manage.py test kartei relay
+cd frontend && npm test && npm run check
+cd frontend && npm run test:e2e   # browser tests against a running server with seed_demo data (once: npx playwright install chromium)
+```
+
+GitHub Actions runs the backend tests on SQLite and PostgreSQL 18, the frontend checks, the browser tests, an upgrade test (the latest release's image with sample data, then this version's migrations: the data must be unchanged) and the Docker build on every push, keeps SBOMs (SPDX and CycloneDX) of the source tree and both images as a build artifact, and scans both images for known vulnerabilities (Grype; results under *Security → Code scanning*; a critical vulnerability with an available fix fails the build). The images of the latest release are scanned again every day. Dependabot proposes weekly updates for Python, npm, the Docker base images and the actions; it stays on the Django LTS and on the newest Python that Django supports. Security fixes for known vulnerabilities arrive as Dependabot PRs right away.
+
+Every night, a dynamic security scan (OWASP ZAP, `.github/workflows/zap.yml`) starts Kartei from `main` with demo data and scans the web app signed in as a read-only user and the REST API with a read token (active attacks). Findings of high risk fail it; the reports are attached to the run. Overrides need a reason in `.zap/rules.tsv`. Locally: `.zap/scan.sh` in a clean checkout without `.env` (Docker, curl, jq).
+
+### Releases (maintainers)
+
+Move the *Unreleased* entries in `CHANGELOG.md` under a new version heading (`## [1.2.0] – date`), then push a tag such as `v1.2.0`. The *Release* workflow publishes `ghcr.io/undone37/kartei` and `ghcr.io/undone37/kartei-relay` for amd64 and arm64 (tags `1.2.0`, `1.2`, `1`, with SBOM and provenance attestations; a tag like `v1.2.0-beta` becomes a pre-release with only the `1.2.0-beta` image tag) and creates the GitHub release – its text is that version's changelog section plus GitHub's generated notes – with the manuals as PDF, the OpenAPI description (`openapi.yaml`) and the SBOM files.
+
+### Screenshots and PDF manuals
+
+With a development server on port 8000 on a fresh, seeded database (`seed_demo --password demo12345`, and `EXPORT_ROOT=/export BACKUP_ROOT=/backup` for neutral paths), `cd frontend && npm run screenshots` regenerates all screenshots in `manuals/img/` in German and English (Playwright; run `npx playwright install chromium` once).
+
+The manuals are published to GitHub Pages by the *Documentation* workflow (`.github/workflows/pages.yml`) with every release. `cd frontend && npm run manuals-pdf` builds the PDF versions into `dist/` (needs pandoc and poppler-utils).
 
 ## Making a change
 
@@ -27,7 +61,7 @@ The [README](README.md#development) has the full setup. In short: Python 3.14 wi
    DEBUG=1 ../.venv/bin/python manage.py makemigrations --check --dry-run
    DEBUG=1 ../.venv/bin/python manage.py test kartei relay
    cd ../frontend && npm run check && npm test && npm run build
-   npm run test:e2e   # browser tests: needs a running server with fresh seed_demo data, see the README
+   npm run test:e2e   # browser tests: needs a running server with fresh seed_demo data, see above
    ```
 
 6. Open a pull request against `main` and describe what changed and why.
@@ -54,7 +88,7 @@ cd ../frontend && node scripts/measure-scale.mjs --base http://127.0.0.1:8000 --
 - **Database migrations:** add a new migration for model changes (`manage.py makemigrations kartei`); never edit or squash migrations that are part of a release. CI's upgrade test runs them on the latest release's data.
 - **Audit and safety:** every change to contacts and settings is written to the audit log; anything that deletes asks for confirmation; secrets are stored encrypted or hashed and never returned by the API.
 - **Changelog:** add a line under *Unreleased* in [CHANGELOG.md](CHANGELOG.md) for every change users or administrators notice; it becomes the release text.
-- **Documentation:** user-facing changes update the manuals in `manuals/en` *and* `manuals/de`; API changes update `docs/API.md` and `docs/openapi.yaml`. If a screen changes, regenerate the screenshots (see the README, *Screenshots for the manuals*).
+- **Documentation:** user-facing changes update the manuals in `manuals/en` *and* `manuals/de`; API changes update `docs/API.md` and `docs/openapi.yaml`. If a screen changes, regenerate the screenshots (see *Screenshots and PDF manuals* above).
 
 ## Commit messages
 
