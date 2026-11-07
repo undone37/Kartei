@@ -11,6 +11,8 @@ export interface TableDoc {
   rows: { kind?: 'row' | 'group' | 'strong'; cells: string[] }[]
   /** footer text per page, e.g. "Page 2 of 5" */
   footer: (page: number, pages: number) => string
+  /** shown top left on the first page: a JPEG (any image can be drawn on a canvas and saved as one) */
+  logo?: { jpeg: Uint8Array; width: number; height: number }
 }
 
 // Helvetica and Helvetica-Bold widths (1/1000 em) for ASCII 32–126, from the standard font metrics (AFM)
@@ -113,9 +115,15 @@ export function tablePdf(input: TableDoc): Uint8Array<ArrayBuffer> {
     pages.push(ops)
     y = ph - margin
     if (pages.length === 1) {
-      text(margin, y - 8, doc.title, true, 16)
+      let x = margin
+      if (doc.logo) {  // 30 pt high, at most 140 pt wide, next to the title
+        const h = Math.min(30, (140 * doc.logo.height) / doc.logo.width), w = (h * doc.logo.width) / doc.logo.height
+        ops.push(`q ${n(w)} 0 0 ${n(h)} ${n(margin)} ${n(y - 26)} cm /Im1 Do Q`)
+        x += w + 12
+      }
+      text(x, y - 8, doc.title, true, 16)
       ops.push('0.4 g')
-      text(margin, y - 24, doc.subtitle, false, 9)
+      text(x, y - 24, doc.subtitle, false, 9)
       ops.push('0 g')
       y -= 46
     }
@@ -123,12 +131,14 @@ export function tablePdf(input: TableDoc): Uint8Array<ArrayBuffer> {
   }
   const bottom = margin + 24
   const indent = doc.rows.some((x) => x.kind === 'group') ? 8 : 0
+  let stripe = 0  // every other row lightly shaded; counted afresh under each group heading
   newPage()
   doc.rows.forEach((r, k) => {
     const group = r.kind === 'group'
     const need = group ? lead * 2 + 6 : lead  // a heading never ends a page alone
     if (y - need < bottom) newPage()
     if (group) {
+      stripe = 0
       if (k) y -= 6
       ops.push('0.22 0.19 0.64 rg')
       text(xs[0], y, fit(r.cells[0] ?? '', avail, size, true), true)
@@ -137,6 +147,7 @@ export function tablePdf(input: TableDoc): Uint8Array<ArrayBuffer> {
       r.cells.slice(1).forEach((c, i) => c && text(xs[i + 1], y, fit(c, widths[i + 1] - pad, size), false))
       line(y - 4, 0.6)
     } else {
+      if (stripe++ % 2) ops.push(`0.95 g ${n(margin)} ${n(y - 4)} ${n(avail)} ${n(lead)} re f 0 g`)
       const ind = (i: number) => (i === 0 && r.kind !== 'strong' ? indent : 0)  // persons under their company heading
       r.cells.forEach((c, i) => c && text(xs[i] + ind(i), y, fit(c, widths[i] - pad - ind(i), size, r.kind === 'strong'), r.kind === 'strong'))
       line(y - 4, 0.88, 0.4)
@@ -157,11 +168,19 @@ export function tablePdf(input: TableDoc): Uint8Array<ArrayBuffer> {
   add(`<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`)
   add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>')
   add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>')
+  const image = 5 + pages.length * 2  // the logo comes after the pages
+  const xobj = doc.logo ? ` /XObject << /Im1 ${image} 0 R >>` : ''
   pages.forEach((p, i) => {
     const stream = p.join('\n')
-    add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(pw)} ${n(ph)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${6 + i * 2} 0 R >>`)
+    add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(pw)} ${n(ph)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${xobj} >> /Contents ${6 + i * 2} 0 R >>`)
     add(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`)  // one char = one byte (WinAnsi)
   })
+  if (doc.logo) {
+    const { jpeg, width: iw, height: ih } = doc.logo
+    let bytes = ''
+    for (let i = 0; i < jpeg.length; i += 8192) bytes += String.fromCharCode(...jpeg.subarray(i, i + 8192))
+    add(`<< /Type /XObject /Subtype /Image /Width ${iw} /Height ${ih} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n${bytes}\nendstream`)
+  }
   let out = '%PDF-1.4\n%\xe2\xe3\xcf\xd3\n'
   const offsets = objs.map((body, i) => {
     const at = out.length

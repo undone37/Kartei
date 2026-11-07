@@ -53,3 +53,15 @@ test('columns without any value are left out', () => {
                               footer: () => '' }))
   assert.ok(s.includes('(Mobil)') && !s.includes('(Fax)'))
 })
+
+test('a logo is embedded once as a JPEG image, rows alternate', () => {
+  const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 0xff, 0xd9])
+  const s = latin1(tablePdf({ title: 'T', subtitle: '', head: ['Name'], rows: [{ cells: ['A'] }, { cells: ['B'] }, { cells: ['C'] }],
+                              footer: () => '', logo: { jpeg, width: 30, height: 10 } }))
+  assert.match(s, /\/Subtype \/Image \/Width 30 \/Height 10 .*\/Filter \/DCTDecode \/Length 9 >>\nstream\n\xff\xd8\xff/)
+  assert.ok(s.includes('/Im1 Do'))
+  assert.equal((s.match(/re f/g) ?? []).length, 1)  // of three rows, the second is shaded
+  const xref = Number(s.match(/startxref\n(\d+)/)![1])  // offsets still right with the binary image
+  const offsets = [...s.slice(xref).matchAll(/^(\d{10}) 00000 n $/gm)].map((m) => Number(m[1]))
+  offsets.forEach((o, i) => assert.equal(s.slice(o, o + `${i + 1} 0 obj`.length), `${i + 1} 0 obj`))
+})

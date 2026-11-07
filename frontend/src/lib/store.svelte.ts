@@ -19,6 +19,7 @@ interface Snapshot {
   user: User
   defaultLang: Lang
   mapUrl?: string
+  printLogo?: string
   fields: Field[]
   sections?: Section[]
   records: Rec[]
@@ -37,6 +38,8 @@ class Store {
   defaultLang = $state<Lang>('de')
   /** address link template from the settings ({address}); '' = no link */
   mapUrl = $state('')
+  /** logo on the phone list: "kartei", "none", or the version of the organisation's own (/api/print-logo?v=…) */
+  printLogo = $state('kartei')
   /** "Sign in with Microsoft" is offered (from the session) */
   sso = $state(false)
   ssoLabel = $state('') // login button text set by the admin; '' = default
@@ -159,6 +162,7 @@ class Store {
     this.user = s.user
     this.defaultLang = s.defaultLang
     this.mapUrl = s.mapUrl ?? ''
+    this.printLogo = s.printLogo ?? 'kartei'
     this.fields = s.fields
     this.sections = s.sections ?? []
     this.records = s.records
@@ -251,6 +255,7 @@ class Store {
           this.user = ch.user
           this.defaultLang = ch.default_language
           this.mapUrl = ch.map_url ?? ''
+          this.printLogo = ch.print_logo ?? 'kartei'
           this.cursor = ch.cursor
           this.applyLang()
           this.offline = false
@@ -264,6 +269,7 @@ class Store {
       this.user = b.user
       this.defaultLang = b.default_language
       this.mapUrl = b.map_url ?? ''
+      this.printLogo = b.print_logo ?? 'kartei'
       this.fields = b.fields
       this.sections = b.sections ?? []
       this.records = b.records
@@ -299,7 +305,7 @@ class Store {
       if (!this.user) return
       const snap: Snapshot = {
         username: this.user.username, savedAt: Date.now(), cursor: this.cursor, user: $state.snapshot(this.user) as User,
-        defaultLang: this.defaultLang, mapUrl: this.mapUrl, fields: this.fields, sections: this.sections, records: this.records,
+        defaultLang: this.defaultLang, mapUrl: this.mapUrl, printLogo: this.printLogo, fields: this.fields, sections: this.sections, records: this.records,
         reviews: this.reviews, proposals: this.proposals,
         recent: this.recent, favorites: this.favorites, filters: this.filters,
       }

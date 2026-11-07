@@ -208,7 +208,7 @@ The same menu offers **Phone list – PDF or print**: a list of the contacts cur
 - **Order:** *by company* (each company with its own numbers, its persons below) or *by name* (A–Z, with the company in its own column).
 - **only contacts with a number** leaves out contacts that have none of the chosen numbers.
 - **Columns:** tick the phone and email fields to print. Kartei preselects the phone fields that someone in the list has filled in.
-- **Download PDF** saves the list as a PDF file: A4 (landscape when there are many columns), title and date on the first page, column headings and page numbers on every page. Columns nobody in the list has a value in are left out, and very wide lists get smaller text.
+- **Download PDF** saves the list as a PDF file: A4 (landscape when there are many columns), title and date on the first page, column headings and page numbers on every page. Columns nobody in the list has a value in are left out, very wide lists get smaller text, and every other row is lightly shaded. The logo at the top is set by the administration.
 - **Print** opens your browser's print dialog for the same list. Only the list itself is printed.
 
 ## The dashboard

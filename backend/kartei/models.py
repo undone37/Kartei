@@ -81,6 +81,10 @@ class Settings(models.Model):
     base_url = models.URLField(blank=True)
     # address link in the contact view; {address} = street, postcode city, country (URL-encoded). Empty = no link
     map_url = models.CharField(max_length=300, blank=True, default="https://www.google.com/maps/search/?api=1&query={address}")
+    # logo on the phone list (PDF and print): Kartei's, the organisation's own, or none
+    print_logo_mode = models.CharField(max_length=10, default="kartei")  # kartei | custom | none
+    print_logo = models.BinaryField(null=True, blank=True)
+    print_logo_type = models.CharField(max_length=10, blank=True)  # png | jpeg
     trash_days = models.PositiveIntegerField(default=0)  # 0 = recycle bin is never purged
     retention_months = models.PositiveIntegerField(default=0)  # untouched this long = due for deletion; 0 = off
     purge_anonymize = models.BooleanField(default=True)  # purging also removes values and name from the history (GDPR)

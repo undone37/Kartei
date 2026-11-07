@@ -208,7 +208,7 @@ Im selben Menü gibt es **Telefonliste – PDF oder drucken**: eine Liste der ge
 - **Sortierung:** *nach Firma* (jede Firma mit ihren eigenen Nummern, darunter ihre Personen) oder *nach Name* (A–Z, mit der Firma in einer eigenen Spalte).
 - **nur Kontakte mit Nummer** lässt Kontakte weg, die keine der gewählten Nummern haben.
 - **Spalten:** Hake die Telefon- und E-Mail-Felder an, die gedruckt werden sollen. Kartei wählt die Telefonfelder vor, die jemand in der Liste ausgefüllt hat.
-- **PDF herunterladen** speichert die Liste als PDF-Datei: A4 (bei vielen Spalten quer), Titel und Datum auf der ersten Seite, Spaltenüberschriften und Seitenzahlen auf jeder Seite. Spalten, in denen niemand in der Liste einen Wert hat, bleiben weg; sehr breite Listen bekommen eine kleinere Schrift.
+- **PDF herunterladen** speichert die Liste als PDF-Datei: A4 (bei vielen Spalten quer), Titel und Datum auf der ersten Seite, Spaltenüberschriften und Seitenzahlen auf jeder Seite. Spalten, in denen niemand in der Liste einen Wert hat, bleiben weg; sehr breite Listen bekommen eine kleinere Schrift, und jede zweite Zeile ist leicht hinterlegt. Das Logo oben legt die Administration fest.
 - **Drucken** öffnet den Druckdialog des Browsers für dieselbe Liste. Gedruckt wird nur die Liste selbst.
 
 ## Die Startseite

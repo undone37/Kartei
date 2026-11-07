@@ -44,6 +44,8 @@ urlpatterns = [
     path("api/trash", M(GET=api.trash)),
     path("api/trash/<uuid:uid>", M(DELETE=api.purge_record)),
     path("api/img/<uuid:uid>", M(GET=api.get_image, PUT=api.put_image, DELETE=api.delete_image)),
+    path("api/print-logo", M(GET=api.get_print_logo)),
+    path("api/admin/print-logo", M(PUT=api.put_print_logo, DELETE=api.put_print_logo)),
     path("api/admin/fields", M(GET=api.fields_list, POST=api.field_create)),
     path("api/admin/fields/reorder", M(POST=api.fields_reorder)),
     path("api/admin/fields/export", M(GET=api.fields_export)),

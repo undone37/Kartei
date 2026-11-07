@@ -1486,3 +1486,30 @@ class ListPrefsTests(ApiTestBase):
         self.j("patch", "/api/me", {"name_order": "x"}, status=400)
         self.as_("maintainer")  # someone else keeps the defaults
         self.assertEqual(self.j("get", "/api/session")["user"]["list_sort"], "last_name")
+
+
+class PrintLogoTests(ApiTestBase):
+    PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 64
+
+    def test_upload_choose_and_remove(self):
+        self.as_("read")
+        self.assertEqual(self.j("get", "/api/bootstrap")["print_logo"], "kartei")
+        self.assertEqual(self.client.put("/api/admin/print-logo", self.PNG, content_type="image/png").status_code, 403)
+        self.as_("admin")
+        self.j("put", "/api/admin/settings", {"print_logo_mode": "custom"}, status=400)  # nothing uploaded yet
+        r = self.client.put("/api/admin/print-logo", b"GIF89a....", content_type="image/gif")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.put("/api/admin/print-logo", self.PNG, content_type="image/png").json()
+        self.assertEqual(r["print_logo_mode"], "custom")
+        v = r["print_logo_v"]
+        self.as_("read")
+        self.assertEqual(self.j("get", "/api/bootstrap")["print_logo"], v)
+        got = self.client.get(f"/api/print-logo?v={v}")
+        self.assertEqual((got.status_code, got["Content-Type"], got.content), (200, "image/png", self.PNG))
+        self.as_("admin")
+        self.j("put", "/api/admin/settings", {"print_logo_mode": "none"})
+        self.assertEqual(self.j("get", "/api/bootstrap")["print_logo"], "none")
+        self.assertEqual(self.j("get", "/api/admin/settings")["print_logo_v"], v)  # still there to switch back
+        self.j("put", "/api/admin/settings", {"print_logo_mode": "custom"})
+        self.assertEqual(self.client.delete("/api/admin/print-logo").json()["print_logo_mode"], "kartei")
+        self.assertEqual(self.client.get("/api/print-logo").status_code, 404)

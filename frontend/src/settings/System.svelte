@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import { ClipboardCheck, Copy, KeyRound, Phone, PlugZap, RefreshCw, Send, UserPlus } from '@lucide/svelte'
-  import { ApiError, get, post, put } from '../lib/api'
+  import { ApiError, api, get, post, put } from '../lib/api'
   import { store } from '../lib/store.svelte'
   import { i18n, t, terr, tmsg } from '../lib/i18n.svelte'
   import { copyText, toast } from '../lib/toast.svelte'
@@ -103,6 +103,28 @@
     } catch (e) {
       toast(e instanceof ApiError ? terr(e.code) : t('err.generic'), { kind: 'error' })
     }
+  }
+
+  /** the organisation's own logo for the phone list: uploaded right away (not with Save), then chosen */
+  async function uploadLogo(e: Event & { currentTarget: HTMLInputElement }) {
+    const file = e.currentTarget.files?.[0]
+    e.currentTarget.value = ''
+    if (!file) return
+    try {
+      const r = await api<Record<string, any>>('PUT', '/api/admin/print-logo', file)
+      s!.print_logo_v = r.print_logo_v
+      s!.print_logo_mode = r.print_logo_mode
+      store.printLogo = r.print_logo_mode === 'custom' ? r.print_logo_v : r.print_logo_mode
+      toast(t('settings.saved'))
+    } catch (err) {
+      toast(err instanceof ApiError ? terr(err.code) : t('err.generic'), { kind: 'error' })
+    }
+  }
+  async function removeLogo() {
+    const r = await api<Record<string, any>>('DELETE', '/api/admin/print-logo')
+    s!.print_logo_v = r.print_logo_v
+    s!.print_logo_mode = r.print_logo_mode
+    store.printLogo = r.print_logo_mode === 'custom' ? r.print_logo_v : r.print_logo_mode
   }
 
   async function save() {
@@ -231,6 +253,25 @@
         <input id="mapurl" class="input mono" bind:value={s.map_url} placeholder="https://www.google.com/maps/search/?api=1&query={'{address}'}" />
         <p class="hint">{t('general.map_url_hint')}</p>
         {#if errors.map_url}<div class="error-text">{terr(errors.map_url)}</div>{/if}
+      </div>
+      <div>
+        <span class="label">{t('general.print_logo')}</span>
+        <div class="logo-choice" role="radiogroup" aria-label={t('general.print_logo')}>
+          <label><input type="radio" bind:group={s.print_logo_mode} value="kartei" /> {t('general.print_logo_kartei')}</label>
+          <label><input type="radio" bind:group={s.print_logo_mode} value="custom" disabled={!s.print_logo_v} />
+            {t('general.print_logo_custom')}</label>
+          <label><input type="radio" bind:group={s.print_logo_mode} value="none" /> {t('general.print_logo_none')}</label>
+        </div>
+        <div class="logo-row">
+          {#if s.print_logo_v}<img class="logo-preview" src="/api/print-logo?v={s.print_logo_v}" alt={t('general.print_logo_custom')} />{/if}
+          <label class="btn sm">{t('general.print_logo_upload')}
+            <input type="file" accept="image/png,image/jpeg" hidden onchange={uploadLogo} /></label>
+          {#if s.print_logo_v}
+            <button class="btn sm danger" onclick={removeLogo}>{t('general.print_logo_remove')}</button>
+          {/if}
+        </div>
+        <p class="hint">{t('general.print_logo_hint')}</p>
+        {#if errors.print_logo_mode}<div class="error-text">{terr(errors.print_logo_mode)}</div>{/if}
       </div>
       <div class="row2">
         <div>
@@ -660,6 +701,10 @@
 <style>
   .form { max-width: 720px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .logo-choice { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 4px 0 8px; }
+  .logo-choice label { display: flex; align-items: center; gap: 6px; }
+  .logo-row { display: flex; align-items: center; gap: 10px; }
+  .logo-preview { height: 32px; max-width: 160px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; padding: 2px; background: #fff; }
   .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
   h3 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 6px; }
   .mono { font: 12px ui-monospace, monospace; }
