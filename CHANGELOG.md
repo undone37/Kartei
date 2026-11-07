@@ -4,6 +4,14 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.7.0-beta] – 2026-11-07
+
+Kartei reaches more phones and keeps its data cleaner:
+- **Phones:** desk phones (Yealink, Snom, Grandstream) load the contacts as their phonebook, SwyxWare imports them into its Global Phonebook, and phone systems ask Kartei who is calling. Saved filters become Outlook folders and CardDAV address books.
+- **New contacts:** read from a pasted email signature, or shared from other apps on Android.
+- **Data quality:** a trend over two years and retention rules.
+- **Structure:** companies show an org chart.
+
 ### Added
 
 - **Saved filters as Outlook folders:** a maintainer publishes a saved filter as an Outlook folder. Everyone who sees the filter gets a folder with its name in their mailbox, with the contacts the filter shows *them* (e.g. "My customers": each colleague their own). Unpublished, renamed or unshared filters' folders are removed.
@@ -21,6 +29,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Changed
 
+- **API page:** the curl example uses the public address (*Settings → General*), like the monitoring and phonebook pages.
 - **Relay:** serves address books from saved filters (migration `0003_filter_books`). Update the relay together with Kartei; an older relay keeps working without them.
 
 ## [0.6.1-beta] – 2026-11-07
@@ -257,7 +266,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.6.1-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.7.0-beta...HEAD
+[0.7.0-beta]: https://github.com/undone37/Kartei/compare/v0.6.1-beta...v0.7.0-beta
 [0.6.1-beta]: https://github.com/undone37/Kartei/compare/v0.6.0-beta...v0.6.1-beta
 [0.6.0-beta]: https://github.com/undone37/Kartei/compare/v0.5.0-beta...v0.6.0-beta
 [0.5.0-beta]: https://github.com/undone37/Kartei/compare/v0.4.0-beta...v0.5.0-beta
