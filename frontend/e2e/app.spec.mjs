@@ -722,6 +722,9 @@ test.describe('org chart', () => {
     const linked = page.locator('section', { hasText: 'Linked from' })
     await expect(linked.getByText('Direct reports')).toBeVisible()
     await expect(linked.locator(`a[href="/person/${report.uid}"]`)).toBeVisible()
+  })
+})
+
 test.describe('email signature', () => {
   test('a pasted signature opens a filled-in form; the company is linked', async ({ as }) => {
     const page = await as('mmuster')
