@@ -104,6 +104,7 @@ urlpatterns = [
     path("api/duplicates/dismiss", M(POST=quality.dismiss_view)),
     path("api/admin/phones/normalize", M(POST=quality.normalize_view)),
     path("sw.js", views.service_worker),
+    path("share", views.share),  # the service worker answers this; only reached without one
     re_path(r"^crm(?:/(?P<rest>.*))?$", views.legacy_redirect),  # links from before the rename (mails, vCards)
     re_path(r"^(?!api/|static/|carddav|scim/|django-admin|\.well-known/).*$", views.spa),
 ]
