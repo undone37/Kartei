@@ -22,7 +22,7 @@ from django.views.decorators.csrf import csrf_exempt
 from . import audit, reviews, webhooks
 from .api import (ADMIN, MAINT, READ, _add_new_options, _apply, delete_tree, err, needs, records_qs, ser_record,
                   snapshot, visible_fields)
-from .net import client_ip, count_failure
+from .net import client_ip, count_distinct_failure
 from .models import ApiToken, FieldDef, Kind, Record, Settings, Webhook
 
 
@@ -41,7 +41,7 @@ def token_auth(*allowed):
             token = header[7:].strip() if header.startswith("Bearer ") else ""
             t = ApiToken.objects.filter(token_hash=ApiToken.digest(token)).first() if token else None
             if t is None:
-                if count_failure(key) == 1:  # first failure per address and window, like CardDAV
+                if count_distinct_failure(key, token) == 1:  # first failure per address and window, like CardDAV
                     audit.log(None, "auth_failed", "session", "", "API", {"channel": [None, "api"]}, username="?")
                 resp = err("unauthenticated", 401)
                 resp["WWW-Authenticate"] = 'Bearer realm="Kartei"'

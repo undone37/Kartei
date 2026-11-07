@@ -1,6 +1,7 @@
 import { del as idbDel, get as idbGet, set as idbSet } from 'idb-keyval'
 import { ApiError, del, get, onUnauthorized, patch, post } from './api'
 import { setLang, t } from './i18n.svelte'
+import { clearDrafts } from './drafts'
 import { buildIndex, displayName, type Indexed } from './search'
 import { RANK, type Field, type Kind, type Section, type Lang, type ListState, type Proposal, type Rec, type Review,
          type SavedFilter, type User } from './types'
@@ -192,6 +193,7 @@ class Store {
 
   async logout() {
     await post('/api/logout').catch(() => {})
+    clearDrafts() // signing out on purpose: no unsaved input stays in the tab (an expired session keeps it)
     this.toLogin()
   }
 

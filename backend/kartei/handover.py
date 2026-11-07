@@ -43,25 +43,46 @@ def _names(v):
 
 
 @transaction.atomic
-def apply(old, new, actor):
-    """Replace `old` by `new` in every live contact's user fields. Returns the number of contacts changed."""
-    fields, n = _fields(), 0
-    for r in Record.objects.select_for_update().filter(deleted_at__isnull=True):
+def _replace(old_name, new_name, actor, note):
+    """Write `new_name` instead of `old_name` into every contact's user fields (deleted ones too, so a restore fits).
+    note: the audit key ("handover" or "renamed"). Returns the changed records."""
+    fields, changed = _fields(), []
+    for r in Record.objects.select_for_update():
         change = {}
         for f in fields:
             v = r.data.get(f.key)
-            if old.username not in _names(v):
+            if old_name not in _names(v):
                 continue
             if f.type == "user":
-                r.data[f.key] = new.username
+                r.data[f.key] = new_name
             else:  # keep the order, no duplicates if the successor was already listed
-                r.data[f.key] = list(dict.fromkeys(new.username if x == old.username else x for x in v))
+                r.data[f.key] = list(dict.fromkeys(new_name if x == old_name else x for x in v))
             change[f.key] = [v, r.data[f.key]]
         if change:
             r.version += 1
             r.updated_by = actor
             r.save()
-            audit.log(actor, "update", "record", r.uid, r.display_name, change | {"handover": [old.username, new.username]})
+            audit.log(actor, "update", "record", r.uid, r.display_name, change | {note: [old_name, new_name]})
+            changed.append(r)
+    return changed
+
+
+def renamed(old_name, user, actor=None):
+    """A user's name changed (identity provider, directory): contacts keep pointing at them. Returns the count."""
+    if not old_name or old_name == user.username:
+        return 0
+    with transaction.atomic():
+        n = len(_replace(old_name, user.username, actor, "renamed"))
+    if n:
+        audit.log(actor, "update", "user", user.id, user.username, {"renamed_from": [old_name, user.username], "records": [None, n]})
+    return n
+
+
+def apply(old, new, actor):
+    """Replace `old` by `new` in every live contact's user fields. Returns the number of contacts changed."""
+    n = 0
+    for r in _replace(old.username, new.username, actor, "handover"):
+        if not r.deleted_at:
             reviews.reassign(r)
             n += 1
     for rv in Review.objects.filter(pk__in=reviews.open_reviews().filter(assignee=old)).select_related("record"):

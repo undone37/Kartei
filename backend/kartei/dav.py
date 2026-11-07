@@ -21,7 +21,7 @@ from django.core.cache import cache
 from django.utils.crypto import salted_hmac
 from django.http import HttpResponse, HttpResponseRedirect
 
-from .net import client_ip, count_failure
+from .net import client_ip, count_distinct_failure
 from .vcard import flavour_for
 
 D, CARD, CS = "DAV:", "urn:ietf:params:xml:ns:carddav", "http://calendarserver.org/ns/"
@@ -39,7 +39,7 @@ def unauthorized():
 
 
 def authorized(request, username, password_hash, on_fail=None):
-    """Basic auth against one user; 20 failures per client address lock it out for 15 minutes.
+    """Basic auth against one user; 20 different failed logins per client address lock it out for 15 minutes.
     on_fail(user): called on the first failure of such a window (Kartei audits it; the relay has no audit log)."""
     key = f"carddav-fail:{client_ip(request)}"
     if cache.get(key, 0) >= 20:
@@ -56,7 +56,7 @@ def authorized(request, username, password_hash, on_fail=None):
         if password_hash and user == username and (cache.get(ok) or check_password(pw, password_hash)):
             cache.set(ok, True, 5 * 60)
             return True
-        if count_failure(key) == 1 and on_fail:  # first failure of the window only: a phone with an old password retries all day
+        if count_distinct_failure(key, f"{user}\0{pw}") == 1 and on_fail:  # first failure of the window: audited once
             on_fail(user)
     return False
 

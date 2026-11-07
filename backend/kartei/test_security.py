@@ -10,7 +10,7 @@ from django.test import RequestFactory, override_settings
 from . import exports, ldapusers, syslog, vcard
 from .auth import DbLDAPBackend
 from .management.commands import export_loop
-from .models import ExportProfile, FieldDef, Profile, Record, SavedFilter
+from .models import ExportProfile, FieldDef, Profile, Record, SavedFilter, Settings
 from .net import client_ip
 from .tests import ApiTestBase
 from .validation import clean_value
@@ -105,15 +105,15 @@ class LdapTakeoverTests(ApiTestBase):
         backend = DbLDAPBackend()
         with mock.patch("django_auth_ldap.backend.LDAPBackend.get_or_build_user", return_value=(boss, False)):
             with self.assertRaises(Exception):
-                backend.get_or_build_user("boss", mock.Mock())
+                backend.get_or_build_user("boss", mock.Mock(attrs={}))
         plain = User.objects.create_user("plain")  # local, no profile yet
         with mock.patch("django_auth_ldap.backend.LDAPBackend.get_or_build_user", return_value=(plain, False)):
             with self.assertRaises(Exception):
-                backend.get_or_build_user("plain", mock.Mock())
+                backend.get_or_build_user("plain", mock.Mock(attrs={}))
         ldap_user = User.objects.create_user("dir")
         Profile.objects.create(user=ldap_user, source="ldap")
         with mock.patch("django_auth_ldap.backend.LDAPBackend.get_or_build_user", return_value=(ldap_user, False)):
-            self.assertEqual(backend.get_or_build_user("dir", mock.Mock())[0], ldap_user)
+            self.assertEqual(backend.get_or_build_user("dir", mock.Mock(attrs={}))[0], ldap_user)
 
     def test_user_import_stops_before_deactivating_too_many(self):
         for i in range(10):
@@ -174,3 +174,40 @@ class FormatTests(ApiTestBase):
         res = import_csv("ID;Nachname\nP-1;Neu\n".encode(), dry_run=False)
         self.assertEqual((res["persons_updated"], res["persons_created"], res.get("trashed_skipped")), (0, 0, 1))
         self.assertEqual(Record.objects.get(pk=r.pk).last_name, "Alt")
+
+
+class EdgeCaseTests(ApiTestBase):
+    def test_reset_2fa_command(self):
+        from io import StringIO
+        from django.core.management import call_command
+        p = self.users["admin"].profile
+        p.totp_secret, p.totp_recovery = "JBSWY3DPEHPK3PXP", ["x"]
+        p.save()
+        out = StringIO()
+        call_command("reset_2fa", "ADMIN", stdout=out)
+        p.refresh_from_db()
+        self.assertEqual((p.totp_secret_enc, p.totp_recovery), ("", []))
+        self.assertIn("switched off", out.getvalue())
+
+    def test_same_wrong_carddav_login_counts_once(self):
+        from django.contrib.auth.hashers import make_password
+        import base64
+        cache.clear()
+        s = Settings.get()
+        s.carddav_enabled, s.carddav_username, s.carddav_password_hash = True, "phone", make_password("right")
+        s.save()
+        basic = lambda pw: "Basic " + base64.b64encode(f"phone:{pw}".encode()).decode()
+        for _ in range(30):  # an old phone retrying all day, behind the office's address
+            self.client.generic("PROPFIND", "/carddav/kontakte/", HTTP_AUTHORIZATION=basic("old"), HTTP_DEPTH="0")
+        ok = self.client.generic("PROPFIND", "/carddav/kontakte/", HTTP_AUTHORIZATION=basic("right"), HTTP_DEPTH="0")
+        self.assertEqual(ok.status_code, 207)  # the other phones still work
+        for i in range(20):  # guessing: every attempt is different and counts
+            self.client.generic("PROPFIND", "/carddav/kontakte/", HTTP_AUTHORIZATION=basic(f"guess{i}"), HTTP_DEPTH="0")
+        locked = self.client.generic("PROPFIND", "/carddav/kontakte/", HTTP_AUTHORIZATION=basic("right"), HTTP_DEPTH="0")
+        self.assertEqual(locked.status_code, 401)
+
+    def test_export_reports_characters_the_encoding_cant_hold(self):
+        from .models import default_csv_options
+        o = {**default_csv_options(), "encoding": "cp1252"}
+        self.assertEqual(exports.lossy_values(["Name"], [["Müller"], ["Łukasz"], ["Çelik Ş."]], o), 2)
+        self.assertEqual(exports.lossy_values(["Name"], [["Łukasz"]], default_csv_options()), 0)  # UTF-8 holds all

@@ -14,12 +14,15 @@
   import { L, t, terr } from '../lib/i18n.svelte'
   import { groupFields } from '../lib/sections'
   import { copyText, toast } from '../lib/toast.svelte'
+  import { hasEditDraft } from '../lib/drafts'
   import { confirmDialog } from '../lib/confirm.svelte'
   import type { BatchItem, Field, Proposal, Rec } from '../lib/types'
 
   // onfilter: a click on a tag-like value (multi-select, users) filters the list for it; add: Ctrl/⌘-click adds it to the filter
   let { rec, editing = $bindable(false), onfilter }: { rec: Rec; editing?: boolean; onfilter?: (key: string, value: string, add: boolean) => void } = $props()
   const one = (f: Field, x: string) => fmt(f, isMulti(f) ? [x] : x)
+  // an edit interrupted by an expired session: back in the form after signing in again (RecordForm restores it)
+  if (untrack(() => store.canEdit && hasEditDraft(rec.uid, store.user?.username))) editing = true
   let sharing = $state(false)
 
   /** map link for a street field: the address parts are the fields mapped to the same vCard address (work or home) */

@@ -1285,4 +1285,6 @@ export default {
   'msg.import_trashed': "Zeile {line} ({id}): übersprungen, „{name}“ liegt im Papierkorb (erst wiederherstellen)",
   'msg.import_too_long': "Zeile {line} ({id}): übersprungen, zu lang: {column}",
   'view.copy_failed': "Kopieren fehlgeschlagen – markiere den Text und kopiere ihn selbst",
+  'form.draft_restored': "Deine ungespeicherten Eingaben wurden wiederhergestellt",
+  'msg.export_rows_lossy': "{n} Zeilen geschrieben – {lossy} Werte enthalten Zeichen, die {encoding} nicht kennt; sie erscheinen als „?“. Wähle UTF-8, wenn das lesende Programm es unterstützt.",
 } as Record<string, string>

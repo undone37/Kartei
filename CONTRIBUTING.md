@@ -66,6 +66,19 @@ The manuals are published to GitHub Pages by the *Documentation* workflow (`.git
 
 6. Open a pull request against `main` and describe what changed and why.
 
+### Measuring at scale
+
+For changes to sync, search, lists, CardDAV, exports or Outlook, check them with many contacts. Use a throwaway Postgres database, never production data:
+
+```sh
+cd backend
+DATABASE_URL=postgres://… ../.venv/bin/python manage.py migrate
+DATABASE_URL=postgres://… ../.venv/bin/python manage.py seed_scale      # 50 000 persons, 5 000 companies, 2 000 photos
+DATABASE_URL=postgres://… ../.venv/bin/python manage.py measure_scale [--user scale010]
+# browser: start a server on that database, then
+cd ../frontend && node scripts/measure-scale.mjs --base http://127.0.0.1:8000 --user scale010
+```
+
 ## Project conventions
 
 - **Accessibility:** the browser tests check the main screens against WCAG 2.1 AA (axe-core, light and dark). Use the colour variables (`--muted`, `--faint`, …) for text instead of new greys, and give every form control a label or `aria-label`.

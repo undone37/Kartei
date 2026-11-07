@@ -168,7 +168,7 @@ class ApiWriteTests(ApiTestBase):
     def test_last_used_and_rate_limit(self):
         self.company()
         self.assertIsNotNone(ApiToken.objects.get(name="CRM-Sync").last_used_at)
-        for _ in range(20):
-            self.api("post", "/api/v1/contacts", {"kind": "company", "name": "X"}, status=401, token="kt_wrong")
+        for i in range(20):  # different wrong tokens: the same one repeated counts once
+            self.api("post", "/api/v1/contacts", {"kind": "company", "name": "X"}, status=401, token=f"kt_wrong{i}")
         self.api("post", "/api/v1/contacts", {"kind": "company", "name": "X"}, status=429)
         self.assertEqual(Record.objects.count(), 1)

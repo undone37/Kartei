@@ -299,9 +299,10 @@ Some tasks are also available as management commands. Without `--commit` they on
 docker compose exec web python manage.py import_csv /export/contacts.csv [--mapping m.json] [--commit]   # CSV import
 docker compose exec web python manage.py normalize_phones [--commit]                    # phone numbers
 docker compose exec web python manage.py changepassword admin                           # reset a local password
+docker compose exec web python manage.py reset_2fa admin                                # switch off a user's 2FA
 ```
 
-Changes made on the command line appear as user *system* in the audit log.
+`reset_2fa` is for a lost authenticator without recovery codes, above all when it is the only admin (otherwise an admin resets it under *Users*). The user then signs in with the password and sets up two-factor sign-in again, at once if it is required. Changes made on the command line appear as user *system* in the audit log.
 
 ## First steps
 
@@ -428,6 +429,7 @@ The result shows whether the connection and the bind of the service account work
 
 - Disabled AD accounts are skipped (and thereby deactivated in Kartei).
 - Users who have left all groups are deactivated, not deleted.
+- A renamed AD account (new `sAMAccountName`) stays the same Kartei user: Kartei recognises it by its `objectGUID` (or `entryUUID`), takes over the new name and updates the contacts that name the user. Users are matched by name only until their directory id is known (the first import or sign-in after the update).
 - Local users are never touched; an AD account with the same name as a local user is counted as *local skipped*.
 - If no members are found at all (e.g. wrong search base), nothing is changed and an error is shown, so a typo cannot deactivate everybody.
 - *Deactivate at most (% of directory users per run)* (default 20): if more users would be deactivated, e.g. after a role group was renamed, the run stops without changing anything and shows how many. Up to two users may always leave. Raise the limit for one run if the change is intended.
@@ -449,6 +451,7 @@ The box below the button shows the last run: *new · updated · deactivated · l
 - A SCIM user is **active** when the provider says so and one of its groups has a role; the highest role wins. Users in no mapped group are inactive.
 - Name, email, role and *Active* of SCIM users (*Source* `SCIM`) are greyed out in the user list; the provider decides. They have no Kartei password.
 - Leavers: when the provider deactivates or deletes a user, Kartei **deactivates** it and never deletes it, so the history and the contacts it is responsible for keep its name.
+- When the provider renames a user (`userName`), the contacts that name the user follow automatically.
 - SCIM only sees users it created itself: local and LDAP users are never changed, and a SCIM user cannot take a name that already exists.
 - The last active admin is never deactivated or demoted by SCIM.
 - Every change by the provider is in the audit log as *SCIM*.
@@ -708,7 +711,7 @@ The list shows each profile with *Format*, *Target file*, *Schedule* and *Last r
 |---|---|
 | *Delimiter* | `;` (also `,`, tab, pipe) |
 | *Quoting* | *only when needed* (also *always*, *all but numbers*), *Quote char* `"` |
-| *Encoding* | *UTF-8 + BOM (Excel)* (also UTF-8, Windows-1252) |
+| *Encoding* | *UTF-8 + BOM (Excel)* (also UTF-8, Windows-1252). With Windows-1252, characters it doesn't have (e.g. in Polish or Turkish names) are written as `?`; the export status then says how many values are affected. |
 | *Line ending* | CRLF (Windows) |
 | *Line breaks in values* | *keep* (in quotes) or *replace with space* — use the latter for scripts that read line by line |
 | *Multi-select separator* | `, ` |
@@ -1274,7 +1277,7 @@ Kartei holds personal data. Two functions help with the rights of the people in 
 
 - **`SECRET_KEY`:** the LDAP password, the AD writing password, the Outlook client secret and the SMTP password are stored encrypted with a key derived from `SECRET_KEY`. If the key changes, these values are lost (they read as empty) and must be entered again, and all users are signed out. Keep `SECRET_KEY` stable and in your backup.
 - **Shown once:** the CardDAV password, API tokens and the monitoring token are stored only as hashes. They are shown once when created; afterwards they can only be replaced.
-- **Rate limits:** after 10 failed sign-ins for one username, after 20 failed CardDAV logins and after 20 failed API requests, the client address is blocked for 15 minutes. The counters are shared by all server processes. Behind the reverse proxy, the address is the last entry of `X-Forwarded-For`, believed only from `TRUSTED_PROXIES`; make sure the proxy appends it (without a proxy: `PROXY_HEADERS=0`).
+- **Rate limits:** after 10 failed sign-ins for one username, after 20 different failed CardDAV logins and after 20 different invalid API tokens, the client address is blocked for 15 minutes. The same wrong login repeated (a phone or script with an old password) counts only once, so it doesn't lock out everybody else behind the same address. The counters are shared by all server processes. Behind the reverse proxy, the address is the last entry of `X-Forwarded-For`, believed only from `TRUSTED_PROXIES`; make sure the proxy appends it (without a proxy: `PROXY_HEADERS=0`).
 - **Secrets at startup:** Kartei refuses to start with the example `SECRET_KEY` from `.env.example` or one shorter than 32 characters, and doesn't create the first admin with the example password or one shorter than 10 characters.
 - **HSTS:** let the reverse proxy send `Strict-Transport-Security` (e.g. `max-age=31536000`), so browsers only use HTTPS.
 - **OpenID Connect:** bind accounts by a claim users can't change themselves at the identity provider (Entra ID: `upn` or `preferred_username`). With the claim `email`, an address the provider marks as unverified is refused.

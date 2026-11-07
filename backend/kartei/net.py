@@ -91,3 +91,11 @@ def count_failure(key, timeout=15 * 60):
     except ValueError:  # expired between add and incr
         cache.set(key, 1, timeout)
         return 1
+
+
+def count_distinct_failure(key, attempt, timeout=15 * 60):
+    """Like count_failure, but the same wrong credentials count once per window: a phone or script with an old
+    password retries all day and must not lock out everybody else behind the same address (office NAT). Guessing
+    needs different attempts, and each of those counts. Returns the count (0: a repeat, not counted)."""
+    seen = f"{key}:seen:{hashlib.sha256(attempt.encode()).hexdigest()[:24]}"
+    return count_failure(key, timeout) if cache.add(seen, 1, timeout) else 0

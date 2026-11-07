@@ -50,6 +50,8 @@ class Profile(models.Model):
     sso_subject = models.CharField(max_length=300, blank=True, db_index=True)  # "<iss> <sub>", bound at the first sign-in
     # SCIM (scim.py): the identity provider's id and its "active"; is_active also needs a role group
     external_id = models.CharField(max_length=255, blank=True)
+    # LDAP: the directory's own id of the account (AD objectGUID, else entryUUID); a renamed account stays this user
+    directory_id = models.CharField(max_length=64, blank=True, db_index=True)
     scim_active = models.BooleanField(default=True)
     # two-factor sign-in (totp.py): secret stored encrypted; empty = off
     totp_secret_enc = models.TextField(blank=True)

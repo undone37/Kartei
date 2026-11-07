@@ -299,9 +299,10 @@ Einige Aufgaben gibt es auch als Management-Befehl. Ohne `--commit` zeigen sie n
 docker compose exec web python manage.py import_csv /export/kontakte.csv [--mapping z.json] [--commit]   # CSV-Import
 docker compose exec web python manage.py normalize_phones [--commit]                    # Telefonnummern
 docker compose exec web python manage.py changepassword admin                           # lokales Passwort zurücksetzen
+docker compose exec web python manage.py reset_2fa admin                                # 2FA eines Benutzers abschalten
 ```
 
-Änderungen von der Kommandozeile erscheinen im Protokoll als Benutzer *system*.
+`reset_2fa` ist für einen verlorenen Authenticator ohne Wiederherstellungscodes, vor allem beim einzigen Admin (sonst setzt ein Admin ihn unter *Benutzer* zurück). Der Benutzer meldet sich danach mit dem Passwort an und richtet die Zwei-Faktor-Anmeldung neu ein, sofort, wenn sie Pflicht ist. Änderungen von der Kommandozeile erscheinen im Protokoll als Benutzer *system*.
 
 ## Erste Schritte
 
@@ -428,6 +429,7 @@ Das Ergebnis zeigt, ob Verbindung und Anmeldung des Dienstkontos geklappt haben,
 
 - Deaktivierte AD-Konten werden übersprungen (und damit in Kartei deaktiviert).
 - Wer alle Gruppen verlassen hat, wird deaktiviert, nicht gelöscht.
+- Ein umbenanntes AD-Konto (neuer `sAMAccountName`) bleibt derselbe Kartei-Benutzer: Kartei erkennt es an seiner `objectGUID` (bzw. `entryUUID`), übernimmt den neuen Namen und passt die Kontakte an, die den Benutzer nennen. Über den Namen wird nur zugeordnet, bis die Verzeichnis-ID bekannt ist (beim ersten Import oder der ersten Anmeldung nach dem Update).
 - Lokale Benutzer bleiben unberührt; ein AD-Konto mit dem Namen eines lokalen Benutzers zählt als *lokale übersprungen*.
 - Werden gar keine Mitglieder gefunden (z. B. falsche Suchbasis), ändert sich nichts und es erscheint ein Fehler – ein Tippfehler kann also nicht alle Benutzer deaktivieren.
 - *Höchstens deaktivieren (% der Verzeichnisbenutzer pro Lauf)* (Standard 20): Würden mehr Benutzer deaktiviert, z. B. nach dem Umbenennen einer Rollengruppe, bricht der Lauf ohne Änderung ab und zeigt die Zahl. Bis zu zwei Benutzer dürfen immer gehen. Ist die Änderung gewollt, erhöhe die Grenze für einen Lauf.
@@ -449,6 +451,7 @@ Das Feld unter der Schaltfläche zeigt den letzten Lauf: *neu · aktualisiert ·
 - Ein SCIM-Benutzer ist **aktiv**, wenn der Provider es sagt und eine seiner Gruppen eine Rolle hat; die höchste Rolle gilt. Benutzer ohne zugeordnete Gruppe sind inaktiv.
 - Name, E-Mail, Rolle und *Aktiv* von SCIM-Benutzern (*Quelle* `SCIM`) sind in der Benutzerliste ausgegraut; das entscheidet der Provider. Sie haben kein Kartei-Passwort.
 - Austritte: Deaktiviert oder löscht der Provider einen Benutzer, **deaktiviert** Kartei ihn und löscht ihn nie – so behalten die Historie und die Kontakte, für die er zuständig ist, seinen Namen.
+- Benennt der Provider einen Benutzer um (`userName`), ziehen die Kontakte, die ihn nennen, automatisch mit.
 - SCIM sieht nur Benutzer, die es selbst angelegt hat: Lokale und LDAP-Benutzer werden nie geändert, und ein SCIM-Benutzer kann keinen schon vorhandenen Namen bekommen.
 - Den letzten aktiven Admin deaktiviert oder herabstuft SCIM nie.
 - Jede Änderung durch den Provider steht im Protokoll als *SCIM*.
@@ -708,7 +711,7 @@ Die Liste zeigt jedes Profil mit *Format*, *Zieldatei*, *Ausführung* und *Letzt
 |---|---|
 | *Trennzeichen* | `;` (außerdem `,`, Tabulator, senkrechter Strich) |
 | *Anführungszeichen* | *nur wenn nötig* (außerdem *immer*, *außer Zahlen*), *Zeichen* `"` |
-| *Zeichensatz* | *UTF-8 + BOM (Excel)* (außerdem UTF-8, Windows-1252) |
+| *Zeichensatz* | *UTF-8 + BOM (Excel)* (außerdem UTF-8, Windows-1252). Bei Windows-1252 werden Zeichen, die es nicht kennt (z. B. in polnischen oder türkischen Namen), als `?` geschrieben; der Exportstatus nennt dann die Zahl der betroffenen Werte. |
 | *Zeilenende* | CRLF (Windows) |
 | *Zeilenumbrüche in Werten* | *beibehalten* (in Anführungszeichen) oder *durch Leerzeichen ersetzen* – Letzteres für Skripte, die zeilenweise lesen |
 | *Trenner Mehrfachauswahl* | `, ` |
@@ -1274,7 +1277,7 @@ Kartei enthält personenbezogene Daten. Zwei Funktionen helfen bei den Rechten d
 
 - **`SECRET_KEY`:** Das LDAP-Passwort, das Passwort des AD-Schreibkontos, der Outlook-Clientschlüssel und das SMTP-Passwort werden mit einem aus dem `SECRET_KEY` abgeleiteten Schlüssel verschlüsselt gespeichert. Ändert sich der Schlüssel, sind diese Werte verloren (sie gelten als leer) und müssen neu eingegeben werden; außerdem werden alle Benutzer abgemeldet. Halte den `SECRET_KEY` stabil und in der Sicherung.
 - **Nur einmal angezeigt:** Das CardDAV-Passwort, die API-Token und der Monitoring-Token werden nur als Hash gespeichert. Sie erscheinen einmal beim Erzeugen; danach lassen sie sich nur ersetzen.
-- **Sperren nach Fehlversuchen:** Nach 10 fehlgeschlagenen Anmeldungen für einen Benutzernamen, 20 fehlgeschlagenen CardDAV-Anmeldungen bzw. 20 fehlgeschlagenen API-Anfragen ist die Absenderadresse 15 Minuten gesperrt. Die Zähler gelten für alle Serverprozesse gemeinsam. Hinter dem Reverse Proxy ist die Adresse der letzte Eintrag von `X-Forwarded-For`, der nur von `TRUSTED_PROXIES` geglaubt wird; sorg dafür, dass der Proxy ihn anhängt (ohne Proxy: `PROXY_HEADERS=0`).
+- **Sperren nach Fehlversuchen:** Nach 10 fehlgeschlagenen Anmeldungen für einen Benutzernamen, 20 verschiedenen fehlgeschlagenen CardDAV-Anmeldungen bzw. 20 verschiedenen ungültigen API-Token ist die Absenderadresse 15 Minuten gesperrt. Dieselbe falsche Anmeldung wiederholt (ein Telefon oder Skript mit altem Passwort) zählt nur einmal und sperrt so nicht alle anderen hinter derselben Adresse aus. Die Zähler gelten für alle Serverprozesse gemeinsam. Hinter dem Reverse Proxy ist die Adresse der letzte Eintrag von `X-Forwarded-For`, der nur von `TRUSTED_PROXIES` geglaubt wird; sorg dafür, dass der Proxy ihn anhängt (ohne Proxy: `PROXY_HEADERS=0`).
 - **Geheimnisse beim Start:** Kartei startet nicht mit dem Beispiel-`SECRET_KEY` aus der `.env.example` oder einem kürzeren als 32 Zeichen und legt den ersten Admin nicht mit dem Beispielpasswort oder einem kürzeren als 10 Zeichen an.
 - **HSTS:** Lass den Reverse Proxy `Strict-Transport-Security` senden (z. B. `max-age=31536000`), damit Browser nur noch HTTPS verwenden.
 - **OpenID Connect:** Ordne Konten über ein Claim zu, das Benutzer beim Identity Provider nicht selbst ändern können (Entra ID: `upn` oder `preferred_username`). Beim Claim `email` wird eine Adresse abgelehnt, die der Provider als nicht bestätigt kennzeichnet.

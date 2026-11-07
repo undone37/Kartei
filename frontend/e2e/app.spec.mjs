@@ -530,6 +530,29 @@ test.describe('editing', () => {
     }
   })
 
+  test('an edit survives an expired session: after signing in again the input is back', async ({ as }) => {
+    const page = await as('mmuster')
+    const r = (await page.free()).find((x) => x.kind === 'person')
+    await page.goto(`/person/${r.uid}`)
+    await expect(page.getByRole('heading', { name: `${r.first_name} ${r.last_name}` })).toBeVisible()
+    await page.keyboard.press('e')
+    const field = page.locator('#first_name')
+    await field.fill('Entwurf-' + r.first_name)
+    await page.context().clearCookies({ name: 'sessionid' }) // the session ends meanwhile (timeout, server restart)
+    await page.keyboard.press('Control+s')
+    await page.getByRole('button', { name: 'English' }).click()
+    await page.locator('#u').fill('mmuster')
+    await page.locator('#p').fill(PW.other)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page.locator('#first_name')).toHaveValue('Entwurf-' + r.first_name) // back in the form, input restored
+    await expect(page.getByText('Your unsaved input was restored')).toBeVisible()
+    await page.keyboard.press('Escape') // discard: the draft is gone
+    const confirm = page.getByRole('button', { name: /Discard/ })
+    if (await confirm.isVisible()) await confirm.click()
+    await page.reload()
+    await expect(page.locator('#first_name')).toHaveCount(0)
+  })
+
   test('a change is undone from the history', async ({ as }) => {
     const page = await as('mmuster')
     const p = (await page.free()).find((r) => r.kind === 'person' && r.data.job_title && r.data.department)
