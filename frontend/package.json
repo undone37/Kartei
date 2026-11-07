@@ -21,12 +21,12 @@
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^26.6.6",
     "svelte": "^5.57.3",
-    "svelte-check": "^4.7.7",
+    "svelte-check": "^4.7.8",
     "typescript": "~6.0.3",
     "vite": "^8.3.4"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.63.0",
+    "@lucide/svelte": "^1.68.0",
     "idb-keyval": "^6.3.0",
     "qrcode-generator": "^2.0.4"
   },
