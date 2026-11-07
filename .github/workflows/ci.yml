@@ -194,19 +194,19 @@ jobs:
           cache-from: type=gha
       # software bills of materials (SPDX and CycloneDX) for the source tree and both images, kept as a build artifact
       - run: mkdir sbom
-      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { path: ., format: spdx-json, output-file: sbom/kartei-source.spdx.json, upload-artifact: false } }  # v0: v0
-      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { path: ., format: cyclonedx-json, output-file: sbom/kartei-source.cdx.json, upload-artifact: false } }  # v0: v0
-      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { image: kartei:ci, format: spdx-json, output-file: sbom/kartei-image.spdx.json, upload-artifact: false } }  # v0: v0
-      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { image: kartei:ci, format: cyclonedx-json, output-file: sbom/kartei-image.cdx.json, upload-artifact: false } }  # v0: v0
-      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { image: kartei-relay:ci, format: spdx-json, output-file: sbom/kartei-relay-image.spdx.json, upload-artifact: false } }  # v0: v0
-      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { image: kartei-relay:ci, format: cyclonedx-json, output-file: sbom/kartei-relay-image.cdx.json, upload-artifact: false } }  # v0: v0
+      - { uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c, with: { path: ., format: spdx-json, output-file: sbom/kartei-source.spdx.json, upload-artifact: false } }  # v0.24.3: v0.24.3
+      - { uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c, with: { path: ., format: cyclonedx-json, output-file: sbom/kartei-source.cdx.json, upload-artifact: false } }  # v0.24.3: v0.24.3
+      - { uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c, with: { image: kartei:ci, format: spdx-json, output-file: sbom/kartei-image.spdx.json, upload-artifact: false } }  # v0.24.3: v0.24.3
+      - { uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c, with: { image: kartei:ci, format: cyclonedx-json, output-file: sbom/kartei-image.cdx.json, upload-artifact: false } }  # v0.24.3: v0.24.3
+      - { uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c, with: { image: kartei-relay:ci, format: spdx-json, output-file: sbom/kartei-relay-image.spdx.json, upload-artifact: false } }  # v0.24.3: v0.24.3
+      - { uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c, with: { image: kartei-relay:ci, format: cyclonedx-json, output-file: sbom/kartei-relay-image.cdx.json, upload-artifact: false } }  # v0.24.3: v0.24.3
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
           name: sbom
           path: sbom/
       # known vulnerabilities (Grype): reported in Security → Code scanning; fails only for critical ones that have a fix
       - id: scan
-        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2  # v7
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439  # v7.4.2
         with:
           image: kartei:ci
           severity-cutoff: critical
@@ -215,7 +215,7 @@ jobs:
           output-file: kartei.sarif
       - id: scan-relay
         if: always()
-        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2  # v7
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439  # v7.4.2
         with:
           image: kartei-relay:ci
           severity-cutoff: critical
