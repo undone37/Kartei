@@ -46,6 +46,8 @@ Move the *Unreleased* entries in `CHANGELOG.md` under a new version heading (`##
 
 With a development server on port 8000 on a fresh, seeded database (`seed_demo --password demo12345`, and `EXPORT_ROOT=/export BACKUP_ROOT=/backup` for neutral paths), `cd frontend && npm run screenshots` regenerates all screenshots in `manuals/img/` in German and English (Playwright; run `npx playwright install chromium` once).
 
+The animation in the README (`manuals/img/en/demo.webp`) comes from `npm run demo-video` on the same kind of database (needs ffmpeg). It changes one job title, so reseed before running it again.
+
 The manuals are published to GitHub Pages by the *Documentation* workflow (`.github/workflows/pages.yml`) with every release. `cd frontend && npm run manuals-pdf` builds the PDF versions into `dist/` (needs pandoc and poppler-utils).
 
 ## Making a change

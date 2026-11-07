@@ -12,7 +12,8 @@
     "test": "node --test tests/",
     "test:e2e": "playwright test",
     "screenshots": "node scripts/screenshots.mjs",
-    "manuals-pdf": "node scripts/manuals-pdf.mjs"
+    "manuals-pdf": "node scripts/manuals-pdf.mjs",
+    "demo-video": "node scripts/demo-video.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
