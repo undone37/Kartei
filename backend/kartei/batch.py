@@ -45,11 +45,12 @@ def swap_prefix(value, old, new, cc="+49"):
     return None
 
 
-def plan(company, changes):
-    """changes: {company field key: [old, new]} -> [{uid, name, key, old, new}] proposed person updates."""
+def plan(company, changes, rank):
+    """changes: {company field key: [old, new]} -> [{uid, name, key, old, new}] proposed person updates.
+    Only fields the user may see and edit: the preview shows current values (no oracle for hidden fields)."""
     fields = [f for f in FieldDef.objects.filter(archived=False)]
     by_key = {f.key: f for f in fields}
-    person_fields = [f for f in fields if f.applies("person")]
+    person_fields = [f for f in fields if f.applies("person") and f.visible(rank) and f.editable(rank)]
     persons = list(company.persons.filter(deleted_at__isnull=True).order_by("last_name", "first_name"))
     s = Settings.get()
     cc, norm = s.phone_country_code, s.phone_country_code if s.phone_normalize else ""
@@ -78,7 +79,7 @@ def plan(company, changes):
 def apply(company, changes, selected, user, rank):
     """Apply the planned items whose (uid, key) is in `selected`. Returns (updated persons, errors)."""
     wanted = {(s.get("uid"), s.get("key")) for s in selected if isinstance(s, dict)}
-    items = [i for i in plan(company, changes) if (i["uid"], i["key"]) in wanted]
+    items = [i for i in plan(company, changes, rank) if (i["uid"], i["key"]) in wanted]
     fields = {f.key: f for f in FieldDef.objects.all()}
     per_person, errors = {}, []
     for i in items:

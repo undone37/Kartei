@@ -202,6 +202,8 @@ def merge(keep, other, pick, user, rank):
                 keep.data.pop(k, None)
             else:
                 keep.data[k] = other.data[k]
+        elif keep.data.get(k) in EMPTY and other.data.get(k) not in EMPTY and not f.editable(rank):
+            keep.data[k] = other.data[k]  # a field this user can't edit: its value must not get lost with the duplicate
     if takes("image"):
         keep.image, keep.image_type = other.image, other.image_type
     keep.merged_legacy_ids = list(dict.fromkeys(keep.merged_legacy_ids + ([other.legacy_id] if other.legacy_id else [])
@@ -225,7 +227,10 @@ def merge(keep, other, pick, user, rank):
         p.company = keep
         move(p, {"company": [other.display_name, keep.display_name]})
     ckeys = list(FieldDef.objects.filter(type="contact").values_list("key", flat=True))
-    for r in Record.objects.select_for_update().filter(data__has_any_keys=ckeys) if ckeys else []:
+    pointing = Q()
+    for k in ckeys:  # only the records that point at the duplicate get locked, not all with a contact field
+        pointing |= Q(**{f"data__{k}": str(other.uid)})
+    for r in Record.objects.select_for_update().filter(pointing) if ckeys else []:
         hits = [k for k in ckeys if r.data.get(k) == str(other.uid)]
         for k in hits:
             r.data[k] = str(keep.uid)
@@ -237,6 +242,7 @@ def merge(keep, other, pick, user, rank):
         reviews.open_reviews().filter(record=other).update(record=keep)
     Proposal.objects.filter(record=other, status="pending").update(record=keep)
     other.merged_into = keep
+    Record.objects.filter(merged_into=other).update(merged_into=keep)  # A→B, then B→C: A now leads to C as well
     _soft_delete(user, other, {"merged_into": [None, keep.display_name]})
     reviews.reassign(keep)
 

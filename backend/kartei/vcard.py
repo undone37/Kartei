@@ -28,7 +28,7 @@ def flavour_for(user_agent):
 
 
 def esc(value):
-    return (str(value).replace("\\", "\\\\").replace("\r\n", "\n").replace("\n", "\\n")
+    return (str(value).replace("\\", "\\\\").replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n")
             .replace(",", "\\,").replace(";", "\\;"))
 
 
@@ -187,4 +187,5 @@ def render(record, fields, flavour, base_url="", names=None, photo=True):
         lines.append("NOTE:" + esc("\n".join(note)))
 
     lines.append("END:VCARD")
-    return "\r\n".join(fold(l) for l in lines) + "\r\n"
+    # a raw line break inside a value would start a new property (or card) on the phone: never let one through
+    return "\r\n".join(fold(l.replace("\r", " ").replace("\n", " ")) for l in lines) + "\r\n"

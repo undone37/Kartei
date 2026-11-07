@@ -83,7 +83,8 @@ cp .env.example .env
 | `EXPORT_HOST_DIR` | Host directory mounted as `/export` (default `./export_out`). |
 | `WEB_PORT` | Published port of `web` (default `8000`). `127.0.0.1:8000` publishes it on the loopback interface only. |
 | `SECURE_COOKIES` | `1` (default). Set to `0` only for local tests over plain HTTP. |
-| `PROXY_HEADERS` | `1` (default): the client address for the rate limits is taken from the last `X-Forwarded-For` entry, which the reverse proxy appends. Set to `0` if Kartei is reached without a reverse proxy. |
+| `PROXY_HEADERS` | `1` (default): the client address (rate limits, audit log, monitoring allowlist) is taken from the last `X-Forwarded-For` entry, which the reverse proxy appends. Set to `0` if Kartei is reached without a reverse proxy. |
+| `TRUSTED_PROXIES` | Addresses or networks whose `X-Forwarded-For` and `X-Forwarded-Proto` count, comma-separated. Default `127.0.0.0/8,::1/128,172.16.0.0/12` (loopback and Docker networks: a proxy on the same host). For a proxy on another host, add its address, e.g. `10.0.5.10/32`. Anyone else's headers are ignored, so they can't fake their address. |
 | `LOG_LEVEL` | Log level of `web` and `exporter` (default `INFO`). |
 | `KARTEI_SOURCE_URL` | Link to the source code at the bottom of the user menu (default: the Kartei repository). If you run a modified version, point it to your code: the AGPL requires offering it to the users. |
 
@@ -429,6 +430,7 @@ The result shows whether the connection and the bind of the service account work
 - Users who have left all groups are deactivated, not deleted.
 - Local users are never touched; an AD account with the same name as a local user is counted as *local skipped*.
 - If no members are found at all (e.g. wrong search base), nothing is changed and an error is shown, so a typo cannot deactivate everybody.
+- *Deactivate at most (% of directory users per run)* (default 20): if more users would be deactivated, e.g. after a role group was renamed, the run stops without changing anything and shows how many. Up to two users may always leave. Raise the limit for one run if the change is intended.
 
 The box below the button shows the last run: *new · updated · deactivated · local skipped*, or the error.
 
@@ -713,6 +715,7 @@ The list shows each profile with *Format*, *Target file*, *Schedule* and *Last r
 | *Date format*, *Decimal separator* | `31.12.2026`, `1234,56` |
 | *Yes / No as* | `Ja` / `Nein` |
 | *Write header row* | on |
+| *Protect against spreadsheet formulas* | on: values Excel would run as a formula (starting with `=`, `@`, or `+`/`-` followed by text) get a leading `'`. Phone numbers and numbers stay as they are. Switch off only if a program reads the file and needs the raw values. In Excel exports, formulas are always written as text. |
 
 ### Excel options
 
@@ -1271,13 +1274,16 @@ Kartei holds personal data. Two functions help with the rights of the people in 
 
 - **`SECRET_KEY`:** the LDAP password, the AD writing password, the Outlook client secret and the SMTP password are stored encrypted with a key derived from `SECRET_KEY`. If the key changes, these values are lost (they read as empty) and must be entered again, and all users are signed out. Keep `SECRET_KEY` stable and in your backup.
 - **Shown once:** the CardDAV password, API tokens and the monitoring token are stored only as hashes. They are shown once when created; afterwards they can only be replaced.
-- **Rate limits:** after 10 failed sign-ins for one username, after 20 failed CardDAV logins and after 20 failed API requests, the client address is blocked for 15 minutes. Behind the reverse proxy, the address is the last entry of `X-Forwarded-For`; make sure the proxy appends it and that port 8000 is not reachable directly (or set `PROXY_HEADERS=0` without a proxy).
+- **Rate limits:** after 10 failed sign-ins for one username, after 20 failed CardDAV logins and after 20 failed API requests, the client address is blocked for 15 minutes. The counters are shared by all server processes. Behind the reverse proxy, the address is the last entry of `X-Forwarded-For`, believed only from `TRUSTED_PROXIES`; make sure the proxy appends it (without a proxy: `PROXY_HEADERS=0`).
+- **Secrets at startup:** Kartei refuses to start with the example `SECRET_KEY` from `.env.example` or one shorter than 32 characters, and doesn't create the first admin with the example password or one shorter than 10 characters.
+- **HSTS:** let the reverse proxy send `Strict-Transport-Security` (e.g. `max-age=31536000`), so browsers only use HTTPS.
+- **OpenID Connect:** bind accounts by a claim users can't change themselves at the identity provider (Entra ID: `upn` or `preferred_username`). With the claim `email`, an address the provider marks as unverified is refused.
 - **HTTPS only:** cookies are marked *Secure*. Keep `SECURE_COOKIES=1` in production.
 - **Security headers:** Kartei sends a Content-Security-Policy (scripts only from Kartei itself, no framing), a Permissions-Policy and `Cross-Origin-Resource-Policy: same-origin` with every response. Your reverse proxy doesn't need to add them. If it adds its own Content-Security-Policy, browsers apply both, so the stricter one wins.
 - **Two-factor sign-in:** switch it on for every admin account, especially the local one from `.env` (*My account*), or require it for administrators (*General settings*). It doesn't affect CardDAV, the REST API or webhooks.
 - **Least privilege:** the LDAP service account only needs read access. Give the AD writing account rights on the target OU only, limit the Outlook app to the group's mailboxes, and limit `Mail.Send` to the sending mailbox.
 - **Field visibility:** CardDAV, Outlook sync and the API only see fields visible to *Everyone*. Exports and the AD sync contain whatever you configure; protect the export share accordingly.
-- **Emergency access:** `/django-admin/` is a hidden fallback for superusers. Use it only in emergencies; changes made there bypass Kartei's checks and are not written to the audit log.
+- **Emergency access:** Django's own admin pages (`/django-admin/`) are switched off. They sign in without the second factor, the lockout and the audit log, and changes made there bypass Kartei's checks. Only in an emergency, set `DJANGO_ADMIN=1` in `.env`, run `docker compose up -d`, do what is needed as superuser, then remove the line and run `docker compose up -d` again. For a forgotten password, `docker compose exec web python manage.py changepassword admin` is usually enough.
 
 ## Troubleshooting
 

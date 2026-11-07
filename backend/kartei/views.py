@@ -4,7 +4,7 @@ from django.conf import settings
 from django.http import FileResponse, HttpResponse, HttpResponseNotFound, HttpResponsePermanentRedirect
 from django.views.decorators.cache import never_cache
 
-from .api import rank_of, visible_fields
+from .api import rank_of, totp_due, visible_fields
 from .models import Record, Settings, ref_names
 from .vcard import flavour_for, render
 
@@ -19,9 +19,10 @@ def spa(request, *args, **kwargs):
 
 
 def legacy_redirect(request, rest=""):
-    """/crm/... (old name) -> /..."""
+    """/crm/... (old name) -> /... on this site. Leading slashes and backslashes go: "/crm//evil.example" would
+    otherwise redirect to //evil.example, another host."""
     qs = request.META.get("QUERY_STRING", "")
-    return HttpResponsePermanentRedirect("/" + (rest or "") + (f"?{qs}" if qs else ""))
+    return HttpResponsePermanentRedirect("/" + (rest or "").lstrip("/\\") + (f"?{qs}" if qs else ""))
 
 
 @never_cache
@@ -39,6 +40,8 @@ def vcf(request, kind, uid):
     phone flavour instead of the browser's."""
     if not request.user.is_authenticated:
         return spa(request)  # SPA shows login, then reloads this URL
+    if not request.user.is_active or totp_due(request.user, request):  # like every API call: 2FA set up first
+        return spa(request)
     r = Record.objects.filter(uid=uid, kind=kind, deleted_at__isnull=True).select_related("company").first()
     if not r:
         return HttpResponseNotFound()

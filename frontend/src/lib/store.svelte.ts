@@ -8,9 +8,12 @@ import { RANK, type Field, type Kind, type Section, type Lang, type ListState, t
 // bumped when records gain a property the delta sync wouldn't backfill (2: created_at)
 const CACHE_KEY = 'kartei:boot2'
 const POLL_MS = 30_000
+const OFFLINE_MAX_MS = 24 * 3600_000 // cache shown without the server only this long after the last sync
 
 interface Snapshot {
   username: string
+  /** when it was written (ms): offline, only a recent cache is shown */
+  savedAt?: number
   cursor: string
   user: User
   defaultLang: Lang
@@ -103,25 +106,31 @@ class Store {
 
   async start() {
     onUnauthorized(() => this.toLogin())
-    idbDel('kartei:boot').catch(() => {}) // ponytail: drop the pre-2 cache; remove after a release or two
-    // 1) render from cache immediately, 2) check session, 3) fetch deltas
+    // polling and resync on focus/online for the whole page life, whichever way the user signs in (sync() does
+    // nothing while nobody is signed in)
+    setInterval(() => this.sync(), POLL_MS)
+    addEventListener('focus', () => this.sync())
+    addEventListener('online', () => this.sync())
+    // 1) check the session, 2) show the cache if it belongs to that user, 3) fetch deltas
     const cached = (await idbGet(CACHE_KEY).catch(() => undefined)) as Snapshot | undefined
-    if (cached) this.apply(cached)
     let session: { authenticated: boolean; default_language: Lang; sso?: boolean; sso_label?: string; user?: User; version?: string; source?: string }
     try {
       session = await get('/api/session')
     } catch {
+      // server unreachable: only a recent cache is shown (a shared PC must not show the last user's contacts for ever)
+      const fresh = cached && Date.now() - (cached.savedAt ?? 0) < OFFLINE_MAX_MS
       this.offline = true
-      this.status = cached ? 'ready' : 'login'
+      if (fresh) this.apply(cached)
+      this.status = fresh ? 'ready' : 'login'
       return
     }
     this.defaultLang = session.default_language
     this.sso = !!session.sso
     this.ssoLabel = session.sso_label ?? ''
     if (!session.authenticated) return this.toLogin(session.default_language)
-    if (cached && cached.username !== session.user!.username) {
-      this.records = []
-      this.cursor = ''
+    if (cached && cached.username === session.user!.username) {
+      this.apply(cached)
+      this.status = 'ready' // render from the cache now, deltas follow
     }
     this.user = session.user!
     this.about = { version: session.version ?? '', source: session.source ?? '' }
@@ -129,9 +138,6 @@ class Store {
     if (this.user.totp_due) return void (this.status = 'totp')
     await this.sync()
     this.status = 'ready'
-    setInterval(() => this.sync(), POLL_MS)
-    addEventListener('focus', () => this.sync())
-    addEventListener('online', () => this.sync())
   }
 
   private apply(s: Snapshot) {
@@ -146,14 +152,18 @@ class Store {
     this.proposals = s.proposals ?? []
     this.prefs(s)
     this.applyLang()
-    this.status = 'ready'
   }
 
   applyLang() {
     setLang((this.user?.language || this.defaultLang) as Lang)
   }
 
+  /** bumped on sign-out: a sync still in flight from before must not bring the data back (or into the cache) */
+  private epoch = 0
+
   private toLogin(defaultLang?: Lang) {
+    this.epoch++
+    clearTimeout(this.persistTimer)
     if (defaultLang) this.defaultLang = defaultLang
     this.user = null
     this.records = []
@@ -195,14 +205,17 @@ class Store {
 
   private async doSync() {
     if (!this.user) return
+    const epoch = this.epoch
     this.syncing = true
     try {
       if (this.cursor) {
         const ch = await get(`/api/changes?since=${encodeURIComponent(this.cursor)}`)
+        if (epoch !== this.epoch) return // signed out meanwhile
         if (!ch.reset) {
           this.merge(ch.records, ch.deleted)
-          this.fields = ch.fields
-          this.sections = ch.sections ?? []
+          // unchanged fields/sections keep their identity: every index over all records is derived from them
+          if (JSON.stringify(ch.fields) !== JSON.stringify(this.fields)) this.fields = ch.fields
+          if (JSON.stringify(ch.sections ?? []) !== JSON.stringify(this.sections)) this.sections = ch.sections ?? []
           this.reviews = ch.reviews
           this.proposals = ch.proposals
           this.prefs(ch)
@@ -217,6 +230,7 @@ class Store {
         }
       }
       const b = await get('/api/bootstrap')
+      if (epoch !== this.epoch) return
       this.cursor = b.cursor
       this.user = b.user
       this.defaultLang = b.default_language
@@ -255,7 +269,7 @@ class Store {
     this.persistTimer = setTimeout(() => {
       if (!this.user) return
       const snap: Snapshot = {
-        username: this.user.username, cursor: this.cursor, user: $state.snapshot(this.user) as User,
+        username: this.user.username, savedAt: Date.now(), cursor: this.cursor, user: $state.snapshot(this.user) as User,
         defaultLang: this.defaultLang, mapUrl: this.mapUrl, fields: this.fields, sections: this.sections, records: this.records,
         reviews: this.reviews, proposals: this.proposals,
         recent: this.recent, favorites: this.favorites, filters: this.filters,

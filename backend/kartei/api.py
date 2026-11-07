@@ -25,7 +25,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from . import (adsync, audit, backup, batch, exports, gdpr, graph, handover, importer, ldapusers, monitoring, oidc, relaypush,
                reviews, syslog, totp)
 from .msg import msg
-from .net import client_ip
+from .net import client_ip, count_failure
 from .models import (ROLE_RANK, USER_TYPES, ApiToken, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind,
                      Profile, Proposal, Record, Review, Role, ScimGroup, Settings, assignable, user_options)
 from .validation import REGEX_TYPES, clean_core, merge_data
@@ -69,7 +69,7 @@ def needs(min_rank):
                     request.json = json.loads(request.body)
                 except ValueError:
                     return err("invalid_json")
-                if not isinstance(request.json, (dict, list)):
+                if not isinstance(request.json, dict):  # every endpoint takes a JSON object
                     return err("invalid_json")
             return fn(request, *args, **kwargs)
         return wrapper
@@ -214,7 +214,6 @@ def login_view(request):
             return err("sso_expired", 401)
         user = User.objects.filter(pk=sso["user"], is_active=True).first()
         username = user.username if user else ""
-    # ponytail: per-process cache counter; use a shared cache (DB/redis) if brute force across workers matters
     key = f"login-fail:{client_ip(request)}:{username.lower()}"
     if cache.get(key, 0) >= 10:
         if cache.get(key, 0) == 10:  # once per lockout, not for every further try
@@ -224,7 +223,7 @@ def login_view(request):
     if not sso:
         user = authenticate(request, username=username, password=password)
     if user is None or not user.is_active:
-        cache.set(key, cache.get(key, 0) + 1, 15 * 60)
+        count_failure(key)
         _signin_failed(username, "inactive" if user else "invalid_credentials", user)
         return err("invalid_credentials", 401)
     p = profile_of(user)
@@ -235,7 +234,7 @@ def login_view(request):
             _signin_failed(username, "too_many_attempts", user)
             return err("too_many_attempts", 429)
         if not _second_factor(user, p, str(body["code"])):
-            cache.set(key, cache.get(key, 0) + 1, 15 * 60)
+            count_failure(key)
             _signin_failed(username, "invalid_code", user)
             return err("invalid_code", 401)
     cache.delete(key)
@@ -409,7 +408,12 @@ def bootstrap(request):
 
 @needs(READ)
 def changes(request):
-    since = parse_datetime(request.GET.get("since", "") or "")
+    try:
+        since = parse_datetime(request.GET.get("since", "") or "")
+    except ValueError:  # well-formed but impossible, e.g. month 13
+        since = None
+    if since and timezone.is_naive(since):
+        since = timezone.make_aware(since)
     now = timezone.now()
     s = Settings.get()
     if since is None or (s.trash_days and since < now - timedelta(days=s.trash_days)):
@@ -655,6 +659,8 @@ def record_report(request, uid):
 
 @needs(READ)
 def history(request, uid):
+    if request.rank < MAINT and Record.objects.filter(uid=uid, deleted_at__isnull=False).exists():
+        return err("not_found", 404)  # the recycle bin is for maintainers, like the contact itself
     entries = AuditEntry.objects.filter(target_type="record", target_id=str(uid))[:200]
     return JsonResponse({"entries": [ser_audit(e, request.rank) for e in entries]})
 
@@ -693,8 +699,8 @@ def _sniff(data):
 
 @needs(READ)
 def get_image(request, uid):
-    r = Record.objects.filter(uid=uid).only("image", "image_type").first()
-    if not r or not r.image_type:
+    r = Record.objects.filter(uid=uid).only("image", "image_type", "deleted_at").first()
+    if not r or not r.image_type or (r.deleted_at and request.rank < MAINT):
         return HttpResponse(status=404)
     resp = HttpResponse(bytes(r.image), content_type=f"image/{r.image_type}")
     resp["Cache-Control"] = "private, max-age=31536000, immutable"  # URL carries ?v=<version>
@@ -748,7 +754,7 @@ def update_me(request):
             return err("forbidden", 403)
         if not u.check_password(body.get("old_password", "")):
             return err("validation", fields={"old_password": "invalid"})
-        if len(body["password"]) < 10:
+        if not isinstance(body["password"], str) or len(body["password"]) < 10:
             return err("validation", fields={"password": "too_short"})
         u.set_password(body["password"])
         u.save()
@@ -766,7 +772,7 @@ def propagate(request, uid):
         return err("not_found", 404)
     changes = b.get("changes") if isinstance(b.get("changes"), dict) else {}
     if "selected" not in b:
-        return JsonResponse({"items": batch.plan(company, changes)})
+        return JsonResponse({"items": batch.plan(company, changes, request.rank)})
     with transaction.atomic():
         updated, errors = batch.apply(company, changes, b["selected"] or [], request.user, request.rank)
     return JsonResponse({"updated": updated, "errors": errors})
@@ -774,10 +780,16 @@ def propagate(request, uid):
 
 # ---------------------------------------------------------------- reviews & proposals
 
-def ser_proposal(p):
+def ser_proposal(p, rank=ADMIN):
+    """rank: whose eyes. A proposal by an admin can hold admin-only fields; others see only fields visible to them."""
+    def visible(part):
+        if rank >= ADMIN or not isinstance(part, dict) or not isinstance(part.get("data"), dict):
+            return part
+        keys = {f.key for f in visible_fields(rank)}
+        return {**part, "data": {k: v for k, v in part["data"].items() if k in keys}}
     return {"id": p.id, "record": str(p.record.uid) if p.record_id else None,
             "record_kind": p.record.kind if p.record_id else p.record_kind, "label": p.label,
-            "kind": p.kind, "changes": p.changes, "base": p.base,
+            "kind": p.kind, "changes": visible(p.changes), "base": visible(p.base),
             "comment": p.comment, "reason": p.reason, "proposer": p.proposer_name,
             "created_at": p.created_at.isoformat(), "status": p.status}
 
@@ -791,7 +803,7 @@ def workflow(request):
         props = props.filter(proposer=request.user)
     return {"reviews": [{"id": rv.id, "record": str(rv.record.uid), "created_at": rv.created_at.isoformat(),
                          "reason": rv.reason} for rv in mine],
-            "proposals": [ser_proposal(p) for p in props.order_by("created_at")]}
+            "proposals": [ser_proposal(p, request.rank) for p in props.order_by("created_at")]}
 
 
 def dashboard_prefs(request):
@@ -821,13 +833,13 @@ def propose(request, uid):
             same = Proposal.objects.filter(record=target, kind="delete", reason="company_gone", status="pending").first()
             if same:  # someone already reported it
                 reviews.finish(_company_reviews(target, request.user), "proposed", request.user)
-                return JsonResponse({"proposal": ser_proposal(same), "existing": True})
+                return JsonResponse({"proposal": ser_proposal(same, request.rank), "existing": True})
         p.save()
         audit.log(request.user, "propose", "record", target.uid, target.display_name, logged)
         reviews.finish(r.reviews.filter(assignee=request.user), "proposed", request.user)
         if p.reason == "company_gone":
             reviews.finish(_company_reviews(target, request.user), "proposed", request.user)
-    return JsonResponse({"proposal": ser_proposal(p)}, status=201)
+    return JsonResponse({"proposal": ser_proposal(p, request.rank)}, status=201)
 
 
 @needs(READ)
@@ -842,7 +854,7 @@ def propose_new(request):
         return error
     p.save()
     audit.log(request.user, "propose", "proposal", p.id, p.label, logged)
-    return JsonResponse({"proposal": ser_proposal(p)}, status=201)
+    return JsonResponse({"proposal": ser_proposal(p, request.rank)}, status=201)
 
 
 def _company_reviews(company, user):
@@ -919,7 +931,7 @@ def own_proposal(request, pk):
             return error
         p.save()
         audit.log(request.user, "propose", *target, p.label, logged)
-    return JsonResponse({"proposal": ser_proposal(p)})
+    return JsonResponse({"proposal": ser_proposal(p, request.rank)})
 
 
 @needs(MAINT)
@@ -950,7 +962,7 @@ def decide_proposal(request, pk, action):
             p.status = "accepted" if action == "accept" else "rejected"
             p.decided_by, p.decided_at, p.decision_note = request.user, timezone.now(), note
             p.save()
-            return JsonResponse({"proposal": ser_proposal(p),
+            return JsonResponse({"proposal": ser_proposal(p, request.rank),
                                  "record": ser_record(records_qs().get(pk=r.pk), visible_fields(request.rank)) if r else None})
         # of=self: Postgres can't lock the nullable side of the company join
         r = Record.objects.select_for_update(of=("self",)).select_related("company").get(pk=p.record_id)
@@ -984,7 +996,7 @@ def decide_proposal(request, pk, action):
         p.status = "accepted" if action == "accept" else "rejected"
         p.decided_by, p.decided_at, p.decision_note = request.user, timezone.now(), note
         p.save()
-    return JsonResponse({"proposal": ser_proposal(p), "record": ser_record(records_qs().get(pk=r.pk),
+    return JsonResponse({"proposal": ser_proposal(p, request.rank), "record": ser_record(records_qs().get(pk=r.pk),
                                                                            visible_fields(request.rank))})
 
 
@@ -1508,7 +1520,7 @@ def user_create(request):
         errors["username"] = "required"
     elif User.objects.filter(username__iexact=username).exists():
         errors["username"] = "taken"
-    if len(str(b.get("password", ""))) < 10:
+    if not isinstance(b.get("password"), str) or len(b["password"]) < 10:
         errors["password"] = "too_short"
     if b.get("role") not in Role.values:
         errors["role"] = "invalid"
@@ -1550,7 +1562,7 @@ def user_update(request, pk):
     if b.get("password"):
         if p.source != "local":
             return err("validation", fields={"password": "ldap_managed"})
-        if len(b["password"]) < 10:
+        if not isinstance(b["password"], str) or len(b["password"]) < 10:
             return err("validation", fields={"password": "too_short"})
         u.set_password(b["password"])
     u.save()
@@ -1590,7 +1602,7 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
                   "review_remind_days", "proposal_notify", "proposal_notify_to",
                   "ad_enabled", "ad_ou", "ad_bind_dn", "ad_kinds", "ad_columns", "ad_max_shrink_percent"]
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
-SETTINGS_ATTRS += ["map_url"]
+SETTINGS_ATTRS += ["map_url", "ldap_users_max_deactivate_percent"]
 SETTINGS_ATTRS += ["backup_enabled", "backup_time", "backup_keep_days"]
 SETTINGS_ATTRS += ["audit_signin_days", "monitoring_allowlist", "syslog_enabled", "syslog_host", "syslog_port",
                    "syslog_protocol", "syslog_ca_cert", "syslog_tls_verify", "syslog_facility", "syslog_content"]
@@ -1673,6 +1685,8 @@ def settings_put(request):
         errors["backup_time"] = "invalid"
     if not isinstance(s.backup_keep_days, int) or not 1 <= s.backup_keep_days <= 365:
         errors["backup_keep_days"] = "invalid_number"
+    if not isinstance(s.ldap_users_max_deactivate_percent, int) or not 0 <= s.ldap_users_max_deactivate_percent <= 100:
+        errors["ldap_users_max_deactivate_percent"] = "invalid_number"
     for a in ("trash_days", "export_interval_minutes", "audit_signin_days"):
         if not isinstance(getattr(s, a), int) or getattr(s, a) < 0:
             errors[a] = "invalid_number"
@@ -1973,7 +1987,7 @@ def audit_list(request):
         qs = qs.filter(target_type=t)
     if q := request.GET.get("q"):
         qs = qs.filter(target_label__icontains=q) | qs.filter(username__icontains=q)
-    if before := request.GET.get("before"):
+    if (before := request.GET.get("before", "")).isdigit():
         qs = qs.filter(id__lt=before)
     entries = list(qs[:100])
     kinds = record_kinds(entries)

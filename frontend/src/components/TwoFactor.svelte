@@ -3,7 +3,7 @@
   import { ApiError, post } from '../lib/api'
   import { store } from '../lib/store.svelte'
   import { t, terr } from '../lib/i18n.svelte'
-  import { toast } from '../lib/toast.svelte'
+  import { copyText, toast } from '../lib/toast.svelte'
   import type { User } from '../lib/types'
 
   /** ondone: after the recovery codes were saved (the required setup right after sign-in) */
@@ -50,7 +50,7 @@
     }
   }
 
-  const copy = () => navigator.clipboard.writeText(recovery!.join('\n')).then(() => toast(t('view.copied')))
+  const copy = () => copyText(recovery!.join('\n'))
 </script>
 
 <section class="card">

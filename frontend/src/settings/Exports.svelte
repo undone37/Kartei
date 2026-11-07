@@ -18,7 +18,7 @@
   interface Sources { core: string[]; calc: string[]; fields: { key: string; label: L10n; applies_to: string; type: string }[] }
 
   const CSV_DEFAULTS = { delimiter: ';', quotechar: '"', quoting: 'minimal', encoding: 'utf-8-sig', line_ending: 'crlf', header: true,
-    newlines: 'keep', multi_sep: ', ', date_format: '%d.%m.%Y', decimal_sep: ',', bool_true: 'Ja', bool_false: 'Nein' }
+    newlines: 'keep', multi_sep: ', ', date_format: '%d.%m.%Y', decimal_sep: ',', bool_true: 'Ja', bool_false: 'Nein', escape_formulas: true }
   const XLSX_DEFAULTS = { sheet_name: 'Kontakte', header: true, bold_header: true, autofilter: true, freeze_header: true,
     autowidth: true, date_format: 'DD.MM.YYYY', number_format: '#,##0.00' }
 
@@ -297,6 +297,8 @@
               <input class="input" value={o.bool_false} oninput={(e) => setOpt('bool_false', e.currentTarget.value)} aria-label={t('common.no')} /></div></div>
         </div>
         <label class="check"><input type="checkbox" checked={o.header} onchange={(e) => setOpt('header', e.currentTarget.checked)} /> {t('csv.header')}</label>
+        <label class="check"><input type="checkbox" checked={o.escape_formulas !== false} onchange={(e) => setOpt('escape_formulas', e.currentTarget.checked)} /> {t('csv.escape_formulas')}</label>
+        <p class="hint">{t('csv.escape_formulas_hint')}</p>
       {:else}
         <div class="row4">
           <div><label class="label" for="sn">{t('xlsx.sheet')}</label><input id="sn" class="input" maxlength="31" value={o.sheet_name} oninput={(e) => setOpt('sheet_name', e.currentTarget.value)} /></div>

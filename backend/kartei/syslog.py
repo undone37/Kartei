@@ -29,12 +29,26 @@ QUEUE_MAX, REFRESH, TIMEOUT = 10_000, 60, 5
 HOST = socket.gethostname()
 
 
-def line(rec, facility):
-    """One RFC 5424 message: <PRI>1 TIMESTAMP HOST APP PROCID MSGID - JSON."""
+UDP_MAX = 8000  # bytes per datagram; bigger ones fail (or get fragmented and lost) on the way to the SIEM
+
+
+def line(rec, facility, limit=None):
+    """One RFC 5424 message: <PRI>1 TIMESTAMP HOST APP PROCID MSGID - JSON. limit: shorten the JSON to fit (UDP):
+    first without the changed values (e.g. a whole email template), then the message text itself."""
     pri = FACILITIES.get(facility, 16) * 8 + SEVERITY.get(rec["level"], 6)
     msgid = "audit" if rec["logger"] == AUDIT else "app"
+    head = f"<{pri}>1 {rec['ts']} {HOST} kartei {os.getpid()} {msgid} - "
     body = json.dumps(rec, ensure_ascii=False, default=str)
-    return f"<{pri}>1 {rec['ts']} {HOST} kartei {os.getpid()} {msgid} - {body}".encode()
+    if limit and len(head.encode()) + len(body.encode()) > limit:
+        rec = {**rec, "truncated": True, "exc": str(rec.get("exc", ""))[:1000] or None}
+        if isinstance(rec.get("audit"), dict):
+            rec["audit"] = {**rec["audit"], "changes": sorted(rec["audit"].get("changes") or [])}  # names only
+        body = json.dumps(rec, ensure_ascii=False, default=str)
+        if len(head.encode()) + len(body.encode()) > limit:
+            rec["msg"] = str(rec.get("msg", ""))[:500]
+            body = json.dumps({k: rec[k] for k in ("ts", "level", "logger", "msg", "truncated") if k in rec},
+                              ensure_ascii=False, default=str)
+    return (head + body).encode()
 
 
 def frame(data, protocol):
@@ -79,7 +93,7 @@ def send_test(s):
     try:
         sock = connect(cfg)
         try:
-            sock.sendall(frame(line(rec, cfg["facility"]), cfg["protocol"]))
+            sock.sendall(frame(line(rec, cfg["facility"], UDP_MAX if cfg["protocol"] == "udp" else None), cfg["protocol"]))
         finally:
             sock.close()
     except (OSError, ssl.SSLError, ValueError) as e:
@@ -168,7 +182,7 @@ class Sender(threading.Thread):
                 continue
             try:
                 sock = sock or connect(cfg)
-                sock.sendall(frame(line(pending, cfg["facility"]), cfg["protocol"]))
+                sock.sendall(frame(line(pending, cfg["facility"], UDP_MAX if cfg["protocol"] == "udp" else None), cfg["protocol"]))
                 self.sent, pending, backoff = self.sent + 1, None, 1
                 if self.error:
                     self.error = ""

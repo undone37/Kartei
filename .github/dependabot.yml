@@ -33,3 +33,8 @@ updates:
     schedule: { interval: weekly }
     groups:
       actions: { patterns: ["*"] }
+
+  # images in compose*.yaml (postgres, fluent-bit)
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule: { interval: weekly }

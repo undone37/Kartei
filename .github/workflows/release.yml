@@ -16,24 +16,24 @@ jobs:
     env:
       VERSION: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-qemu-action@v4   # arm64 images are built under emulation
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/login-action@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1   # v4: arm64 images are built under emulation
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550  # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/kartei
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-      - uses: docker/build-push-action@v7
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7
         with:
           context: .
           push: true
@@ -45,14 +45,14 @@ jobs:
           provenance: mode=max
 
       - id: relay
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/kartei-relay
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-      - uses: docker/build-push-action@v7
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7
         with:
           context: .
           target: relay
@@ -65,14 +65,14 @@ jobs:
           provenance: mode=max
 
       - run: mkdir dist && cp docs/openapi.yaml dist/   # REST API description as a release asset
-      - { uses: anchore/sbom-action@v0, with: { path: ., format: spdx-json, output-file: "dist/kartei-${{ env.VERSION }}-source.spdx.json", upload-artifact: false } }
-      - { uses: anchore/sbom-action@v0, with: { path: ., format: cyclonedx-json, output-file: "dist/kartei-${{ env.VERSION }}-source.cdx.json", upload-artifact: false } }
-      - { uses: anchore/sbom-action@v0, with: { image: "${{ fromJSON(steps.meta.outputs.json).tags[0] }}", format: spdx-json, output-file: "dist/kartei-${{ env.VERSION }}-image.spdx.json", upload-artifact: false } }
-      - { uses: anchore/sbom-action@v0, with: { image: "${{ fromJSON(steps.meta.outputs.json).tags[0] }}", format: cyclonedx-json, output-file: "dist/kartei-${{ env.VERSION }}-image.cdx.json", upload-artifact: false } }
-      - { uses: anchore/sbom-action@v0, with: { image: "${{ fromJSON(steps.relay.outputs.json).tags[0] }}", format: spdx-json, output-file: "dist/kartei-relay-${{ env.VERSION }}-image.spdx.json", upload-artifact: false } }
-      - { uses: anchore/sbom-action@v0, with: { image: "${{ fromJSON(steps.relay.outputs.json).tags[0] }}", format: cyclonedx-json, output-file: "dist/kartei-relay-${{ env.VERSION }}-image.cdx.json", upload-artifact: false } }
+      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { path: ., format: spdx-json, output-file: "dist/kartei-${{ env.VERSION }}-source.spdx.json", upload-artifact: false } }  # v0: v0
+      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { path: ., format: cyclonedx-json, output-file: "dist/kartei-${{ env.VERSION }}-source.cdx.json", upload-artifact: false } }  # v0: v0
+      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { image: "${{ fromJSON(steps.meta.outputs.json).tags[0] }}", format: spdx-json, output-file: "dist/kartei-${{ env.VERSION }}-image.spdx.json", upload-artifact: false } }  # v0: v0
+      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { image: "${{ fromJSON(steps.meta.outputs.json).tags[0] }}", format: cyclonedx-json, output-file: "dist/kartei-${{ env.VERSION }}-image.cdx.json", upload-artifact: false } }  # v0: v0
+      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { image: "${{ fromJSON(steps.relay.outputs.json).tags[0] }}", format: spdx-json, output-file: "dist/kartei-relay-${{ env.VERSION }}-image.spdx.json", upload-artifact: false } }  # v0: v0
+      - { uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610, with: { image: "${{ fromJSON(steps.relay.outputs.json).tags[0] }}", format: cyclonedx-json, output-file: "dist/kartei-relay-${{ env.VERSION }}-image.cdx.json", upload-artifact: false } }  # v0: v0
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
         with:
           node-version-file: .nvmrc
           cache: npm

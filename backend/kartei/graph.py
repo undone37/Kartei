@@ -243,7 +243,8 @@ def sync_mailbox(c, user, folder, wanted):
             continue  # its POST failed and is already reported
         h, _, ph, r = wanted[uid]
         try:
-            c.call("PUT", f"{base}/{cid}/photo/$value", bytes(r.image), ctype=f"image/{r.image_type}")
+            img = Record.objects.only("image", "image_type").get(pk=r.pk)  # loaded only for an actual upload
+            c.call("PUT", f"{base}/{cid}/photo/$value", bytes(img.image), ctype=f"image/{img.image_type}")
             c.call("PATCH", f"{base}/{cid}", {"singleValueExtendedProperties": tag(uid, h, ph)})
             counts["photos"] += 1
         except GraphError as e:
@@ -254,9 +255,12 @@ def sync_mailbox(c, user, folder, wanted):
 def _sync(s):
     fields = list(FieldDef.objects.filter(archived=False, visible_to="read"))  # same fields as CardDAV
     wanted, names = {}, ref_names()
-    for r in Record.objects.filter(deleted_at__isnull=True).select_related("company"):
+    # ponytail: every photo is read once per run to hash it, but not kept: memory stays small; a stored image hash
+    # would save the reads if photo counts get large
+    for r in Record.objects.filter(deleted_at__isnull=True).select_related("company").iterator(chunk_size=200):
         p = contact(r, fields, names)
         ph = hashlib.sha256(bytes(r.image)).hexdigest()[:12] if r.image else ""
+        r.image = None  # hashed above; the bytes are fetched again only for an upload
         wanted[str(r.uid)] = (hashlib.sha256(json.dumps(p, sort_keys=True).encode()).hexdigest()[:16], p, ph, r)
     if not wanted:  # never wipe the phones because of an empty database
         raise GraphError(msg("graph_no_records"))
@@ -313,6 +317,9 @@ def run():
         status = _sync(s)
     except GraphError as e:
         status = {"error": str(e)}
+    except Exception as e:  # anything unexpected still ends up in the status, so the monitoring sees it
+        log.exception("outlook sync failed")
+        status = {"error": f"{type(e).__name__}: {e}"[:300]}
     status |= {"at": timezone.now().isoformat(), "seconds": round(time.monotonic() - started, 1)}
     Settings.objects.filter(pk=1).update(graph_status=status)  # not save(): don't clobber concurrent admin edits
     return status

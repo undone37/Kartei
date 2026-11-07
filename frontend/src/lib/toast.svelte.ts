@@ -1,3 +1,5 @@
+import { t } from './i18n.svelte'
+
 export interface Toast {
   id: number
   text: string
@@ -17,4 +19,9 @@ export function toast(text: string, opts: { kind?: Toast['kind']; action?: Toast
 export function dismiss(id: number) {
   const i = toasts.findIndex((t) => t.id === id)
   if (i >= 0) toasts.splice(i, 1)
+}
+
+/** Copy to the clipboard with feedback either way (it fails e.g. without HTTPS or when the browser refuses). */
+export function copyText(text: string) {
+  return navigator.clipboard.writeText(text).then(() => toast(t('view.copied')), () => toast(t('view.copy_failed'), { kind: 'error' }))
 }

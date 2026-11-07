@@ -3,7 +3,7 @@
   import { ApiError, del, get, post } from '../lib/api'
   import { dateTime, relTime } from '../lib/format'
   import { t, terr } from '../lib/i18n.svelte'
-  import { toast } from '../lib/toast.svelte'
+  import { copyText, toast } from '../lib/toast.svelte'
   import { confirmDialog } from '../lib/confirm.svelte'
 
   type Scope = 'read' | 'write'
@@ -39,7 +39,7 @@
   }
 
   const base = `${location.origin}/api/v1/contacts`
-  const copy = (v: string) => navigator.clipboard.writeText(v).then(() => toast(t('view.copied')))
+  const copy = copyText
 </script>
 
 <p class="hint">{t('tokens.hint')}</p>

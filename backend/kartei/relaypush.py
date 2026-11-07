@@ -8,6 +8,7 @@ Guards: nothing is pushed with 0 contacts, nor when more than carddav_relay_max_
 """
 import hashlib
 import json
+import logging
 import ssl
 import time
 from urllib.error import HTTPError, URLError
@@ -19,6 +20,8 @@ from .carddav import _card_etag, _etags, _fields, _records, _schema_hash
 from .models import Settings, ref_names
 from .msg import msg
 from .vcard import render
+
+log = logging.getLogger(__name__)
 
 CHUNK = 2 * 1024 * 1024  # bytes of vCards per request (the relay accepts up to 16 MB)
 
@@ -102,6 +105,9 @@ def run():
         status = _sync(s)
     except RelayError as e:
         status = {"error": str(e)}
+    except Exception as e:  # anything unexpected still ends up in the status, so the monitoring sees it
+        log.exception("carddav relay push failed")
+        status = {"error": f"{type(e).__name__}: {e}"[:300]}
     status |= {"at": timezone.now().isoformat(), "seconds": round(time.monotonic() - started, 1)}
     Settings.objects.filter(pk=1).update(carddav_relay_status=status)  # not save(): don't clobber admin edits
     return status

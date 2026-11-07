@@ -16,31 +16,54 @@ log = logging.getLogger(__name__)
 POLL = 10
 
 
-def tick():
-    s = Settings.get()
-    Settings.objects.filter(pk=1).update(exporter_seen_at=timezone.now())  # heartbeat for /api/monitoring/status
-    for p in ExportProfile.objects.filter(enabled=True, schedule="auto"):
-        log.info("export %s: %s", p.name, exports.run(p))
+def _purge_trash(s):
     if s.trash_days:
         for r in Record.objects.filter(deleted_at__lt=timezone.now() - timedelta(days=s.trash_days)):
             gdpr.purge(None, r, {"reason": [None, f"trash_days={s.trash_days}"]})
+
+
+def _signin_retention(s):
     if s.audit_signin_days:  # sign-in entries carry IP addresses: kept only as long as configured
         AuditEntry.objects.filter(target_type="session", at__lt=timezone.now() - timedelta(days=s.audit_signin_days)).delete()
+
+
+def _reviews(s):
     started, mailed = reviews.tick()
     if started or mailed:
         log.info("reviews: started %s, mails %s", started, mailed)
-    if (status := graph.run()) is not None:
-        log.info("outlook sync: %s", status)
-    if ldapusers.due(s):
-        log.info("ldap user import: %s", ldapusers.run())
-    if (status := adsync.run()) is not None:
-        log.info("ad sync: %s", status)
-    if (status := relaypush.run()) is not None:
-        log.info("carddav relay push: %s", status)
-    if backup.due(s):
-        log.info("backup: %s", backup.run())
-    webhooks.deliver_due()
-    webhooks.cleanup()
+
+
+def _logged(name, fn):
+    def step(s):
+        if (status := fn()) is not None:
+            log.info("%s: %s", name, status)
+    return step
+
+
+STEPS = [
+    ("exports", lambda s: [log.info("export %s: %s", p.name, exports.run(p))
+                           for p in ExportProfile.objects.filter(enabled=True, schedule="auto")]),
+    ("trash purge", _purge_trash),
+    ("sign-in retention", _signin_retention),
+    ("reviews", _reviews),
+    ("outlook sync", _logged("outlook sync", graph.run)),
+    ("ldap user import", lambda s: ldapusers.due(s) and log.info("ldap user import: %s", ldapusers.run())),
+    ("ad sync", _logged("ad sync", adsync.run)),
+    ("carddav relay push", _logged("carddav relay push", relaypush.run)),
+    ("backup", lambda s: backup.due(s) and log.info("backup: %s", backup.run())),
+    ("webhooks", lambda s: (webhooks.deliver_due(), webhooks.cleanup())),
+]
+
+
+def tick():
+    """One round of all background jobs. Each step on its own: one that fails is logged and the others still run."""
+    s = Settings.get()
+    Settings.objects.filter(pk=1).update(exporter_seen_at=timezone.now())  # heartbeat for /api/monitoring/status
+    for name, step in STEPS:
+        try:
+            step(s)
+        except Exception:
+            log.exception("%s failed", name)
     return s.export_interval_minutes
 
 

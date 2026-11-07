@@ -23,6 +23,7 @@ services:
       - ${SIEM_CA_HOST_FILE:-/dev/null}:/fluent-bit/etc/siem-ca.pem:ro   # own CA: SIEM_CA_FILE=/fluent-bit/etc/siem-ca.pem
     ports:
       - "127.0.0.1:24224:24224"   # the Docker daemon delivers the container logs here
+    networks: [logging]           # its own network: the other containers can't reach it and forge log lines
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
     read_only: true
@@ -38,3 +39,6 @@ services:
     logging: *fluent
   db:
     logging: *fluent
+
+networks:
+  logging:

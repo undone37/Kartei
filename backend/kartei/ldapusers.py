@@ -3,6 +3,7 @@
 Nested groups are resolved by AD itself (LDAP_MATCHING_RULE_IN_CHAIN). Local users are never touched; LDAP users that
 left all role groups are deactivated, not deleted, so their assignments still display.
 """
+import logging
 import re
 import time
 from datetime import datetime, timedelta
@@ -18,6 +19,8 @@ from . import audit
 from .auth import ldap_settings, role_groups
 from .msg import msg
 from .models import Profile, Settings
+
+log = logging.getLogger(__name__)
 
 IN_CHAIN = "1.2.840.113556.1.4.1941"
 ENABLED = "(!(userAccountControl:1.2.840.113556.1.4.803:=2))"  # disabled accounts can't sign in either
@@ -88,10 +91,15 @@ def _snapshot(u, p):
 
 
 @transaction.atomic
-def apply(found, actor=None):
-    """Create/update/deactivate users from members(). -> counts."""
+def apply(found, actor=None, limit=None):
+    """Create/update/deactivate users from members(). -> counts. limit: the most directory users (percent of the
+    active ones) one run may deactivate; more raises LdapError before anything changes. Two always pass (small teams)."""
     counts = {"created": 0, "updated": 0, "deactivated": 0, "skipped_local": 0}
     users = {u.username.lower(): u for u in User.objects.select_related("profile")}
+    ldap_active = [n for n, u in users.items() if getattr(u, "profile", None) and u.profile.source == "ldap" and u.is_active]
+    leaving = [n for n in ldap_active if n not in found]
+    if limit is not None and len(leaving) > max(2, len(ldap_active) * limit / 100):
+        raise LdapError(msg("ldap_users_guard", n=len(leaving), total=len(ldap_active), limit=limit))
     for name, (role, a) in found.items():
         u = users.get(name)
         p = getattr(u, "profile", None) if u else None
@@ -133,9 +141,12 @@ def run(actor=None):
             raise LdapError(error_text(e))
         if not found:  # a wrong search base must not deactivate everybody
             raise LdapError(msg("ldap_users_none"))
-        status = apply(found, actor)
+        status = apply(found, actor, Settings.get().ldap_users_max_deactivate_percent)
     except LdapError as e:
         status = {"error": str(e)}
+    except Exception as e:  # anything unexpected still ends up in the status, so the monitoring sees it
+        log.exception("ldap user import failed")
+        status = {"error": f"{type(e).__name__}: {e}"[:300]}
     status |= {"at": timezone.now().isoformat(), "seconds": round(time.monotonic() - started, 1)}
     Settings.objects.filter(pk=1).update(ldap_users_status=status)
     return status

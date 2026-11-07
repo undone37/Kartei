@@ -13,7 +13,7 @@
   import { fmt, isEmpty, isMulti, relTime, dateTime } from '../lib/format'
   import { L, t, terr } from '../lib/i18n.svelte'
   import { groupFields } from '../lib/sections'
-  import { toast } from '../lib/toast.svelte'
+  import { copyText, toast } from '../lib/toast.svelte'
   import { confirmDialog } from '../lib/confirm.svelte'
   import type { BatchItem, Field, Proposal, Rec } from '../lib/types'
 
@@ -96,10 +96,7 @@
     return f ? String(rec.data[f.key]) : ''
   })
 
-  async function copy(text: string) {
-    await navigator.clipboard.writeText(text)
-    toast(t('view.copied'))
-  }
+  const copy = copyText
 
   async function remove() {
     const r = rec
@@ -224,7 +221,7 @@
                     <a href="mailto:{v}"><Mail size={13} />{v}</a>
                     <button class="copy" onclick={() => copy(v)} aria-label={t('view.copy')}><Copy size={13} /></button>
                   {:else if f.type === 'url'}
-                    <a href={v} target="_blank" rel="noopener noreferrer">{String(v).replace(/^https?:\/\//, '')}<ExternalLink size={12} /></a>
+                    <a href={/^https?:\/\//i.test(String(v)) ? v : `https://${v}`} target="_blank" rel="noopener noreferrer">{String(v).replace(/^https?:\/\//, '')}<ExternalLink size={12} /></a>
                   {:else if f.type === 'contact' && store.byUid.get(v)}
                     <a href="/person/{v}">{fmt(f, v)}</a>
                   {:else if onfilter && (isMulti(f) || f.type === 'user')}

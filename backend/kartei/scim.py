@@ -20,7 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from . import audit
 from .api import _admins_left
 from .models import ApiToken, Profile, Role, ScimGroup, Settings
-from .net import client_ip
+from .net import client_ip, count_failure
 
 USER = "urn:ietf:params:scim:schemas:core:2.0:User"
 GROUP = "urn:ietf:params:scim:schemas:core:2.0:Group"
@@ -95,7 +95,7 @@ def scim(request, path):
     token = header[7:].strip() if header.startswith("Bearer ") else ""
     expected = Settings.get().scim_token_hash
     if not (token and expected and hmac.compare_digest(ApiToken.digest(token), expected)):
-        cache.set(key, cache.get(key, 0) + 1, 15 * 60)
+        count_failure(key)
         resp = error(401, "Invalid or missing bearer token")
         resp["WWW-Authenticate"] = 'Bearer realm="Kartei SCIM"'
         return resp
@@ -142,7 +142,10 @@ def _filter(request, attrs):
     m = re.fullmatch(r'(\w+)\s+eq\s+"((?:[^"\\]|\\.)*)"', f, re.I)
     if not m or m.group(1).lower() not in attrs:
         raise ScimError(400, "Only `<attribute> eq \"value\"` on " + ", ".join(attrs.values()) + " is supported", "invalidFilter")
-    return attrs[m.group(1).lower()], json.loads(f'"{m.group(2)}"')
+    try:
+        return attrs[m.group(1).lower()], json.loads(f'"{m.group(2)}"')
+    except ValueError:  # e.g. an invalid escape like \q
+        raise ScimError(400, "Invalid string in filter", "invalidFilter")
 
 
 def listing(request, kind):

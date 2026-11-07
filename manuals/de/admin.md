@@ -83,7 +83,8 @@ cp .env.example .env
 | `EXPORT_HOST_DIR` | Host-Verzeichnis, das als `/export` eingebunden wird (Standard `./export_out`). |
 | `WEB_PORT` | Veröffentlichter Port von `web` (Standard `8000`). Mit `127.0.0.1:8000` nur auf der Loopback-Schnittstelle. |
 | `SECURE_COOKIES` | `1` (Standard). Nur für lokale Tests über reines HTTP auf `0` setzen. |
-| `PROXY_HEADERS` | `1` (Standard): Die Absenderadresse für die Sperren nach Fehlversuchen kommt aus dem letzten Eintrag von `X-Forwarded-For`, den der Reverse Proxy anhängt. Auf `0` setzen, wenn Kartei ohne Reverse Proxy erreichbar ist. |
+| `PROXY_HEADERS` | `1` (Standard): Die Absenderadresse (Sperren nach Fehlversuchen, Protokoll, erlaubte Adressen fürs Monitoring) kommt aus dem letzten Eintrag von `X-Forwarded-For`, den der Reverse Proxy anhängt. Auf `0` setzen, wenn Kartei ohne Reverse Proxy erreichbar ist. |
+| `TRUSTED_PROXIES` | Adressen oder Netze, deren `X-Forwarded-For` und `X-Forwarded-Proto` zählen, durch Kommas getrennt. Standard `127.0.0.0/8,::1/128,172.16.0.0/12` (Loopback und Docker-Netze: Proxy auf demselben Host). Für einen Proxy auf einem anderen Host seine Adresse ergänzen, z. B. `10.0.5.10/32`. Die Header aller anderen werden ignoriert, sie können ihre Adresse also nicht fälschen. |
 | `LOG_LEVEL` | Log-Level von `web` und `exporter` (Standard `INFO`). |
 | `KARTEI_SOURCE_URL` | Link zum Quellcode unten im Benutzermenü (Standard: das Kartei-Repository). Betreibst du eine veränderte Fassung, trag hier deren Quellcode ein: Die AGPL verlangt, ihn den Benutzern anzubieten. |
 
@@ -429,6 +430,7 @@ Das Ergebnis zeigt, ob Verbindung und Anmeldung des Dienstkontos geklappt haben,
 - Wer alle Gruppen verlassen hat, wird deaktiviert, nicht gelöscht.
 - Lokale Benutzer bleiben unberührt; ein AD-Konto mit dem Namen eines lokalen Benutzers zählt als *lokale übersprungen*.
 - Werden gar keine Mitglieder gefunden (z. B. falsche Suchbasis), ändert sich nichts und es erscheint ein Fehler – ein Tippfehler kann also nicht alle Benutzer deaktivieren.
+- *Höchstens deaktivieren (% der Verzeichnisbenutzer pro Lauf)* (Standard 20): Würden mehr Benutzer deaktiviert, z. B. nach dem Umbenennen einer Rollengruppe, bricht der Lauf ohne Änderung ab und zeigt die Zahl. Bis zu zwei Benutzer dürfen immer gehen. Ist die Änderung gewollt, erhöhe die Grenze für einen Lauf.
 
 Das Feld unter der Schaltfläche zeigt den letzten Lauf: *neu · aktualisiert · deaktiviert · lokale übersprungen* oder den Fehler.
 
@@ -713,6 +715,7 @@ Die Liste zeigt jedes Profil mit *Format*, *Zieldatei*, *Ausführung* und *Letzt
 | *Datumsformat*, *Dezimaltrenner* | `31.12.2026`, `1234,56` |
 | *Ja / Nein als* | `Ja` / `Nein` |
 | *Kopfzeile schreiben* | an |
+| *Vor Tabellen-Formeln schützen* | an: Werte, die Excel als Formel ausführen würde (beginnend mit `=`, `@` oder `+`/`-` gefolgt von Text), bekommen ein vorangestelltes `'`. Telefonnummern und Zahlen bleiben unverändert. Nur ausschalten, wenn ein Programm die Datei liest und die Rohwerte braucht. In Excel-Exporten werden Formeln immer als Text geschrieben. |
 
 ### Excel-Optionen
 
@@ -1271,13 +1274,16 @@ Kartei enthält personenbezogene Daten. Zwei Funktionen helfen bei den Rechten d
 
 - **`SECRET_KEY`:** Das LDAP-Passwort, das Passwort des AD-Schreibkontos, der Outlook-Clientschlüssel und das SMTP-Passwort werden mit einem aus dem `SECRET_KEY` abgeleiteten Schlüssel verschlüsselt gespeichert. Ändert sich der Schlüssel, sind diese Werte verloren (sie gelten als leer) und müssen neu eingegeben werden; außerdem werden alle Benutzer abgemeldet. Halte den `SECRET_KEY` stabil und in der Sicherung.
 - **Nur einmal angezeigt:** Das CardDAV-Passwort, die API-Token und der Monitoring-Token werden nur als Hash gespeichert. Sie erscheinen einmal beim Erzeugen; danach lassen sie sich nur ersetzen.
-- **Sperren nach Fehlversuchen:** Nach 10 fehlgeschlagenen Anmeldungen für einen Benutzernamen, 20 fehlgeschlagenen CardDAV-Anmeldungen bzw. 20 fehlgeschlagenen API-Anfragen ist die Absenderadresse 15 Minuten gesperrt. Hinter dem Reverse Proxy ist das der letzte Eintrag von `X-Forwarded-For`; sorg dafür, dass der Proxy ihn anhängt und Port 8000 nicht direkt erreichbar ist (ohne Proxy: `PROXY_HEADERS=0`).
+- **Sperren nach Fehlversuchen:** Nach 10 fehlgeschlagenen Anmeldungen für einen Benutzernamen, 20 fehlgeschlagenen CardDAV-Anmeldungen bzw. 20 fehlgeschlagenen API-Anfragen ist die Absenderadresse 15 Minuten gesperrt. Die Zähler gelten für alle Serverprozesse gemeinsam. Hinter dem Reverse Proxy ist die Adresse der letzte Eintrag von `X-Forwarded-For`, der nur von `TRUSTED_PROXIES` geglaubt wird; sorg dafür, dass der Proxy ihn anhängt (ohne Proxy: `PROXY_HEADERS=0`).
+- **Geheimnisse beim Start:** Kartei startet nicht mit dem Beispiel-`SECRET_KEY` aus der `.env.example` oder einem kürzeren als 32 Zeichen und legt den ersten Admin nicht mit dem Beispielpasswort oder einem kürzeren als 10 Zeichen an.
+- **HSTS:** Lass den Reverse Proxy `Strict-Transport-Security` senden (z. B. `max-age=31536000`), damit Browser nur noch HTTPS verwenden.
+- **OpenID Connect:** Ordne Konten über ein Claim zu, das Benutzer beim Identity Provider nicht selbst ändern können (Entra ID: `upn` oder `preferred_username`). Beim Claim `email` wird eine Adresse abgelehnt, die der Provider als nicht bestätigt kennzeichnet.
 - **Nur HTTPS:** Cookies sind als *Secure* markiert. Lass `SECURE_COOKIES=1` im Betrieb.
 - **Sicherheits-Header:** Kartei schickt mit jeder Antwort eine Content-Security-Policy (Skripte nur von Kartei selbst, kein Einbetten in fremde Seiten), eine Permissions-Policy und `Cross-Origin-Resource-Policy: same-origin`. Dein Reverse Proxy muss sie nicht ergänzen. Fügt er eine eigene Content-Security-Policy hinzu, wenden Browser beide an, es gilt also die strengere.
 - **Zwei-Faktor-Anmeldung:** Schalte sie für jedes Admin-Konto ein, vor allem für das lokale aus der `.env` (*Mein Konto*), oder mach sie für Administratoren zur Pflicht (*Allgemeine Einstellungen*). CardDAV, REST-API und Webhooks betrifft sie nicht.
 - **Minimale Rechte:** Das LDAP-Dienstkonto braucht nur Leserechte. Gib dem AD-Schreibkonto nur Rechte auf der Ziel-OU, beschränke die Outlook-App auf die Postfächer der Gruppe und `Mail.Send` auf das sendende Postfach.
 - **Sichtbarkeit der Felder:** CardDAV, Outlook-Sync und API sehen nur Felder, die für *Alle* sichtbar sind. Exporte und der AD-Sync enthalten, was du einrichtest – schütze die Exportfreigabe entsprechend.
-- **Notfallzugang:** `/django-admin/` ist eine versteckte Rückfallebene für Superuser. Nutze sie nur im Notfall; Änderungen dort umgehen die Prüfungen von Kartei und landen nicht im Protokoll.
+- **Notfallzugang:** Djangos eigene Admin-Seiten (`/django-admin/`) sind abgeschaltet. Dort meldet man sich ohne zweiten Faktor, Sperre und Protokoll an, und Änderungen umgehen die Prüfungen von Kartei. Nur im Notfall: `DJANGO_ADMIN=1` in die `.env`, `docker compose up -d`, als Superuser das Nötige erledigen, danach die Zeile entfernen und erneut `docker compose up -d`. Bei vergessenem Passwort reicht meist `docker compose exec web python manage.py changepassword admin`.
 
 ## Fehlersuche
 
