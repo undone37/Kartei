@@ -4,6 +4,11 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- **New contact from an email signature:** *New → From an email signature …* reads a pasted signature (name, academic title, job title, company, address in German/Austrian/Swiss style, labelled phone numbers, email, website) and opens the usual filled-in form, with the company linked if Kartei knows it. Unrecognised lines are listed; greetings and legal footers are skipped. Everything happens in the browser.
+- **Share to Kartei (Android):** with Kartei installed as an app, it appears in the share menu of other apps; a shared vCard or text (e.g. a signature) opens as a new contact or proposal.
+
 ## [0.6.1-beta] – 2026-11-07
 
 Dependency updates only; nothing to configure. Pull the new image or rebuild; there is no database migration.
