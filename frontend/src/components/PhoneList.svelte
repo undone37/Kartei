@@ -1,13 +1,14 @@
 <script lang="ts">
-  import { ArrowLeft, Printer } from '@lucide/svelte'
+  import { ArrowLeft, FileDown, Printer } from '@lucide/svelte'
   import logo from '../assets/logo.svg'
   import { store } from '../lib/store.svelte'
   import { fmt } from '../lib/format'
   import { L, i18n, t } from '../lib/i18n.svelte'
+  import { tablePdf, type TableDoc } from '../lib/pdf'
   import type { Field, Rec } from '../lib/types'
 
-  /** A printable phone list of the contacts in the current list (search, list and filters apply); the browser's
-      print dialog saves it as PDF. */
+  /** A phone list of the contacts in the current list (search, list and filters apply): as a PDF file, or printed
+      with the browser's print dialog. Both show the same rows and columns. */
   let { items }: { items: Rec[] } = $props()
 
   let group = $state<'company' | 'name'>('company')
@@ -46,6 +47,26 @@
   const count = $derived(group === 'company' ? groups.reduce((n, g) => n + g.persons.length + (g.company ? 1 : 0), 0) : flat.length)
   const today = $derived(new Intl.DateTimeFormat(i18n.lang, { dateStyle: 'long' }).format(new Date()))
   const value = (r: Rec, f: Field) => (r.data[f.key] ? fmt(f, r.data[f.key]) : '')
+  /** the same table as the sheet below, as a PDF */
+  function downloadPdf() {
+    const head = [t('core.name'), ...(group === 'name' ? [t('core.company')] : []), ...(role ? [L(role.label)] : []),
+                  ...columns.map((f) => L(f.label))]
+    const roleCell = (r: Rec) => (role ? [String(r.data[role.key] ?? '')] : [])
+    const rows: TableDoc['rows'] = group === 'company'
+      ? groups.flatMap((g) => [
+          { kind: 'group' as const, cells: [g.title, ...(role ? [''] : []), ...columns.map((f) => (g.company ? value(g.company, f) : ''))] },
+          ...g.persons.map((r) => ({ cells: [nameOf(r), ...roleCell(r), ...columns.map((f) => value(r, f))] })),
+        ])
+      : flat.map((r) => ({ kind: r.kind === 'company' ? 'strong' as const : 'row' as const,
+                           cells: [nameOf(r), r.kind === 'person' ? store.companyName(r) : '', ...roleCell(r), ...columns.map((f) => value(r, f))] }))
+    const pdf = tablePdf({ title: t('phonelist.title'), subtitle: `${today} · ${t('list.count', { n: count })}`, head, rows,
+                           footer: (page, pages) => `Kartei · ${t('phonelist.title')} · ${t('phonelist.page', { page, pages })}` })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' }))
+    a.download = `${t('phonelist.title')}-${new Date().toISOString().slice(0, 10)}.pdf`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
+  }
   const toggle = (key: string, on: boolean) => {
     const now = columns.map((f) => f.key)
     picked = on ? [...now, key] : now.filter((k) => k !== key)
@@ -70,7 +91,10 @@
         <label><input type="checkbox" checked={columns.includes(f)} onchange={(e) => toggle(f.key, e.currentTarget.checked)} /> {L(f.label)}</label>
       {/each}
     </div>
-    <button class="btn primary" onclick={() => print()} disabled={!count}><Printer size={15} />{t('phonelist.print')}</button>
+    <div class="buttons">
+      <button class="btn primary" onclick={downloadPdf} disabled={!count}><FileDown size={15} />{t('phonelist.pdf')}</button>
+      <button class="btn" onclick={() => print()} disabled={!count}><Printer size={15} />{t('phonelist.print')}</button>
+    </div>
   </div>
 
   <article class="sheet">
@@ -132,7 +156,7 @@
   .opts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
   .opts label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
   .seg { display: flex; gap: 14px; }
-  .controls .btn { align-self: flex-start; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 
   .sheet { max-width: 1000px; padding: 22px 26px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
   .sheet header { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; margin-bottom: 8px; border-bottom: 1px solid var(--border); }

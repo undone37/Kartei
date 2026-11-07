@@ -191,16 +191,17 @@ Der Download-Knopf über der Liste exportiert genau die gerade angezeigten Konta
 > Exporte werden im Protokoll festgehalten. Geh sorgsam mit den Dateien um – sie können personenbezogene Daten enthalten.
 {: .warn}
 
-### Telefonliste (drucken oder PDF)
+### Telefonliste (PDF oder drucken)
 
-Im selben Menü gibt es **Telefonliste – drucken oder PDF**: eine druckfertige Liste der gerade angezeigten Kontakte (wieder mit Suche, Liste und Filtern), etwa aller Kunden oder der Lieferanten einer Abteilung.
+Im selben Menü gibt es **Telefonliste – PDF oder drucken**: eine Liste der gerade angezeigten Kontakte (wieder mit Suche, Liste und Filtern), etwa aller Kunden oder der Lieferanten einer Abteilung.
 
 ![Telefonliste](../img/de/phonelist.png)
 
 - **Sortierung:** *nach Firma* (jede Firma mit ihren eigenen Nummern, darunter ihre Personen) oder *nach Name* (A–Z, mit der Firma in einer eigenen Spalte).
 - **nur Kontakte mit Nummer** lässt Kontakte weg, die keine der gewählten Nummern haben.
 - **Spalten:** Hake die Telefon- und E-Mail-Felder an, die gedruckt werden sollen. Kartei wählt die Telefonfelder vor, die jemand in der Liste ausgefüllt hat.
-- **Drucken / PDF** öffnet den Druckdialog des Browsers. Wähl deinen Drucker oder *Als PDF speichern*, um eine Datei zu erhalten. Gedruckt wird nur die Liste selbst, auf A4 und mit den Spaltenüberschriften auf jeder Seite.
+- **PDF herunterladen** speichert die Liste als PDF-Datei: A4 (bei vielen Spalten quer), Titel und Datum auf der ersten Seite, Spaltenüberschriften und Seitenzahlen auf jeder Seite. Spalten, in denen niemand in der Liste einen Wert hat, bleiben weg; sehr breite Listen bekommen eine kleinere Schrift.
+- **Drucken** öffnet den Druckdialog des Browsers für dieselbe Liste. Gedruckt wird nur die Liste selbst.
 
 ## Die Startseite
 
