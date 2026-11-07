@@ -375,6 +375,20 @@ Kontakte, die als vCard (`.vcf`) kommen – etwa im Anhang einer E-Mail, vom Han
 
 Werte ohne passendes Feld (z. B. eine Pager-Nummer) stehen über dem Formular, damit du sie bei Bedarf von Hand übernimmst. Mit der Rolle *Nur Lesen* werden aus den Karten stattdessen [Vorschläge](#neuen-kontakt-vorschlagen).
 
+### Aus einer E-Mail-Signatur {#aus-einer-e-mail-signatur}
+
+Die meisten neuen Kontakte kommen als E-Mail mit Signatur. Statt jede Zeile abzutippen:
+
+1. Kopiere die Signatur aus der E-Mail.
+2. Klick oben rechts auf **Neu** und wähle **Aus E-Mail-Signatur …**.
+3. Füge den Text ein und klick auf **Einlesen**.
+
+Kartei erkennt Name (mit akademischem Titel), Funktion, Firma (an der Rechtsform, z. B. *GmbH*, *AG*, *Ltd*), Straße, PLZ und Ort (deutsch, österreichisch, schweizerisch), Land, Telefonnummern (*Tel.*, *Mobil*, *Fax*, *T*, *M*, *F* …; deutsche Mobilnummern auch ohne Bezeichnung), E-Mail und Webseite. Das Ergebnis öffnet sich als dasselbe ausgefüllte Formular wie bei einer vCard; Zeilen, die Kartei nicht zuordnen konnte, stehen über dem Formular. Grußformeln und Pflichtangaben (*Geschäftsführer*, *HRB*, Haftungshinweise) werden übergangen. Der Text verlässt deinen Browser nicht.
+
+![Eine eingefügte Signatur als ausgefülltes Formular](../img/de/signature-import.png)
+
+**Vom Handy (Android):** Ist Kartei [als App installiert](#als-app-installieren), erscheint Kartei im Teilen-Menü anderer Apps. Ein geteilter Kontakt (vCard) oder ein markierter Text, z. B. eine Signatur, öffnet sich direkt hier. Auf dem iPhone bieten installierte Web-Apps das nicht an.
+
 ### Angaben von der Firma übernehmen
 
 Sobald eine Person eine Firma hat, bietet Kartei an, Angaben der Firma zu übernehmen, etwa Webseite, Adresse oder internen Ansprechpartner: **Angaben von … übernehmen**.

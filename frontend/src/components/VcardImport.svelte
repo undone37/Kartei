@@ -6,9 +6,13 @@
   import { t } from '../lib/i18n.svelte'
   import { toast } from '../lib/toast.svelte'
   import { type Draft, parse, toDraft } from '../lib/vcardimport'
-  import type { Rec } from '../lib/types'
+  import { fromText } from '../lib/signature'
+  import { route } from '../lib/router.svelte'
+  import type { Kind, Rec } from '../lib/types'
 
-  /** Contacts from .vcf files: each card opens as a pre-filled new-contact form (read only: as a proposal). */
+  /** Contacts from .vcf files or pasted text (an email signature): each opens as a pre-filled new-contact form
+   *  (read only: as a proposal). `share`: what another app shared to the installed app (see public/sw.js). */
+  let { from = 'vcard' }: { from?: 'vcard' | 'text' | 'share' } = $props()
   let cards = $state<Draft[]>([])
   let at = $state(0)
   let pasted = $state('')
@@ -22,10 +26,13 @@
   }
   const missingCompany = $derived(card?.kind === 'person' && card.company_name && !companyUid(card.company_name) ? card.company_name : '')
 
+  /** vCard text if it has a BEGIN:VCARD, otherwise an email signature */
   function load(text: string) {
-    const found = parse(text).map((props) => toDraft(props, store.fields, (k) => store.fieldsFor(k)))
+    const kindOf = (k: Kind) => store.fieldsFor(k)
+    const sig = /BEGIN:VCARD/i.test(text) ? null : fromText(text, store.fields, kindOf)
+    const found = sig ? [sig] : parse(text).map((props) => toDraft(props, store.fields, kindOf))
     if (!found.length) {
-      toast(t('vcardimport.none'), { kind: 'error' })
+      toast(t(/BEGIN:VCARD/i.test(text) ? 'vcardimport.none' : 'vcardimport.none_text'), { kind: 'error' })
       return
     }
     cards = found
@@ -38,6 +45,21 @@
     load((await Promise.all([...list].map((f) => f.text()))).join('\n'))
   }
 
+  const retry = new URLSearchParams(route.search).has('retry')
+  // read once: the page is re-created when `from` changes (App.svelte keys it)
+  // svelte-ignore state_referenced_locally
+  if (from === 'share') {
+    caches.open('kartei-share').then(async (c) => {
+      const res = await c.match('/share-data')
+      if (!res) return
+      await c.delete('/share-data')
+      const d = await res.json()
+      const text = [...d.files.map((f: { text: string }) => f.text), [d.title, d.text, d.url].filter(Boolean).join('\n')]
+        .filter((x) => x.trim()).join('\n')
+      if (text) load(text)
+    }).catch(() => {})
+  }
+
   function next(saved?: Rec, proposal?: number) {
     if (saved) done.created.push(saved)
     else if (proposal) done.proposed++
@@ -47,8 +69,16 @@
 </script>
 
 <div class="page">
-  <h1>{t('vcardimport.title')}</h1>
+  <h1>{from === 'text' ? t('vcardimport.title_text') : t('vcardimport.title')}</h1>
   {#if !cards.length}
+    {#if retry}<div class="note">{t('vcardimport.share_retry')}</div>{/if}
+    {#if from === 'text'}
+      <p class="muted">{t('vcardimport.text_hint')}</p>
+      <!-- svelte-ignore a11y_autofocus -->
+      <textarea class="input sig" rows="12" bind:value={pasted} autofocus aria-label={t('vcardimport.menu_text')}
+                placeholder={'Erika Muster\nLeitung Einkauf\nBeispielwerke Nord GmbH\nMusterstraße 12, 30159 Hannover\nTel. +49 511 1000-12\nerika.muster@beispiel.example'}></textarea>
+      <button class="btn primary" disabled={!pasted.trim()} onclick={() => load(pasted)}>{t('vcardimport.read')}</button>
+    {:else}
     <p class="muted">{store.canEdit ? t('vcardimport.hint') : t('vcardimport.hint_propose')}</p>
     <label class="drop" class:on={dragging}
            ondragover={(e) => { e.preventDefault(); dragging = true }} ondragleave={() => (dragging = false)}
@@ -62,6 +92,7 @@
       <textarea class="input" rows="8" bind:value={pasted} placeholder={'BEGIN:VCARD\nVERSION:3.0\nN:Muster;Erika\n…\nEND:VCARD'}></textarea>
       <button class="btn" disabled={!pasted.trim()} onclick={() => load(pasted)}>{t('vcardimport.read')}</button>
     </details>
+    {/if}
   {:else if card}
     <div class="step">
       <strong>{t('vcardimport.step', { n: String(at + 1), total: String(cards.length) })}</strong>
@@ -97,6 +128,7 @@
   .drop.on, .drop:hover { border-color: var(--accent); color: var(--accent-text); background: var(--accent-soft); }
   .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
   details textarea { width: 100%; margin: 8px 0; font: 12px ui-monospace, monospace; }
+  .sig { width: 100%; margin: 4px 0 10px; }
   .step { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .note { padding: 8px 12px; margin-bottom: 10px; border-radius: 8px; background: var(--panel-2); font-size: 13px; white-space: pre-line; }
   .created { columns: 2; padding-left: 18px; }

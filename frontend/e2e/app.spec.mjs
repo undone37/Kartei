@@ -722,6 +722,39 @@ test.describe('org chart', () => {
     const linked = page.locator('section', { hasText: 'Linked from' })
     await expect(linked.getByText('Direct reports')).toBeVisible()
     await expect(linked.locator(`a[href="/person/${report.uid}"]`)).toBeVisible()
+test.describe('email signature', () => {
+  test('a pasted signature opens a filled-in form; the company is linked', async ({ as }) => {
+    const page = await as('mmuster')
+    const c = (await page.records()).find((r) => r.kind === 'company')
+    await page.goto('/')
+    await page.getByRole('button', { name: 'New' }).click()
+    await page.getByRole('link', { name: 'From an email signature …' }).click()
+    await page.getByRole('textbox', { name: 'From an email signature …' }).fill(
+      `Best regards\n\nGreta Signatur\nTeam Lead Purchasing\n${c.name}\nTel. +49 511 4711-0\ngreta.signatur@example.com`)
+    await page.getByRole('button', { name: 'Read' }).click()
+    await expect(page.locator('#first_name')).toHaveValue('Greta')
+    await expect(page.locator('#last_name')).toHaveValue('Signatur')
+    await expect(page.getByRole('textbox', { name: 'Job title' })).toHaveValue('Team Lead Purchasing')
+    await choose(page, page.locator('#f-internal_contact'))
+    await page.getByRole('button', { name: 'Create' }).click()
+    await expect(page.getByText(/Done: 1 created/)).toBeVisible()
+    const r = (await page.records()).find((x) => x.last_name === 'Signatur')
+    try {
+      expect(r.company).toBe(c.uid)
+      expect(r.data.email).toBe('greta.signatur@example.com')
+    } finally {
+      await page.api('delete', `/api/records/${r.uid}`)
+      await (await as('admin')).api('delete', `/api/trash/${r.uid}`)
+    }
+  })
+
+  test('posting to /share without the service worker asks to share again', async ({ as }) => {
+    const page = await as('mmuster')
+    const res = await page.request.post('/share', { multipart: { text: 'x' }, maxRedirects: 0 })
+    expect(res.status()).toBe(302)
+    expect(res.headers().location).toBe('/share?retry=1')
+    await page.goto('/share?retry=1')
+    await expect(page.getByText('Please share it again.', { exact: false })).toBeVisible()
   })
 })
 

@@ -375,6 +375,20 @@ Contacts that arrive as a vCard (`.vcf`), e.g. attached to an email, exported fr
 
 Values without a matching field (e.g. a pager number) are listed above the form so you can copy them by hand. With the role *Read only*, the cards become [proposals](#proposing-a-new-contact) instead.
 
+### From an email signature {#from-an-email-signature}
+
+Most new contacts arrive as an email with a signature. Instead of copying every line:
+
+1. Copy the signature from the email.
+2. Click **New** at the top right and choose **From an email signature …**.
+3. Paste the text and click **Read**.
+
+Kartei recognises name (with academic title), job title, company (by its legal form, e.g. *GmbH*, *AG*, *Ltd*), street, postcode and town (German, Austrian and Swiss style), country, phone numbers (*Tel.*, *Mobil*, *Fax*, *T*, *M*, *F* …; German mobile numbers without a label too), email and website. The result opens as the same filled-in form as a vCard; lines it couldn't place are listed above the form. Greetings and legal footers (*Geschäftsführer*, *HRB*, disclaimers) are ignored. The text stays in your browser.
+
+![A pasted signature as a filled-in form](../img/en/signature-import.png)
+
+**From the phone (Android):** with Kartei [installed as an app](#installing-the-app), Kartei appears in the share menu of other apps. Sharing a contact (vCard) or a marked text, e.g. a signature, opens it here directly. iPhones don't offer this for installed web apps.
+
 ### Copying details from the company
 
 As soon as a person has a company, Kartei offers to take over the company's details, e.g. website, address or internal contact: **Copy details from …**.

@@ -81,6 +81,13 @@ const SHOTS = [
   { name: 'trash', user: 'mmuster', path: '/trash' },
   { name: 'report', user: 'admin', path: (h) => `/report/${h.person}` },
   { name: 'phonelist', user: 'mmuster', path: '/phonelist' },
+  { name: 'signature-import', user: 'mmuster', path: '/import/text', steps: async (p) => {
+      await p.locator('textarea').fill(['Mit freundlichen Grüßen', '', 'Johanna Albers', 'Leitung Einkauf', 'Musterfirma Energie AG',
+        'Industriestraße 1, 45127 Essen', 'Tel. +49 201 123456-30 | Mobil +49 170 5550130', 'johanna.albers@musterfirma.example',
+        'www.musterfirma.example'].join('\n'))
+      await p.locator('.page button.primary').click()
+      await wait(500)
+    } },
   { name: 'vcard-import', user: 'mmuster', path: '/import/vcard', steps: async (p) => {
       const vcf = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lehmann;Jonas;;;', 'ORG:Musterfirma Energie AG;Vertrieb', 'TITLE:Vertrieb',
         'EMAIL;TYPE=WORK:jonas.lehmann@musterfirma.example', 'TEL;TYPE=WORK:+49 511 1000-88', 'TEL;TYPE=CELL:+49 170 5550188',
