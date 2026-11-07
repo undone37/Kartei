@@ -93,6 +93,9 @@ export interface User {
   email: string
   role: Role
   language: '' | Lang
+  /** contact list order and how person names are shown, per user */
+  list_sort?: 'last_name' | 'first_name' | 'updated' | 'created'
+  name_order?: 'first_last' | 'last_first'
   source: 'local' | 'ldap' | 'scim'
   is_active: boolean
   is_superuser: boolean

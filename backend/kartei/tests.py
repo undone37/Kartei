@@ -1473,3 +1473,16 @@ class ShareTargetTests(TestCase):
     def test_post_without_service_worker_asks_again(self):
         r = self.client.post("/share", {"text": "Erika Muster"})  # no CSRF token: the phone's share sheet has none
         self.assertEqual((r.status_code, r["Location"]), (302, "/share?retry=1"))
+
+
+class ListPrefsTests(ApiTestBase):
+    def test_list_order_and_name_display_are_per_user(self):
+        self.as_("read")
+        u = self.j("get", "/api/session")["user"]
+        self.assertEqual((u["list_sort"], u["name_order"]), ("last_name", "first_last"))
+        u = self.j("patch", "/api/me", {"list_sort": "updated", "name_order": "last_first"})["user"]
+        self.assertEqual((u["list_sort"], u["name_order"]), ("updated", "last_first"))
+        self.assertEqual(self.j("patch", "/api/me", {"list_sort": "random"}, status=400)["fields"], {"list_sort": "invalid"})
+        self.j("patch", "/api/me", {"name_order": "x"}, status=400)
+        self.as_("maintainer")  # someone else keeps the defaults
+        self.assertEqual(self.j("get", "/api/session")["user"]["list_sort"], "last_name")

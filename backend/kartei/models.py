@@ -44,6 +44,9 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     role = models.CharField(max_length=12, choices=Role.choices, default=Role.READ)
     language = models.CharField(max_length=2, choices=LANGUAGES, blank=True)  # '' = admin default
+    # how this user's contact list is sorted and how person names are shown (per user, on every device)
+    list_sort = models.CharField(max_length=12, default="last_name")  # last_name | first_name | updated | created
+    name_order = models.CharField(max_length=12, default="first_last")  # first_last ("Anna Müller") | last_first
     source = models.CharField(max_length=5, choices=[("local", "local"), ("ldap", "ldap"), ("scim", "scim")], default="local")
     recent = models.JSONField(default=list, blank=True)  # record uids, last viewed first (dashboard)
     favorites = models.JSONField(default=list, blank=True)  # record uids, starred first

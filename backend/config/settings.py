@@ -19,6 +19,8 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost").split(",") + ["127.0.0.1"]  # loopback: container healthcheck
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+if DEBUG:  # the Vite dev server (npm run dev) proxies the API; its address is the browser's origin
+    CSRF_TRUSTED_ORIGINS += ["http://localhost:5173", "http://127.0.0.1:5173"]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # rate limits use the client address from X-Forwarded-For (set by the reverse proxy); 0 if Kartei is reached directly
 PROXY_HEADERS = os.environ.get("PROXY_HEADERS", "1") == "1"
