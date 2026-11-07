@@ -61,6 +61,19 @@ class Store {
   rank = $derived(this.user ? RANK[this.user.role] : -1)
   canEdit = $derived(this.rank >= 1)
   isAdmin = $derived(this.rank >= 2)
+  /** who points at a person through a contact field (e.g. "reports to"): person uid → [{record, field}] */
+  refs = $derived.by(() => {
+    const keys = this.fields.filter((f) => f.type === 'contact' && !f.archived)
+    const m = new Map<string, { rec: Rec; field: Field }[]>()
+    if (!keys.length) return m
+    for (const { rec } of this.index) {
+      for (const f of keys) {
+        const v = rec.data[f.key]
+        if (typeof v === 'string' && v !== rec.uid && this.byUid.has(v)) m.set(v, [...(m.get(v) ?? []), { rec, field: f }])
+      }
+    }
+    return m
+  })
   /** persons per company uid */
   persons = $derived.by(() => {
     const m = new Map<string, Rec[]>()

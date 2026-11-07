@@ -127,6 +127,10 @@ export default {
 
   'view.details': 'Details',
   'view.persons': 'Personen',
+  'view.org': 'Organigramm',
+  'view.linked': 'Verknüpft mit',
+  'view.direct_reports': 'Direkte Mitarbeitende',
+  'view.linked_as': 'Als {field} bei',
   'view.history': 'Verlauf',
   'view.vcard': 'vCard herunterladen',
   'view.copy': 'Kopieren',

@@ -247,6 +247,12 @@ A company has an extra tab **People** listing everyone who works there. Maintain
 
 ![The People tab of a company](../img/en/company-persons.png)
 
+**Org chart.** If your Kartei has a *Manager* field and people in the company use it, the company also has the tab **Org chart**: the managing director (or whoever reports to nobody there) at the top, everyone else below the person they report to. Click a name to open that person.
+
+![The org chart of a company](../img/en/org-chart.png)
+
+**Linked from.** A person shows under *Linked from* who points at them, e.g. their **Direct reports**, or the company where they are the managing director.
+
 ### History
 
 The **History** tab shows every change to the contact: who changed what and when, with old and new values. Proposals, reviews, decisions and deletions are listed there too.

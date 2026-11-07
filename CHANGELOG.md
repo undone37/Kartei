@@ -6,6 +6,8 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- **Org chart:** a *Contact* field with the vCard assignment *Relation: manager* (`related_manager`) means "reports to". Companies then get an **Org chart** tab: a tree of their people along that field (cycles and people reporting outside the company handled). In the example field set, *Manager* (`manager`) becomes such a *Contact* field (a typed name still works), and the demo data has two to three levels per company.
+- **Linked from:** a person lists who points at them through *Contact* fields, e.g. their direct reports or the company where they are managing director.
 - **New contact from an email signature:** *New → From an email signature …* reads a pasted signature (name, academic title, job title, company, address in German/Austrian/Swiss style, labelled phone numbers, email, website) and opens the usual filled-in form, with the company linked if Kartei knows it. Unrecognised lines are listed; greetings and legal footers are skipped. Everything happens in the browser.
 - **Share to Kartei (Android):** with Kartei installed as an app, it appears in the share menu of other apps; a shared vCard or text (e.g. a signature) opens as a new contact or proposal.
 

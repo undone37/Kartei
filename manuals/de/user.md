@@ -247,6 +247,12 @@ Firmen haben zusätzlich den Reiter **Personen** mit allen, die dort arbeiten. A
 
 ![Reiter Personen einer Firma](../img/de/company-persons.png)
 
+**Organigramm.** Hat deine Kartei ein Feld *Vorgesetzter* und ist es bei den Personen der Firma gepflegt, gibt es zusätzlich den Reiter **Organigramm**: oben die Geschäftsführung (oder wer dort an niemanden berichtet), darunter alle anderen bei der Person, an die sie berichten. Ein Klick auf einen Namen öffnet die Person.
+
+![Das Organigramm einer Firma](../img/de/org-chart.png)
+
+**Verknüpft mit.** Eine Person zeigt unter *Verknüpft mit*, wer auf sie verweist, z. B. ihre **Direkten Mitarbeitenden** oder die Firma, bei der sie Geschäftsführer ist.
+
 ### Verlauf
 
 Der Reiter **Verlauf** zeigt jede Änderung am Kontakt: wer wann was geändert hat, mit altem und neuem Wert. Auch Vorschläge, Prüfungen, Entscheidungen und Löschungen stehen dort.

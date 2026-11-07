@@ -708,6 +708,23 @@ test.describe('vCard import', () => {
   })
 })
 
+test.describe('org chart', () => {
+  test('a company shows its org chart; a person lists their direct reports', async ({ as }) => {
+    const page = await as('kkramer')  // read only is enough to look
+    const recs = await page.records()
+    const boss = recs.find((r) => r.kind === 'person' && recs.some((x) => x.data.manager === r.uid) && r.data.manager)
+    const report = recs.find((x) => x.data.manager === boss.uid)
+    await page.goto(`/company/${boss.company}`)
+    await page.getByRole('button', { name: 'Org chart' }).click()
+    const item = page.locator('.org li').filter({ has: page.locator(`a[href="/person/${boss.uid}"]`) }).first()
+    await expect(item.locator(`a[href="/person/${report.uid}"]`)).toBeVisible()  // nested under the boss
+    await item.locator(`a[href="/person/${boss.uid}"]`).first().click()
+    const linked = page.locator('section', { hasText: 'Linked from' })
+    await expect(linked.getByText('Direct reports')).toBeVisible()
+    await expect(linked.locator(`a[href="/person/${report.uid}"]`)).toBeVisible()
+  })
+})
+
 test.describe('email signature', () => {
   test('a pasted signature opens a filled-in form; the company is linked', async ({ as }) => {
     const page = await as('mmuster')
