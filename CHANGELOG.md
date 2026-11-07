@@ -4,6 +4,19 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.6.0-beta] – 2026-11-07
+
+The release before 1.0: a full security and code review with its fixes, built-in database backups with a restore test, contacts shared as QR code or vCard, saved filters shared with roles or colleagues, and a map link next to addresses. Renamed users keep their contacts, and large installations (tested with 55 000 contacts) export much faster.
+
+**Upgrading:**
+- **Before:** make a backup.
+- **Update:** pull the new image or rebuild, and take the new `compose.yaml` (backup volume, read-only containers). Five database migrations (`0009` to `0013`) run automatically when the container starts.
+- **Check these before starting:**
+  - `SECRET_KEY` must not be the example value, or Kartei won't start.
+  - A reverse proxy on another host than Kartei: add its address to `TRUSTED_PROXIES` in `.env`. Otherwise sign-in limits and the audit log see the proxy's address instead of the client's.
+  - `/django-admin/` is off; set `DJANGO_ADMIN=1` only if you need it.
+- **Backups** start automatically every day at 02:30 into the `backups` volume (or `BACKUP_HOST_DIR`); see *Settings → Backup*.
+
 ### Added
 
 - **Input survives an expired session:** if the session expires while a contact is being edited, the input is kept in the browser tab, and after signing in again the form opens with it. Signing out on purpose removes it.
@@ -217,7 +230,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.5.0-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.6.0-beta...HEAD
+[0.6.0-beta]: https://github.com/undone37/Kartei/compare/v0.5.0-beta...v0.6.0-beta
 [0.5.0-beta]: https://github.com/undone37/Kartei/compare/v0.4.0-beta...v0.5.0-beta
 [0.4.0-beta]: https://github.com/undone37/Kartei/compare/v0.3.1-beta...v0.4.0-beta
 [0.3.1-beta]: https://github.com/undone37/Kartei/compare/v0.3.0-beta...v0.3.1-beta
