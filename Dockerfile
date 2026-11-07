@@ -32,11 +32,17 @@ CMD ["sh", "-c", "python manage.py migrate --noinput -v0 && exec gunicorn config
 
 # --- Kartei (default target)
 FROM backend
-ENV FRONTEND_DIST=/app/frontend/dist EXPORT_ROOT=/export
+# pg_dump/pg_restore 18 for the built-in backups: from PostgreSQL's own repository (Debian ships 17, too old for 18)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends postgresql-common \
+ && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
+ && apt-get install -y --no-install-recommends postgresql-client-18 \
+ && rm -rf /var/lib/apt/lists/*
+ENV FRONTEND_DIST=/app/frontend/dist EXPORT_ROOT=/export BACKUP_ROOT=/backup
 COPY examples/ /app/examples/
 COPY --from=frontend /app/frontend/dist /app/frontend/dist
 RUN SECRET_KEY=build python manage.py collectstatic --noinput -v0 \
- && mkdir -p /export && chown kartei /export
+ && mkdir -p /export /backup && chown kartei /export /backup
 USER kartei
 EXPOSE 8000
 CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py init_app && exec gunicorn config.wsgi --no-control-socket -b 0.0.0.0:8000 -k gthread -w 3 --threads 4 --forwarded-allow-ips='*'"]

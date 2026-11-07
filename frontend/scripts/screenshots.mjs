@@ -194,7 +194,7 @@ const SHOTS = [
       const { webhooks } = await (await api(ctx, 'get', '/api/admin/webhooks')).json()
       for (const h of webhooks.filter((x) => x.name === 'Intranet')) await api(ctx, 'delete', `/api/admin/webhooks/${h.id}`)
     } },
-  ...['fields', 'users', 'ldap', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'audit']
+  ...['fields', 'users', 'ldap', 'carddav', 'outlook', 'ad', 'review', 'mail', 'exports', 'import', 'api', 'general', 'backup', 'audit']
     .map((tab) => ({ name: `settings-${tab}`, user: 'admin', path: `/settings/${tab}` })),
 ]
 

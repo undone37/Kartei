@@ -104,7 +104,7 @@ Move the *Unreleased* entries in `CHANGELOG.md` under a new version heading (`##
 
 ### Screenshots for the manuals
 
-With a development server on port 8000 on a fresh, seeded database (`seed_demo --password demo12345`, and `EXPORT_ROOT=/export` for neutral paths), `cd frontend && npm run screenshots` regenerates all screenshots in `manuals/img/` in German and English (Playwright; run `npx playwright install chromium` once).
+With a development server on port 8000 on a fresh, seeded database (`seed_demo --password demo12345`, and `EXPORT_ROOT=/export BACKUP_ROOT=/backup` for neutral paths), `cd frontend && npm run screenshots` regenerates all screenshots in `manuals/img/` in German and English (Playwright; run `npx playwright install chromium` once).
 
 ## Keyboard shortcuts
 

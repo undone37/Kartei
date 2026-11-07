@@ -12,6 +12,8 @@ urlpatterns = [
     path("api/admin/monitoring/status", M(GET=api.monitoring_status)),
     path("api/admin/monitoring/token", M(POST=api.monitoring_token)),
     path("api/admin/syslog/test", M(POST=api.syslog_test)),
+    path("api/admin/backup/run", M(POST=api.backup_run)),
+    path("api/admin/backup/restore-test", M(POST=api.backup_run)),
     path("api/session", api.session),
     path("api/login", api.login_view),
     path("api/logout", api.logout_view),

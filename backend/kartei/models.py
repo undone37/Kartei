@@ -78,6 +78,14 @@ class Settings(models.Model):
     map_url = models.CharField(max_length=300, blank=True, default="https://www.google.com/maps/search/?api=1&query={address}")
     trash_days = models.PositiveIntegerField(default=0)  # 0 = recycle bin is never purged
     purge_anonymize = models.BooleanField(default=True)  # purging also removes values and name from the history (GDPR)
+    # backups (see backup.py): daily at backup_time (local time) into the /backup volume, kept backup_keep_days
+    backup_enabled = models.BooleanField(default=True)
+    backup_time = models.CharField(max_length=5, default="02:30")
+    backup_keep_days = models.PositiveSmallIntegerField(default=14)
+    backup_status = models.JSONField(default=dict, blank=True)  # last run, written by the exporter
+    backup_requested = models.DateTimeField(null=True, blank=True)  # "back up now"; the exporter polls it
+    restore_test_status = models.JSONField(default=dict, blank=True)
+    restore_test_requested = models.DateTimeField(null=True, blank=True)
     audit_signin_days = models.PositiveIntegerField(default=90)  # sign-in entries (with IPs) kept this long; 0 = forever
 
     # monitoring: /api/monitoring/status needs the token *and* an allowed address

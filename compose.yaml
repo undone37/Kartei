@@ -43,6 +43,10 @@ services:
       web: { condition: service_healthy }   # web runs the migrations
     volumes:
       - ${EXPORT_HOST_DIR:-./export_out}:/export
+      # database backups (Settings -> Backup): a named volume by default (writable out of the box); better a host
+      # directory on other storage, e.g. a NAS mount: BACKUP_HOST_DIR=/mnt/backup/kartei (owner uid 1000)
+      - ${BACKUP_HOST_DIR:-backups}:/backup
 
 volumes:
   pgdata:
+  backups:
