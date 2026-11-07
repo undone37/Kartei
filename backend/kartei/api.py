@@ -1604,7 +1604,7 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
 SETTINGS_ATTRS += ["map_url", "ldap_users_max_deactivate_percent"]
 SETTINGS_ATTRS += ["backup_enabled", "backup_time", "backup_keep_days"]
-SETTINGS_ATTRS += ["phonebook_enabled", "phonebook_username", "phonebook_allowlist", "audit_signin_days", "monitoring_allowlist", "syslog_enabled", "syslog_host", "syslog_port",
+SETTINGS_ATTRS += ["retention_months", "phonebook_enabled", "phonebook_username", "phonebook_allowlist", "audit_signin_days", "monitoring_allowlist", "syslog_enabled", "syslog_host", "syslog_port",
                    "syslog_protocol", "syslog_ca_cert", "syslog_tls_verify", "syslog_facility", "syslog_content"]
 SETTINGS_ATTRS += ["mail_templates", "mail_transport", "mail_graph_sender"]
 SETTINGS_ATTRS += ["oidc_issuer", "oidc_client_id", "oidc_scopes", "oidc_claim", "oidc_label", "oidc_mfa_trusted",
@@ -1687,7 +1687,7 @@ def settings_put(request):
         errors["backup_keep_days"] = "invalid_number"
     if not isinstance(s.ldap_users_max_deactivate_percent, int) or not 0 <= s.ldap_users_max_deactivate_percent <= 100:
         errors["ldap_users_max_deactivate_percent"] = "invalid_number"
-    for a in ("trash_days", "export_interval_minutes", "audit_signin_days"):
+    for a in ("trash_days", "export_interval_minutes", "audit_signin_days", "retention_months"):
         if not isinstance(getattr(s, a), int) or getattr(s, a) < 0:
             errors[a] = "invalid_number"
     s.map_url = str(s.map_url or "").strip()

@@ -732,6 +732,79 @@ test.describe('phonebook', () => {
   })
 })
 
+test.describe('data quality', () => {
+  test('the trend shows the history; a contact past retention is kept', async ({ as }) => {
+    const page = await as('mmuster')
+    await page.goto('/quality')
+    const trend = page.locator('section.trend')
+    await expect(trend.getByRole('img')).toBeVisible()  // seed_demo writes a year of snapshots
+    await trend.getByText('Values as a table').click()
+    await expect(trend.locator('tbody tr').first()).toBeVisible()
+    const section = page.locator('details', { hasText: 'Retention expired' })
+    await section.locator('summary').click()
+    const rows = section.locator('li')
+    const before = await rows.count()
+    if (before) {  // keeping can't be undone: once all are kept on a reused database, only the trend is checked
+      await rows.first().getByRole('button', { name: 'Keep' }).click()
+      await expect(page.getByText('1 contact kept')).toBeVisible()
+      await expect(rows).toHaveCount(before - 1)
+    }
+  })
+})
+
+test.describe('org chart', () => {
+  test('a company shows its org chart; a person lists their direct reports', async ({ as }) => {
+    const page = await as('kkramer')  // read only is enough to look
+    const recs = await page.records()
+    const boss = recs.find((r) => r.kind === 'person' && recs.some((x) => x.data.manager === r.uid) && r.data.manager)
+    const report = recs.find((x) => x.data.manager === boss.uid)
+    await page.goto(`/company/${boss.company}`)
+    await page.getByRole('button', { name: 'Org chart' }).click()
+    const item = page.locator('.org li').filter({ has: page.locator(`a[href="/person/${boss.uid}"]`) }).first()
+    await expect(item.locator(`a[href="/person/${report.uid}"]`)).toBeVisible()  // nested under the boss
+    await item.locator(`a[href="/person/${boss.uid}"]`).first().click()
+    const linked = page.locator('section', { hasText: 'Linked from' })
+    await expect(linked.getByText('Direct reports')).toBeVisible()
+    await expect(linked.locator(`a[href="/person/${report.uid}"]`)).toBeVisible()
+  })
+})
+
+test.describe('email signature', () => {
+  test('a pasted signature opens a filled-in form; the company is linked', async ({ as }) => {
+    const page = await as('mmuster')
+    const c = (await page.records()).find((r) => r.kind === 'company')
+    await page.goto('/')
+    await page.getByRole('button', { name: 'New' }).click()
+    await page.getByRole('link', { name: 'From an email signature …' }).click()
+    await page.getByRole('textbox', { name: 'From an email signature …' }).fill(
+      `Best regards\n\nGreta Signatur\nTeam Lead Purchasing\n${c.name}\nTel. +49 511 4711-0\ngreta.signatur@example.com`)
+    await page.getByRole('button', { name: 'Read' }).click()
+    await expect(page.locator('#first_name')).toHaveValue('Greta')
+    await expect(page.locator('#last_name')).toHaveValue('Signatur')
+    await expect(page.getByRole('textbox', { name: 'Job title' })).toHaveValue('Team Lead Purchasing')
+    await choose(page, page.locator('#f-internal_contact'))
+    await page.getByRole('button', { name: 'Create' }).click()
+    await expect(page.getByText(/Done: 1 created/)).toBeVisible()
+    const r = (await page.records()).find((x) => x.last_name === 'Signatur')
+    try {
+      expect(r.company).toBe(c.uid)
+      expect(r.data.email).toBe('greta.signatur@example.com')
+    } finally {
+      await page.api('delete', `/api/records/${r.uid}`)
+      await (await as('admin')).api('delete', `/api/trash/${r.uid}`)
+    }
+  })
+
+  test('posting to /share without the service worker asks to share again', async ({ as }) => {
+    const page = await as('mmuster')
+    const res = await page.request.post('/share', { multipart: { text: 'x' }, maxRedirects: 0 })
+    expect(res.status()).toBe(302)
+    expect(res.headers().location).toBe('/share?retry=1')
+    await page.goto('/share?retry=1')
+    await expect(page.getByText('Please share it again.', { exact: false })).toBeVisible()
+  })
+})
+
 test.describe('deleting', () => {
   test('delete asks first; the contact goes to the recycle bin and comes back', async ({ as }) => {
     const page = await as('mmuster')

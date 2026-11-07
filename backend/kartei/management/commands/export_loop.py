@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 from django.utils import timezone
 
-from kartei import adsync, backup, exports, gdpr, graph, ldapusers, relaypush, reviews, webhooks
+from kartei import adsync, backup, exports, gdpr, graph, ldapusers, quality, relaypush, reviews, webhooks
 from kartei.models import AuditEntry, ExportProfile, Record, Settings
 
 log = logging.getLogger(__name__)
@@ -51,6 +51,7 @@ STEPS = [
     ("ad sync", _logged("ad sync", adsync.run)),
     ("carddav relay push", _logged("carddav relay push", relaypush.run)),
     ("backup", lambda s: backup.due(s) and log.info("backup: %s", backup.run())),
+    ("quality snapshot", _logged("quality snapshot", quality.take_snapshot)),
     ("webhooks", lambda s: (webhooks.deliver_due(), webhooks.cleanup())),
 ]
 

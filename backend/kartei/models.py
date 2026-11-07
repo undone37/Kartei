@@ -79,6 +79,7 @@ class Settings(models.Model):
     # address link in the contact view; {address} = street, postcode city, country (URL-encoded). Empty = no link
     map_url = models.CharField(max_length=300, blank=True, default="https://www.google.com/maps/search/?api=1&query={address}")
     trash_days = models.PositiveIntegerField(default=0)  # 0 = recycle bin is never purged
+    retention_months = models.PositiveIntegerField(default=0)  # untouched this long = due for deletion; 0 = off
     purge_anonymize = models.BooleanField(default=True)  # purging also removes values and name from the history (GDPR)
     # backups (see backup.py): daily at backup_time (local time) into the /backup volume, kept backup_keep_days
     backup_enabled = models.BooleanField(default=True)
@@ -379,6 +380,15 @@ class ExportProfile(models.Model):
     def effective_options(self):
         base = default_csv_options() if self.format == "csv" else default_xlsx_options()
         return {**base, **self.options}
+
+
+class QualitySnapshot(models.Model):
+    """The quality page's counts, once a day, for the trend chart."""
+    day = models.DateField(unique=True)
+    counts = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ["day"]
 
 
 class AuditEntry(models.Model):

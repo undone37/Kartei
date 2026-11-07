@@ -247,6 +247,12 @@ A company has an extra tab **People** listing everyone who works there. Maintain
 
 ![The People tab of a company](../img/en/company-persons.png)
 
+**Org chart.** If your Kartei has a *Manager* field and people in the company use it, the company also has the tab **Org chart**: the managing director (or whoever reports to nobody there) at the top, everyone else below the person they report to. Click a name to open that person.
+
+![The org chart of a company](../img/en/org-chart.png)
+
+**Linked from.** A person shows under *Linked from* who points at them, e.g. their **Direct reports**, or the company where they are the managing director.
+
 ### History
 
 The **History** tab shows every change to the contact: who changed what and when, with old and new values. Proposals, reviews, decisions and deletions are listed there too.
@@ -368,6 +374,20 @@ Contacts that arrive as a vCard (`.vcf`), e.g. attached to an email, exported fr
 ![Importing a contact from a vCard](../img/en/vcard-import.png)
 
 Values without a matching field (e.g. a pager number) are listed above the form so you can copy them by hand. With the role *Read only*, the cards become [proposals](#proposing-a-new-contact) instead.
+
+### From an email signature {#from-an-email-signature}
+
+Most new contacts arrive as an email with a signature. Instead of copying every line:
+
+1. Copy the signature from the email.
+2. Click **New** at the top right and choose **From an email signature …**.
+3. Paste the text and click **Read**.
+
+Kartei recognises name (with academic title), job title, company (by its legal form, e.g. *GmbH*, *AG*, *Ltd*), street, postcode and town (German, Austrian and Swiss style), country, phone numbers (*Tel.*, *Mobil*, *Fax*, *T*, *M*, *F* …; German mobile numbers without a label too), email and website. The result opens as the same filled-in form as a vCard; lines it couldn't place are listed above the form. Greetings and legal footers (*Geschäftsführer*, *HRB*, disclaimers) are ignored. The text stays in your browser.
+
+![A pasted signature as a filled-in form](../img/en/signature-import.png)
+
+**From the phone (Android):** with Kartei [installed as an app](#installing-the-app), Kartei appears in the share menu of other apps. Sharing a contact (vCard) or a marked text, e.g. a signature, opens it here directly. iPhones don't offer this for installed web apps.
 
 ### Copying details from the company
 
@@ -540,6 +560,15 @@ Before creating, check that the contact doesn't exist yet: the form shows the us
 | **Companies without persons** | companies with no employees in Kartei |
 | **Never reviewed** | contacts that have never been checked |
 | **Review overdue** | the last review is older than the review interval |
+| **Retention expired** | only if the administration has set a retention period: contacts nobody has changed or reviewed for longer than that |
+
+**Trend.** At the top, a chart shows how the share of contacts reviewed within the interval developed over the last two years. The selection switches to the count of one area, e.g. *Invalid values*. Kartei records the numbers once a day; *Values as a table* lists them. Point at the line to see the value of a day.
+
+**Retention expired.** Contacts nobody needs any more should not stay forever (GDPR storage limitation). For each contact in this area, decide:
+- **Keep**: the contact is still needed. It counts as reviewed, so it only shows up again after another retention period.
+- **Move to the recycle bin**: with the buttons above the list, for all listed contacts at once (after a confirmation). From the recycle bin they can be restored as usual.
+
+Nothing is deleted automatically.
 
 ## Duplicates and merging
 

@@ -556,7 +556,7 @@ Every change to a section is recorded in the audit log.
 | *Date*, *Yes/No* | Real date and checkbox values (also typed correctly in Excel). |
 | *User* | One Kartei user, e.g. the internal person responsible. The **first** *User* field of a contact determines who reviews it. Administrators and inactive users are not offered; a value set earlier stays. |
 | *Multiple users* | Several Kartei users, e.g. internal contacts. Here too, administrators and inactive users are not offered. |
-| *Contact (person of the company)* | Links a person of the same company, e.g. the managing director. |
+| *Contact (person of the company)* | Links a person of the same company, e.g. the managing director. The linked person lists the contact under *Linked from*. With the vCard assignment *Relation: manager* (`related_manager`) the field means "reports to": companies then get an **Org chart** tab built from it (the example field set has it as *Manager*). |
 
 Exports, vCards and the AD sync show the names of users and linked persons, not their IDs.
 
@@ -1049,6 +1049,7 @@ Each recipient gets the text in their own language (the default language if they
 | *Public URL* | e.g. `https://kartei.example.de`. Used for links in emails, in vCards (`SOURCE`) and for the CardDAV address. |
 | *Map link* | Link next to addresses in the contact view. `{address}` is replaced by street, postcode, city and country. Default: Google Maps (`https://www.google.com/maps/search/?api=1&query={address}`); e.g. `https://www.openstreetmap.org/search?query={address}` for OpenStreetMap. Kartei only builds the link and never contacts the map service itself; the browser opens it when someone clicks. Empty: no link. The address fields are found by their vCard assignment (work and home address). |
 | *Empty recycle bin automatically after (days)* | Contacts in the recycle bin are deleted permanently after this many days. *0* = never (default). |
+| *Retention (months)* | Contacts nobody has changed or reviewed for this long appear under *Data quality → Retention expired*, where maintainers keep them or move them to the recycle bin. Nothing is deleted automatically. *0* = off (default). A common value is 36. |
 | *Anonymise the history when deleting permanently* | On (default): a contact deleted permanently also loses its name and values in its history and the audit log; see [Data protection](#data-protection). |
 | *Export interval (minutes)* | Interval of all background jobs (see [Background jobs](#background-jobs)). Default 15, minimum 1. |
 
@@ -1233,7 +1234,7 @@ curl -H "Authorization: Bearer kmon_…" https://kartei.example.de/api/monitorin
 | `syslog` (when enabled) | – | sending failed within the last hour |
 | `export_disk` | under 10 % free on `/export` | under 5 % free |
 
-Metrics: contacts (`persons`, `companies`, `recycle_bin`), active users per role, open reviews and proposals, sign-ins and failed sign-ins in the last hour and day, refused CardDAV/API access, audit entries per day, and the syslog counters.
+Metrics: contacts (`persons`, `companies`, `recycle_bin`), active users per role, open reviews and proposals, sign-ins and failed sign-ins in the last hour and day, refused CardDAV/API access, audit entries per day, the syslog counters, and from the daily data-quality snapshot the share of contacts reviewed within the interval (`reviewed_ok_percent`) and, with a retention period, the contacts past it (`retention_due`).
 
 **Examples:**
 

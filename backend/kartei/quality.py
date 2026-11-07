@@ -10,13 +10,16 @@ from django.http import JsonResponse
 from django.utils import timezone
 
 from . import audit, reviews
+from .dashboard import _uids
 from .api import ADMIN, MAINT, _soft_delete, err, needs, records_qs, ser_record, snapshot, visible_fields
 from .batch import MIN_PREFIX, national
-from .models import FieldDef, NotDuplicate, Proposal, Record, Review, Settings
+from .models import FieldDef, NotDuplicate, Proposal, QualitySnapshot, Record, Review, Settings
 from .validation import EMPTY, PHONE_RE, clean_value, normalize_phone
 
 GROUP_CAP = 5  # a value shared by more records is a switchboard, an info@ address or a common name, not an identity
 LIST_CAP = 200  # items per quality section; the count is always complete
+SECTIONS = ("no_responsible", "invalid", "no_reach", "no_company", "empty_company", "never_reviewed", "overdue",
+            "retention_due")
 MULTI = ("multiselect", "users")
 
 
@@ -286,8 +289,9 @@ def report(rank):
     keys = reviews.responsible_keys()
     active = set(User.objects.filter(is_active=True).values_list("username", flat=True))
     cutoff = timezone.now() - timedelta(days=round(max(s.review_interval_months, 1) * 30.44))
+    retention = timezone.now() - timedelta(days=round(s.retention_months * 30.44)) if s.retention_months else None
     recs = list(live().only("id", "uid", "kind", "first_name", "last_name", "name", "company_id", "data",
-                            "reviewed_at", "created_at"))
+                            "reviewed_at", "created_at", "updated_at"))
     lists = defaultdict(list)
     employers = {r.company_id for r in recs if r.kind == "person" and r.company_id}
     for r in recs:
@@ -312,15 +316,57 @@ def report(rank):
             lists["never_reviewed"].append(uid)
         elif r.reviewed_at < cutoff:
             lists["overdue"].append(uid)
-    out = {k: {"count": len(lists[k]), "items": lists[k][:LIST_CAP]}
-           for k in ("no_responsible", "invalid", "no_reach", "no_company", "empty_company", "never_reviewed", "overdue")}
+        if retention and max(r.created_at, r.updated_at, r.reviewed_at or r.created_at) < retention:
+            lists["retention_due"].append(uid)
+    out = {k: {"count": len(lists[k]), "items": lists[k][:LIST_CAP]} for k in SECTIONS}
     if not keys:
         out.pop("no_responsible")  # no single-user field, nobody can be responsible
+    if not retention:
+        out.pop("retention_due")
+    out["total"] = len(recs)
     out["duplicates"] = {"count": len(candidates(rank, recs))}
-    out["review_interval_months"] = s.review_interval_months
+    out["review_interval_months"], out["retention_months"] = s.review_interval_months, s.retention_months
     return out
 
 
 @needs(MAINT)
 def quality_view(request):
-    return JsonResponse(report(request.rank))
+    return JsonResponse({**report(request.rank), "trend": trend()})
+
+
+def take_snapshot():
+    """Today's counts for the trend chart; once a day (the exporter calls it every tick)."""
+    today = timezone.localdate()
+    if QualitySnapshot.objects.filter(day=today).exists():
+        return None
+    r = report(ADMIN)
+    counts = {k: v["count"] for k, v in r.items() if isinstance(v, dict)}
+    counts["total"] = r["total"]
+    counts["reviewed_ok"] = r["total"] - counts["never_reviewed"] - counts["overdue"]
+    QualitySnapshot.objects.get_or_create(day=today, defaults={"counts": counts})
+    return counts
+
+
+def trend():
+    """Daily points for the last 90 days, before that the last point of each month, back two years."""
+    today = timezone.localdate()
+    rows = QualitySnapshot.objects.filter(day__gte=today - timedelta(days=730))
+    recent = today - timedelta(days=90)
+    monthly = {}
+    for row in rows.filter(day__lt=recent):
+        monthly[(row.day.year, row.day.month)] = row  # ordered by day: the month's last one wins
+    points = [*monthly.values(), *rows.filter(day__gte=recent)]
+    return [{"day": p.day.isoformat(), **p.counts} for p in points]
+
+
+@needs(MAINT)
+def keep_view(request):
+    """Retention: these contacts are still needed. Counts as checked, so the clock starts again."""
+    uids = _uids(request.json.get("uids") if isinstance(request.json, dict) else None)
+    if not uids or len(uids) > 1000:
+        return err("invalid")
+    kept = []
+    for r in live().filter(uid__in=uids):
+        reviews.confirm(r, request.user, action="retention_keep")
+        kept.append(str(r.uid))
+    return JsonResponse({"kept": kept})

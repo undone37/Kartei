@@ -99,6 +99,7 @@ urlpatterns = [
     path("api/records/bulk", M(POST=dashboard.bulk)),
     # quality
     path("api/quality", M(GET=quality.quality_view)),
+    path("api/quality/keep", M(POST=quality.keep_view)),
     path("api/duplicates", M(GET=quality.duplicates_view)),
     path("api/duplicates/preview", M(GET=quality.merge_preview)),
     path("api/duplicates/merge", M(POST=quality.merge_view)),
@@ -108,6 +109,7 @@ urlpatterns = [
     path("phonebook/lookup", phonebook.lookup),
     re_path(r"^phonebook/(?P<brand>yealink|snom|grandstream)\.xml$", phonebook.directory),
     re_path(r"^phonebook/(?P<brand>swyx)\.csv$", phonebook.directory),
+    path("share", views.share),  # the service worker answers this; only reached without one
     re_path(r"^crm(?:/(?P<rest>.*))?$", views.legacy_redirect),  # links from before the rename (mails, vCards)
     re_path(r"^(?!api/|static/|carddav|phonebook/|scim/|django-admin|\.well-known/).*$", views.spa),
 ]

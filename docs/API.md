@@ -605,12 +605,12 @@ curl -H "Authorization: Bearer $MONITORING_TOKEN" https://kartei.example.com/api
     "persons": 1840, "companies": 412, "recycle_bin": 3, "users_active": 25, "users_read": 18, "users_maintainer": 5,
     "users_admin": 2, "reviews_open": 46, "proposals_pending": 4, "logins_1h": 7, "logins_24h": 61,
     "login_failures_1h": 0, "login_failures_24h": 2, "auth_failures_24h": 0, "audit_entries_24h": 334,
-    "syslog_sent": 1203, "syslog_dropped": 0
+    "syslog_sent": 1203, "syslog_dropped": 0, "reviewed_ok_percent": 72.4, "retention_due": 12
   }
 }
 ```
 
 - `status` is the worst of all checks: `ok`, `warn` or `crit`. Checks appear only for what is set up, e.g. `outlook` only with the Outlook sync on, and `export:<name>` for each automatic export.
 - `age_s` is the number of seconds since the last run or heartbeat. It is `null` where it doesn't apply.
-- `metrics` keys are stable. `users_<role>` appear only for roles that have users.
+- `metrics` keys are stable. `users_<role>` appear only for roles that have users. `reviewed_ok_percent` (share reviewed within the interval) and `retention_due` come from the daily data-quality snapshot; they appear after the first one, `retention_due` only with a retention period set.
 - `?format=prtg` returns `{"prtg": {"result": [{"channel", "value", …}], "text"}}` for PRTG's *HTTP Data Advanced* sensor. Each check becomes a channel with the value 0 (ok), 1 (warn) or 2 (crit), and each metric becomes its own channel.
