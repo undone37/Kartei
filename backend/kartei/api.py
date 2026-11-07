@@ -1,4 +1,5 @@
 """JSON API for the SPA. Session auth + CSRF. Errors are {"error": code, "fields": {key: code}}."""
+import hashlib
 import json
 import re
 import secrets
@@ -401,7 +402,7 @@ def bootstrap(request):
     records = ser_records(Record.objects.filter(deleted_at__isnull=True), fields)
     s, users = Settings.get(), user_options()
     return JsonResponse({"cursor": now.isoformat(), "user": ser_user(request.user),
-                         "default_language": s.default_language, "map_url": s.map_url,
+                         "default_language": s.default_language, "map_url": s.map_url, "print_logo": print_logo(s),
                          "fields": [ser_field(f, users) for f in fields], "sections": sections_list(),
                          "records": records, **workflow(request),
                          **dashboard_prefs(request)})
@@ -424,7 +425,7 @@ def changes(request):
     cut = since - timedelta(seconds=5)
     changed = ser_records(Record.objects.filter(Q(updated_at__gte=cut) | Q(reviewed_at__gte=cut)), fields)
     return JsonResponse({
-        "cursor": now.isoformat(), "user": ser_user(request.user), "default_language": s.default_language, "map_url": s.map_url,
+        "cursor": now.isoformat(), "user": ser_user(request.user), "default_language": s.default_language, "map_url": s.map_url, "print_logo": print_logo(s),
         "fields": [ser_field(f, users) for f in fields], "sections": sections_list(),
         "records": [r for r in changed if not r["deleted_at"]],
         "deleted": [r["uid"] for r in changed if r["deleted_at"]],
@@ -696,6 +697,43 @@ def _sniff(data):
     if data.startswith(b"\xff\xd8\xff"):
         return "jpeg"
     return None
+
+
+def print_logo(s):
+    """What the phone list shows at the top: "kartei", "none", or the version of the organisation's own logo."""
+    if s.print_logo_mode == "custom" and s.print_logo_type:
+        return hashlib.sha256(bytes(s.print_logo)).hexdigest()[:12]
+    return "none" if s.print_logo_mode == "none" else "kartei"
+
+
+@needs(READ)
+def get_print_logo(request):
+    s = Settings.get()
+    if not s.print_logo_type:
+        return HttpResponse(status=404)
+    resp = HttpResponse(bytes(s.print_logo), content_type=f"image/{s.print_logo_type}")
+    resp["Cache-Control"] = "private, max-age=31536000, immutable"  # URL carries ?v=<version>
+    return resp
+
+
+@needs(ADMIN)
+def put_print_logo(request):
+    """Upload (PUT, the image as body) or remove (DELETE) the organisation's own logo for the phone list."""
+    s = Settings.get()
+    if request.method == "DELETE":
+        Settings.objects.filter(pk=1).update(print_logo=None, print_logo_type="",
+                                             print_logo_mode="kartei" if s.print_logo_mode == "custom" else s.print_logo_mode)
+        audit.log(request.user, "update", "settings", 1, "settings", {"print_logo": ["…", None]})
+        return JsonResponse(ser_settings(Settings.get()))
+    data = request.body
+    if len(data) > MAX_IMAGE:
+        return err("image_too_large", 413)
+    typ = _sniff(data)
+    if not typ:
+        return err("invalid_image")
+    Settings.objects.filter(pk=1).update(print_logo=data, print_logo_type=typ, print_logo_mode="custom")
+    audit.log(request.user, "update", "settings", 1, "settings", {"print_logo": [None, f"{typ}, {len(data)} B"]})
+    return JsonResponse(ser_settings(Settings.get()))
 
 
 @needs(READ)
@@ -1613,7 +1651,7 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
                   "review_remind_days", "proposal_notify", "proposal_notify_to",
                   "ad_enabled", "ad_ou", "ad_bind_dn", "ad_kinds", "ad_columns", "ad_max_shrink_percent"]
 SETTINGS_ATTRS += ["phone_normalize", "phone_country_code"]  # quality
-SETTINGS_ATTRS += ["map_url", "ldap_users_max_deactivate_percent"]
+SETTINGS_ATTRS += ["map_url", "ldap_users_max_deactivate_percent", "print_logo_mode"]
 SETTINGS_ATTRS += ["backup_enabled", "backup_time", "backup_keep_days"]
 SETTINGS_ATTRS += ["retention_months", "phonebook_enabled", "phonebook_username", "phonebook_allowlist", "audit_signin_days", "monitoring_allowlist", "syslog_enabled", "syslog_host", "syslog_port",
                    "syslog_protocol", "syslog_ca_cert", "syslog_tls_verify", "syslog_facility", "syslog_content"]
@@ -1627,7 +1665,8 @@ SETTINGS_ATTRS += ["carddav_relay_enabled", "carddav_relay_url", "carddav_relay_
 def ser_settings(s):
     return {**{a: getattr(s, a) for a in SETTINGS_ATTRS},
             "ldap_bind_password_set": bool(s.ldap_bind_password_enc),
-            "carddav_password_set": bool(s.carddav_password_hash), "phonebook_password_set": bool(s.phonebook_password_hash), "export_root": exports.EXPORT_ROOT,
+            "carddav_password_set": bool(s.carddav_password_hash), "phonebook_password_set": bool(s.phonebook_password_hash),
+            "print_logo_v": hashlib.sha256(bytes(s.print_logo)).hexdigest()[:12] if s.print_logo_type else "", "export_root": exports.EXPORT_ROOT,
             "graph_client_secret_set": bool(s.graph_client_secret_enc), "graph_status": s.graph_status,
             "smtp_password_set": bool(s.smtp_password_enc), "mail_template_defaults": reviews.DEFAULT_TEMPLATES,
             "graph_sync_requested": s.graph_sync_requested, "ldap_users_status": s.ldap_users_status,
@@ -1701,6 +1740,10 @@ def settings_put(request):
     for a in ("trash_days", "export_interval_minutes", "audit_signin_days", "retention_months"):
         if not isinstance(getattr(s, a), int) or getattr(s, a) < 0:
             errors[a] = "invalid_number"
+    if s.print_logo_mode not in ("kartei", "custom", "none"):
+        errors["print_logo_mode"] = "invalid"
+    elif s.print_logo_mode == "custom" and not s.print_logo_type:
+        errors["print_logo_mode"] = "logo_missing"
     s.map_url = str(s.map_url or "").strip()
     if s.map_url and not (re.fullmatch(r"https?://\S+", s.map_url) and "{address}" in s.map_url):
         errors["map_url"] = "map_url_invalid"

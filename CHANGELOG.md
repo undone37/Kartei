@@ -6,12 +6,13 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- **Logo on the phone list:** *Settings → General → Logo on the phone list*: the Kartei logo, the organisation's own (PNG/JPEG upload) or none, in the PDF and when printing.
 - **Order and names per user:** the sort icon above the list sorts it by last name, first name, last change or last created, and shows person names as "First Last" or "Last, First" throughout Kartei. Saved with the account (same on every device, only for that user).
 
 ### Changed
 
 - **Development:** with `DEBUG=1`, Django trusts the Vite dev server's address (`localhost:5173`), so signing in through `npm run dev` works as described in CONTRIBUTING.
-- **Phone list as PDF:** *Download PDF* saves the phone list as a real PDF file (A4, landscape for many columns, headings and page numbers on every page); before, only the browser's print dialog could make one. *Print* stays.
+- **Phone list as PDF:** *Download PDF* saves the phone list as a real PDF file (A4, landscape for many columns, headings and page numbers on every page, every other row shaded); before, only the browser's print dialog could make one. *Print* stays, also with shaded rows.
 
 ## [0.7.0-beta] – 2026-11-07
 

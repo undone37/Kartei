@@ -47,8 +47,27 @@
   const count = $derived(group === 'company' ? groups.reduce((n, g) => n + g.persons.length + (g.company ? 1 : 0), 0) : flat.length)
   const today = $derived(new Intl.DateTimeFormat(i18n.lang, { dateStyle: 'long' }).format(new Date()))
   const value = (r: Rec, f: Field) => (r.data[f.key] ? fmt(f, r.data[f.key]) : '')
+  /** the logo the administration chose (Settings → General): Kartei's, the organisation's own, or none */
+  const logoSrc = $derived(store.printLogo === 'none' ? '' : store.printLogo === 'kartei' ? logo : `/api/print-logo?v=${store.printLogo}`)
+
+  /** any image (SVG, PNG, JPEG) drawn on white and saved as JPEG, which a PDF can embed as it is */
+  async function logoJpeg(src: string) {
+    if (!src) return undefined
+    const img = new Image()
+    img.src = src
+    await img.decode()
+    const height = 160, width = Math.max(1, Math.round((img.naturalWidth || 160) * height / (img.naturalHeight || 160)))
+    const canvas = Object.assign(document.createElement('canvas'), { width, height })
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(img, 0, 0, width, height)
+    const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, 'image/jpeg', 0.92))
+    return blob ? { jpeg: new Uint8Array(await blob.arrayBuffer()), width, height } : undefined
+  }
+
   /** the same table as the sheet below, as a PDF */
-  function downloadPdf() {
+  async function downloadPdf() {
     const head = [t('core.name'), ...(group === 'name' ? [t('core.company')] : []), ...(role ? [L(role.label)] : []),
                   ...columns.map((f) => L(f.label))]
     const roleCell = (r: Rec) => (role ? [String(r.data[role.key] ?? '')] : [])
@@ -59,7 +78,8 @@
         ])
       : flat.map((r) => ({ kind: r.kind === 'company' ? 'strong' as const : 'row' as const,
                            cells: [nameOf(r), r.kind === 'person' ? store.companyName(r) : '', ...roleCell(r), ...columns.map((f) => value(r, f))] }))
-    const pdf = tablePdf({ title: t('phonelist.title'), subtitle: `${today} · ${t('list.count', { n: count })}`, head, rows,
+    const pdfLogo = await logoJpeg(logoSrc).catch(() => undefined)  // a logo that won't load: the list without it
+    const pdf = tablePdf({ title: t('phonelist.title'), subtitle: `${today} · ${t('list.count', { n: count })}`, head, rows, logo: pdfLogo,
                            footer: (page, pages) => `Kartei · ${t('phonelist.title')} · ${t('phonelist.page', { page, pages })}` })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' }))
@@ -101,7 +121,7 @@
 
   <article class="sheet">
     <header>
-      <img src={logo} alt="" />
+      {#if logoSrc}<img src={logoSrc} alt="" />{/if}
       <div>
         <strong>{t('phonelist.title')}</strong>
         <span>{today} · {t('list.count', { n: count })}</span>
@@ -123,8 +143,8 @@
               <td colspan={g.company ? 1 + (role ? 1 : 0) : 1 + (role ? 1 : 0) + columns.length}>{g.title}</td>
               {#if g.company}{#each columns as f (f.key)}<td>{value(g.company, f)}</td>{/each}{/if}
             </tr>
-            {#each g.persons as r (r.uid)}
-              <tr>
+            {#each g.persons as r, i (r.uid)}
+              <tr class:alt={i % 2 === 1}>
                 <td class="nm">{nameOf(r)}</td>
                 {#if role}<td>{r.data[role.key] ?? ''}</td>{/if}
                 {#each columns as f (f.key)}<td class="num">{value(r, f)}</td>{/each}
@@ -134,8 +154,8 @@
         {/each}
       {:else}
         <tbody>
-          {#each flat as r (r.uid)}
-            <tr>
+          {#each flat as r, i (r.uid)}
+            <tr class:alt={i % 2 === 1}>
               <td class="nm" class:strong={r.kind === 'company'}>{nameOf(r)}</td>
               <td>{r.kind === 'person' ? store.companyName(r) : ''}</td>
               {#if role}<td>{r.data[role.key] ?? ''}</td>{/if}
@@ -162,7 +182,7 @@
 
   .sheet { max-width: 1000px; padding: 22px 26px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
   .sheet header { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
-  .sheet header img { width: 32px; height: 32px; }
+  .sheet header img { height: 32px; width: auto; max-width: 160px; object-fit: contain; }
   .sheet header div { display: flex; flex-direction: column; }
   .sheet header strong { font-size: 18px; }
   .sheet header span { color: var(--muted); font-size: 12px; }
@@ -171,6 +191,7 @@
   td { padding: 3px 10px 3px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
   tr.co td { padding-top: 12px; font-weight: 650; color: var(--accent-text); border-bottom: 1px solid var(--border-strong); }
   td.nm { padding-left: 10px; }
+  tr.alt td { background: var(--panel-2); }
   td.nm.strong { font-weight: 600; padding-left: 0; }
   .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
@@ -186,6 +207,7 @@
     tbody { break-inside: auto; }
     tr.co { break-after: avoid; }
     tr.co td { color: #3730a3; }
+    tr.alt td { background: #f2f2f2; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     @page { size: A4; margin: 14mm 12mm; }
   }
 </style>
