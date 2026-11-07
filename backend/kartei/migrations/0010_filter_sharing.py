@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('kartei', '0008_observability'),
+        ('kartei', '0009_map_url'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

@@ -378,6 +378,9 @@ test.describe('share and map', () => {
     await expect(dialog.locator('.qr svg')).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
+  })
+})
+
 test.describe('saved filters', () => {
   test('a maintainer shares a saved filter with one colleague; only that colleague sees it', async ({ as }) => {
     const owner = await as('mmuster')
