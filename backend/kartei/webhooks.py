@@ -42,7 +42,10 @@ EVENT_OF = {"create": "contact.created", "update": "contact.updated", "merge": "
 
 def enqueue(entry):
     """Queue the event of an audit entry for every webhook that wants it (called by audit.log)."""
-    if entry.target_type != "record":
+    if entry.target_type != "record" or entry.action not in EVENT_OF and entry.action != "import":
+        return
+    hooks = [h for h in Webhook.objects.filter(enabled=True)]
+    if not hooks:  # the usual case: no webhooks, no further queries for this change
         return
     event = EVENT_OF.get(entry.action)
     if entry.action == "import":  # an import creates or updates: created if it is the contact's first entry
@@ -50,7 +53,7 @@ def enqueue(entry):
         event = "contact.created" if first else "contact.updated"
     if not event:
         return
-    hooks = [h for h in Webhook.objects.filter(enabled=True) if h.wants(event)]
+    hooks = [h for h in hooks if h.wants(event)]
     if hooks:
         now = timezone.now()
         WebhookDelivery.objects.bulk_create(
@@ -124,7 +127,9 @@ def deliver_due(limit=200):
 
 
 def cleanup():
-    WebhookDelivery.objects.filter(occurred_at__lt=timezone.now() - timedelta(days=KEEP_DAYS)).exclude(status="pending").delete()
+    """Old deliveries go, also never-sent ones (e.g. of a webhook switched off for weeks: re-enabling it must not
+    replay a flood of stale events)."""
+    WebhookDelivery.objects.filter(occurred_at__lt=timezone.now() - timedelta(days=KEEP_DAYS)).delete()
 
 
 def ping(hook):

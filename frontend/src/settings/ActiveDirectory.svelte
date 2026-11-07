@@ -36,6 +36,7 @@
     if (!syncSince) return
     const since = Date.parse(syncSince)
     const id = setInterval(async () => {
+      if (Date.now() - since > 15 * 60_000) return void (syncSince = null) // no result: stop waiting (is the exporter running?)
       const r = await get<Record<string, any>>('/api/admin/settings').catch(() => null)
       if (r?.ad_status?.at && Date.parse(r.ad_status.at) >= since) {
         s!.ad_status = r.ad_status

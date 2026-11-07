@@ -3,6 +3,7 @@
 For phone systems and address books that read contacts from AD. Kartei owns only objects carrying
 adminDescription "kartei:<uid>"; everything else in the OU is left alone. Runs in the exporter tick.
 """
+import logging
 import re
 import time
 
@@ -14,6 +15,8 @@ from . import exports
 from .ldapusers import connect, error_text, first, search
 from .msg import msg
 from .models import FieldDef, Record, Settings, ref_names
+
+log = logging.getLogger(__name__)
 
 MARK = "kartei:"
 RESERVED = {"cn", "name", "displayname", "objectclass", "admindescription", "distinguishedname"}
@@ -206,6 +209,9 @@ def run():
         status = sync(s)
     except SyncError as e:
         status = {"error": str(e)}
+    except Exception as e:  # anything unexpected still ends up in the status, so the monitoring sees it
+        log.exception("ad sync failed")
+        status = {"error": f"{type(e).__name__}: {e}"[:300]}
     status |= {"at": timezone.now().isoformat(), "seconds": round(time.monotonic() - started, 1)}
     Settings.objects.filter(pk=1).update(ad_status=status)  # not save(): don't clobber concurrent admin edits
     return status

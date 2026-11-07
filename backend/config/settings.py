@@ -2,6 +2,7 @@
 import mimetypes
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import dj_database_url
@@ -21,6 +22,9 @@ CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").sp
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # rate limits use the client address from X-Forwarded-For (set by the reverse proxy); 0 if Kartei is reached directly
 PROXY_HEADERS = os.environ.get("PROXY_HEADERS", "1") == "1"
+# X-Forwarded-For/-Proto count only from these addresses (the reverse proxy); anyone else could fake their address
+# and so get around rate limits, the monitoring allowlist and the audit log. Default: loopback and Docker networks.
+TRUSTED_PROXIES = [x.strip() for x in os.environ.get("TRUSTED_PROXIES", "127.0.0.0/8,::1/128,172.16.0.0/12").split(",") if x.strip()]
 SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = not DEBUG and os.environ.get("SECURE_COOKIES", "1") == "1"
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 14
 
@@ -78,6 +82,10 @@ AUTHENTICATION_BACKENDS = ["kartei.auth.DbLDAPBackend", "django.contrib.auth.bac
 
 LANGUAGE_CODE = "de"
 TIME_ZONE = "Europe/Berlin"
+# one cache for all gunicorn workers of a container, so rate limits (failed sign-ins etc.) count across them
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"} if TESTING else
+          {"BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+           "LOCATION": os.environ.get("CACHE_DIR", os.path.join(tempfile.gettempdir(), "kartei-cache"))}}
 USE_I18N = True
 USE_TZ = True
 

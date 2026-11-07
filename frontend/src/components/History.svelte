@@ -18,9 +18,11 @@
     void reload
     entries = null
     failed = false
+    let current = true // a slow answer for an earlier contact must not overwrite this one
     get<{ entries: AuditEntry[] }>(`/api/records/${uid}/history`)
-      .then((r) => (entries = r.entries))
-      .catch(() => (failed = true))
+      .then((r) => { if (current) entries = r.entries })
+      .catch(() => { if (current) failed = true })
+    return () => { current = false }
   })
 
   // --- restore: set the fields of a change back to their values before it (maintainers)

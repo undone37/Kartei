@@ -12,16 +12,21 @@ PHONE_RE = re.compile(r"^\+?[0-9 ()/\-]{3,40}$")
 REGEX_TYPES = ("text", "longtext", "phone", "email", "url")
 EMPTY = (None, "", [])
 _email, _url = EmailValidator(), URLValidator(schemes=["http", "https"])
+# control characters (not tab/newline): invisible, break XLSX files and some vCard parsers
+CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
 def _num(value, decimals=None):
     if isinstance(value, bool):
         raise ValueError
     s = str(value).strip().replace(" ", "")
+    if len(s) > 40:
+        raise ValueError
     if "," in s:  # german input: 1.234,56
         s = s.replace(".", "").replace(",", ".")
     d = Decimal(s)
-    if not d.is_finite():
+    # "1e999999999" is a valid Decimal, but int() of it would take forever and gigabytes: cap the magnitude
+    if not d.is_finite() or d.adjusted() > 30 or d.adjusted() < -30:
         raise ValueError
     return d if decimals is None else d.quantize(Decimal(1).scaleb(-decimals))
 
@@ -122,7 +127,8 @@ def _clean(f, value, old=None, cc=None):
     if t in ("text", "longtext"):
         if not isinstance(value, str):
             raise ValueError("invalid")
-        v = value.strip() if t == "longtext" else " ".join(value.split())
+        v = CONTROL.sub("", value.replace("\r\n", "\n").replace("\r", "\n"))  # one kind of line break, no control chars
+        v = v.strip() if t == "longtext" else " ".join(v.split())
         if len(v) > (20000 if t == "longtext" else 1000):
             raise ValueError("too_long")
         return v
@@ -209,7 +215,7 @@ def clean_core(kind, payload):
     names = ["first_name", "last_name"] if kind == "person" else ["name"]
     for n in names:
         if n in payload:
-            v = " ".join(str(payload[n] or "").split())
+            v = " ".join(CONTROL.sub("", str(payload[n] or "")).split())
             if len(v) > (200 if n == "name" else 100):
                 errors[n] = "too_long"
             out[n] = v

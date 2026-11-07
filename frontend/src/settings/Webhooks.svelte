@@ -3,7 +3,7 @@
   import { ApiError, del, get, patch, post } from '../lib/api'
   import { dateTime, relTime } from '../lib/format'
   import { t, terr } from '../lib/i18n.svelte'
-  import { toast } from '../lib/toast.svelte'
+  import { copyText, toast } from '../lib/toast.svelte'
   import { confirmDialog } from '../lib/confirm.svelte'
 
   const EVENTS = ['contact.created', 'contact.updated', 'contact.deleted', 'contact.restored'] as const
@@ -68,7 +68,7 @@
     load()
   }
 
-  const copy = (v: string) => navigator.clipboard.writeText(v).then(() => toast(t('view.copied')))
+  const copy = copyText
   const eventName = (e: string) => t(`hooks.event_${e.split('.')[1]}`)
 </script>
 

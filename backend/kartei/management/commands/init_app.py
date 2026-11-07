@@ -4,7 +4,7 @@ import os
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import models
 
 from kartei.api import import_fields
@@ -27,6 +27,8 @@ class Command(BaseCommand):
         # only for a fresh install: no active admin at all (also LDAP/role admins) and the name is still free
         admins = User.objects.filter(is_active=True).filter(models.Q(is_superuser=True) | models.Q(profile__role=Role.ADMIN))
         if username and password and not admins.exists() and not User.objects.filter(username=username).exists():
+            if password.startswith("change-me") or len(password) < 10:  # the value from .env.example, or too short
+                raise CommandError("ADMIN_PASSWORD is the example value or shorter than 10 characters: set your own in .env")
             u = User.objects.create_superuser(username, "", password)
             Profile.objects.update_or_create(user=u, defaults={"role": Role.ADMIN, "source": "local"})
             self.stdout.write(f"created admin {username}")

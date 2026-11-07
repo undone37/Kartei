@@ -1,4 +1,4 @@
-from .models import Record, Settings
+from .models import FieldDef, Record, Settings
 from .tests import ApiTestBase
 
 PERSON_UID = "5b0c1d2e-0000-4000-8000-000000000001"
@@ -37,3 +37,15 @@ class ShareTests(ApiTestBase):
         self.j("put", "/api/admin/settings", {"map_url": ""})  # no link
         self.as_("read")
         self.assertEqual(self.j("get", "/api/bootstrap")["map_url"], "")
+
+    def test_android_qr_puts_multi_line_text_on_one_line(self):
+        FieldDef.objects.filter(key="description").update(vcard="note")
+        Record.objects.filter(uid=PERSON_UID).update(data={"description": "Zeile eins, mit Komma\nZeile zwei"})
+        self.as_("read")
+        unfold = lambda b: b.decode().replace("\r\n ", "")
+        android = unfold(self.client.get(f"/person/{PERSON_UID}.vcf?qr=1&flavour=android").content)
+        self.assertIn("Zeile eins, mit Komma · Zeile zwei", android)  # Google's QR scanner shows \n and \, literally
+        ios = unfold(self.client.get(f"/person/{PERSON_UID}.vcf?qr=1&flavour=ios").content)
+        self.assertIn("Zeile eins\\, mit Komma\\nZeile zwei", ios)  # standard vCard everywhere else
+        download = unfold(self.client.get(f"/person/{PERSON_UID}.vcf?flavour=android").content)
+        self.assertIn("Zeile eins\\, mit Komma\\nZeile zwei", download)

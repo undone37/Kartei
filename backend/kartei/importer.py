@@ -21,7 +21,7 @@ from django.utils.text import slugify
 from . import audit
 from .msg import msg
 from .models import USER_TYPES, FieldDef, Record, assignable
-from .validation import clean_value
+from .validation import clean_core, clean_value, phone_cc
 
 FORMAT = "kartei-import-mapping"
 SIDES = ("person", "company")
@@ -272,13 +272,15 @@ def import_csv(raw, mapping=None, user=None, dry_run=True):
             # ponytail: a last name makes a person; without one, a company name makes a company
             return "company" if not first(row, last_cols) and first(row, company_cols) else "person"
 
-        companies = {r.name.lower(): r for r in Record.objects.filter(kind="company", deleted_at__isnull=True)}
+        ck = lambda name: " ".join(name.split()).lower()  # "ACME  GmbH" and "acme gmbh" are the same company
+        companies = {ck(r.name): r for r in Record.objects.filter(kind="company", deleted_at__isnull=True)}
         # merged-away contacts: their rows are skipped, their company names lead to the company they were merged into
         merged = {lid: r for r in Record.objects.filter(deleted_at__isnull=True).exclude(merged_legacy_ids=[])
                   for lid in r.merged_legacy_ids}
         for r in Record.objects.filter(kind="company", merged_into__isnull=False, merged_into__deleted_at__isnull=True).select_related("merged_into"):
-            companies.setdefault(r.name.lower(), r.merged_into)
+            companies.setdefault(ck(r.name), r.merged_into)
         users = user_lookup()
+        cc = phone_cc()  # once, not one settings query per phone cell
 
         # companies first so persons can link to them
         kinds = [(line, row, kind_of(line, row)) for line, row in enumerate(rows, 2)]
@@ -288,7 +290,14 @@ def import_csv(raw, mapping=None, user=None, dry_run=True):
                 stats["merged_skipped"] += 1
                 warn(msg("import_merged", line=line, id=legacy, name=merged[legacy].display_name))
                 continue
+            if legacy and len(legacy) > 64:
+                warn(msg("import_too_long", line=line, id=legacy[:64], column="ID"))
+                continue
             r = Record.objects.filter(legacy_id=legacy, kind=kind).first() if legacy else None
+            if r and r.deleted_at:  # in the recycle bin: restoring is a decision for a person, not for an import
+                stats["trashed_skipped"] = stats.get("trashed_skipped", 0) + 1
+                warn(msg("import_trashed", line=line, id=legacy, name=r.display_name))
+                continue
             created = r is None
             if created:
                 r = Record(kind=kind, legacy_id=legacy, updated_by=user)
@@ -300,7 +309,7 @@ def import_csv(raw, mapping=None, user=None, dry_run=True):
                 value = value.strip()
                 k, _, arg = cols[header][kind].partition(":")
                 if k == "core" and arg == "company":
-                    company_name = company_name or value
+                    company_name = company_name or " ".join(value.split())
                 elif k == "core" and arg != "legacy_id":
                     setattr(r, arg, " ".join(value.split()))
                 elif k == "field" and value:
@@ -324,21 +333,26 @@ def import_csv(raw, mapping=None, user=None, dry_run=True):
                         f.options += [{"value": value, "de": value, "en": value}]
                         f.save(update_fields=["options"])
                     try:
-                        r.data[arg] = clean_value(f, value)
+                        r.data[arg] = clean_value(f, value, cc=cc)
                     except ValueError as e:
                         warn(msg("import_invalid", line=line, id=legacy, column=header, value=value, error=str(e)))
             if kind == "company" and not r.name:
                 warn(msg("import_company_no_name", line=line, id=legacy))
+                continue
+            core, errs = clean_core(kind, {"first_name": r.first_name, "last_name": r.last_name, "name": r.name,
+                                           **({"name": company_name} if company_name and kind == "person" else {})})
+            if errs:  # the database would refuse the row (and with it the whole import)
+                warn(msg("import_too_long", line=line, id=legacy, column=", ".join(errs)))
                 continue
             if kind == "person":
                 if not (r.first_name or r.last_name):
                     warn(msg("import_person_no_name", line=line, id=legacy))
                     continue
                 if company_name:
-                    c = companies.get(company_name.lower())
+                    c = companies.get(ck(company_name))
                     if c is None:
                         c = Record.objects.create(kind="company", name=company_name, updated_by=user)
-                        companies[company_name.lower()] = c
+                        companies[ck(company_name)] = c
                         stats["companies_created"] += 1
                         audit.log(user, "import", "record", c.uid, c.name, {"name": [None, c.name]})
                     r.company = c
@@ -349,7 +363,7 @@ def import_csv(raw, mapping=None, user=None, dry_run=True):
                     r.version += 1
                 r.save()
                 if kind == "company":
-                    companies[r.name.lower()] = r
+                    companies[ck(r.name)] = r
                 stats[f"{'persons' if kind == 'person' else 'companies'}_{'created' if created else 'updated'}"] += 1
                 audit.log(user, "import", "record", r.uid, r.display_name, change)
         if dry_run:

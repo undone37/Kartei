@@ -21,7 +21,7 @@ from django.core.cache import cache
 from django.utils.crypto import salted_hmac
 from django.http import HttpResponse, HttpResponseRedirect
 
-from .net import client_ip
+from .net import client_ip, count_failure
 from .vcard import flavour_for
 
 D, CARD, CS = "DAV:", "urn:ietf:params:xml:ns:carddav", "http://calendarserver.org/ns/"
@@ -56,9 +56,7 @@ def authorized(request, username, password_hash, on_fail=None):
         if password_hash and user == username and (cache.get(ok) or check_password(pw, password_hash)):
             cache.set(ok, True, 5 * 60)
             return True
-        failures = cache.get(key, 0)
-        cache.set(key, failures + 1, 15 * 60)
-        if not failures and on_fail:  # first failure of the window only: a phone with an old password retries all day
+        if count_failure(key) == 1 and on_fail:  # first failure of the window only: a phone with an old password retries all day
             on_fail(user)
     return False
 

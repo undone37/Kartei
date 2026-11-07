@@ -14,8 +14,9 @@ def record_dict(record):
     if record.name == "gunicorn.access" and isinstance(record.args, dict):  # gunicorn passes its atoms as the args
         a = record.args
         out["msg"] = f"{a['m']} {a['U']} {a['s']}"
+        # no query string: it can hold sign-in codes (OIDC callback) and contact data (filters, search)
         out["http"] = {"ip": a["h"], "forwarded_for": a["{x-forwarded-for}i"], "method": a["m"], "path": a["U"],
-                       "query": a["q"], "status": a["s"], "bytes": a["B"], "ms": a["M"], "user_agent": a["a"]}
+                       "status": a["s"], "bytes": a["B"], "ms": a["M"], "user_agent": a["a"]}
     if record.exc_info:
         out["exc"] = logging.Formatter().formatException(record.exc_info)
     return out

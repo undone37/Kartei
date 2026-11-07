@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import os
+import re
 import tempfile
 from datetime import date
 from decimal import Decimal
@@ -35,7 +36,7 @@ def available_sources():
 
 
 def target_path(p):
-    return p.path.replace("{date}", date.today().isoformat())
+    return p.path.replace("{date}", timezone.localdate().isoformat())
 
 
 def _inside_root(path):
@@ -179,7 +180,14 @@ def _csv_text(v, o):
     v = str(v)
     if o["newlines"] == "space":
         v = " ".join(v.split())
+    if o.get("escape_formulas", True) and FORMULA.match(v):
+        v = "'" + v  # Excel would run it as a formula (e.g. =HYPERLINK, =WEBSERVICE, DDE); a quote shows it as text
     return v
+
+
+# values a spreadsheet would treat as a formula; "+49 511 …" and "-12,5" (phone numbers, numbers) stay as they are
+FORMULA = re.compile(r"[=@\t\r]|[+-](?![\d\s()/.,-]*$)")
+CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")  # not allowed in XLSX cells
 
 
 def render_csv(header, rows, o):
@@ -207,8 +215,11 @@ def render_xlsx(header, rows, o):
             for cell in ws[1]:
                 cell.font = Font(bold=True)
     for row in rows:
-        ws.append([", ".join(map(str, v)) if isinstance(v, list) else (float(v) if isinstance(v, Decimal) else v)
-                   for v in row])
+        cells = [", ".join(map(str, v)) if isinstance(v, list) else (float(v) if isinstance(v, Decimal) else v) for v in row]
+        ws.append([CONTROL.sub("", v) if isinstance(v, str) else v for v in cells])
+        for cell in ws[ws.max_row]:
+            if cell.data_type == "f":  # contact data is never a formula: "=HYPERLINK(…)" stays text
+                cell.data_type = "s"
     first = 2 if o["header"] else 1
     for row in ws.iter_rows(min_row=first):
         for cell in row:
@@ -234,8 +245,11 @@ def _existing_rows(path, p):
     try:
         if p.format == "xlsx":
             from openpyxl import load_workbook
-            ws = load_workbook(path, read_only=True).active
-            n = ws.max_row or 0
+            wb = load_workbook(path, read_only=True)
+            try:
+                n = wb.active.max_row or 0
+            finally:
+                wb.close()  # read-only workbooks keep the file open until closed
         else:
             o = p.effective_options()
             with open(path, encoding=o["encoding"], errors="replace", newline="") as fh:
@@ -292,5 +306,8 @@ def run(p, force=False, user=None):
     except (GuardError, OSError) as e:
         log.error("export %s failed: %s", p.name, e)
         p.last_status, p.last_message = "error", str(e)
+    except Exception as e:  # e.g. a value the file format can't take: this profile fails, the others still run
+        log.exception("export %s failed", p.name)
+        p.last_status, p.last_message = "error", f"{type(e).__name__}: {e}"[:500]
     p.save(update_fields=["last_run_at", "last_status", "last_message", "last_rows", "last_hash"])
     return p.last_status

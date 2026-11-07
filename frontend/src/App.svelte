@@ -38,8 +38,12 @@
   let kind = $state<'all' | Kind>('all')
   // field filters live in the URL too (?f.<field>=<value>), so a filtered list can be bookmarked and Back undoes a filter
   const fromUrl = (search: string) => {
-    const out: Record<string, string[]> = {}
-    for (const [k, v] of new URLSearchParams(search)) if (k.startsWith('f.')) (out[k.slice(2)] ??= []).push(v)
+    const out: Record<string, string[]> = {} // a plain object: Svelte only makes those reactive
+    for (const [k, v] of new URLSearchParams(search)) {
+      const key = k.slice(2)
+      if (k.startsWith('f.') && !['__proto__', 'constructor', 'prototype'].includes(key))
+        (out[key] ??= []).push(v) // ?f.__proto__= would reach Object.prototype
+    }
     return out
   }
   const urlOf = (fs: Record<string, string[]>) => JSON.stringify(Object.entries(fs).filter(([, v]) => v.length).sort())

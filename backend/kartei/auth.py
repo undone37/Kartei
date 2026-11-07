@@ -1,6 +1,7 @@
 """LDAP backend configured from the DB (kartei.Settings) instead of Django settings."""
 import hashlib
 import logging
+import os
 import tempfile
 from pathlib import Path
 
@@ -16,11 +17,15 @@ log = logging.getLogger(__name__)
 
 
 def ldap_settings(s):
-    opts = {ldap.OPT_REFERRALS: 0, ldap.OPT_NETWORK_TIMEOUT: 5}
+    # OPT_TIMEOUT: a server that accepts the connection and then hangs must not stall a sign-in or the exporter
+    opts = {ldap.OPT_REFERRALS: 0, ldap.OPT_NETWORK_TIMEOUT: 5, ldap.OPT_TIMEOUT: 30}
     if s.ldap_ca_cert.strip():
         pem = s.ldap_ca_cert.strip() + "\n"
-        path = Path(tempfile.gettempdir()) / f"kartei-ldap-ca-{hashlib.sha256(pem.encode()).hexdigest()[:16]}.pem"
-        if not path.exists():
+        # a directory only this user can write: in a shared /tmp someone else could plant a CA under the name in advance
+        ca_dir = Path(tempfile.gettempdir()) / f"kartei-{os.getuid()}"
+        ca_dir.mkdir(mode=0o700, exist_ok=True)
+        path = ca_dir / f"ldap-ca-{hashlib.sha256(pem.encode()).hexdigest()[:16]}.pem"
+        if not path.exists() or path.read_text() != pem:
             path.write_text(pem)
         opts[ldap.OPT_X_TLS_CACERTFILE] = str(path)
         opts[ldap.OPT_X_TLS_REQUIRE_CERT] = ldap.OPT_X_TLS_DEMAND
@@ -85,8 +90,10 @@ class DbLDAPBackend(LDAPBackend):
 
     def get_or_build_user(self, username, ldap_user):
         user, built = super().get_or_build_user(username, ldap_user)
-        if not built and getattr(user, "profile", None) and user.profile.source != "ldap":
-            # never let a directory account take over a local (fallback/admin) or SCIM account
+        # never let a directory account take over a local (fallback/admin) or SCIM account. A local account may have
+        # no Profile yet (createsuperuser), and user.profile then raises: look it up explicitly
+        if not built and (user.is_superuser or Profile.objects.filter(user=user).exclude(source="ldap").exists()
+                          or not Profile.objects.filter(user=user).exists()):
             raise _LDAPUser.AuthenticationFailed("local account with same username")
         return user, built
 

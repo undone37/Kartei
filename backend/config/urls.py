@@ -1,3 +1,5 @@
+import os
+
 from django.contrib import admin
 from django.urls import path, re_path
 
@@ -5,7 +7,6 @@ from kartei import api, api_v1, carddav, dashboard, monitoring, quality, scim, v
 
 M = api.methods
 urlpatterns = [
-    path("django-admin/", admin.site.urls),  # emergency only; the SPA covers normal administration
     path("healthz", monitoring.healthz),
     path("readyz", monitoring.readyz),
     path("api/monitoring/status", monitoring.status_view),
@@ -106,3 +107,8 @@ urlpatterns = [
     re_path(r"^crm(?:/(?P<rest>.*))?$", views.legacy_redirect),  # links from before the rename (mails, vCards)
     re_path(r"^(?!api/|static/|carddav|scim/|django-admin|\.well-known/).*$", views.spa),
 ]
+
+# Django's own admin is an emergency tool: it signs in without the second factor, lockout or audit entry, so it
+# only exists when DJANGO_ADMIN=1 is set for that occasion (and removed again afterwards)
+if os.environ.get("DJANGO_ADMIN") == "1":
+    urlpatterns.insert(0, path("django-admin/", admin.site.urls))

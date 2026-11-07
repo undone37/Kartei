@@ -4,6 +4,7 @@ Admin-defined fields pick a target from TARGETS; the renderer turns collected
 values into flavour-specific lines. Pure functions, no DB access.
 """
 import base64
+import re
 from collections import defaultdict
 
 _ADR_PARTS = ["pobox", "extra", "street", "city", "state", "zip", "country"]  # vCard ADR order
@@ -28,7 +29,7 @@ def flavour_for(user_agent):
 
 
 def esc(value):
-    return (str(value).replace("\\", "\\\\").replace("\r\n", "\n").replace("\n", "\\n")
+    return (str(value).replace("\\", "\\\\").replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n")
             .replace(",", "\\,").replace(";", "\\;"))
 
 
@@ -68,9 +69,26 @@ def collect(record_data, fields, names=None):
     return got
 
 
-def render(record, fields, flavour, base_url="", names=None, photo=True):
+# for one_line: vCard's escapes, as written by esc() (\\n line break, \\, \\; \\\\ for the characters themselves)
+_ESCAPE = re.compile(r"\\([\\,;nN])")
+_STRUCTURED = {"N", "ADR", "ORG"}  # their ";" separates parts: there an escaped one must stay escaped
+
+
+def _plain(line):
+    """One content line without vCard escapes, line breaks as " · " (Android's QR scanner reads values literally)."""
+    head, sep, value = line.partition(":")
+    if not sep or head.upper() in ("BEGIN", "END", "VERSION"):
+        return line
+    keep_semicolon = head.split(";")[0].split(".")[-1].upper() in _STRUCTURED
+    value = _ESCAPE.sub(lambda m: m.group(0) if m.group(1) == ";" and keep_semicolon
+                        else "\n" if m.group(1) in "nN" else m.group(1), value)
+    return head + sep + re.sub(r"(?:\s*\n\s*)+", " · ", value).strip(" ·")
+
+
+def render(record, fields, flavour, base_url="", names=None, photo=True, one_line=False):
     """record: kartei.Record (or duck-type); fields: FieldDefs visible to the CardDAV user.
-    photo=False leaves out photo/logo (QR codes hold about 2 KB)."""
+    photo=False leaves out photo/logo (QR codes hold about 2 KB). one_line: values without vCard escapes, line breaks
+    as " · " (the QR scanner of Android phones shows \\n and \\, literally and knows no other way to encode them)."""
     ios = flavour == "ios"
     g = collect(record.data or {}, fields, names)
     one = lambda t: " ".join(v for v, _ in g.get(t, []))
@@ -187,4 +205,7 @@ def render(record, fields, flavour, base_url="", names=None, photo=True):
         lines.append("NOTE:" + esc("\n".join(note)))
 
     lines.append("END:VCARD")
-    return "\r\n".join(fold(l) for l in lines) + "\r\n"
+    # a raw line break inside a value would start a new property (or card) on the phone: never let one through
+    if one_line:
+        lines = [_plain(line) for line in lines]
+    return "\r\n".join(fold(l.replace("\r", " ").replace("\n", " ")) for l in lines) + "\r\n"

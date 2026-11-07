@@ -99,6 +99,8 @@ def _dump(path):
             _run(["pg_dump", "--format=custom", "--no-owner", f"--file={tmp}"], env=_pg_env())
             _run(["pg_restore", "--list", str(tmp)])  # the archive can be read back
         else:
+            if connection.in_atomic_block:  # SQLite's backup would wait for this very transaction forever
+                raise BackupError("SQLite backup inside an open transaction")
             connection.ensure_connection()  # Django's own connection: also the in-memory test database
             dst = sqlite3.connect(tmp)
             try:

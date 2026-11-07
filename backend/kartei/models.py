@@ -160,6 +160,8 @@ class Settings(models.Model):
     proposal_notify = models.BooleanField(default=False)  # mail new/edited proposals to maintainers
     proposal_notify_to = models.CharField(max_length=500, blank=True)  # comma-separated; empty = all maintainers/admins
     ldap_users_status = models.JSONField(default=dict, blank=True)  # last AD user import (daily, see ldapusers)
+    # the import stops instead of deactivating more than this share of the directory users (a renamed group, a typo)
+    ldap_users_max_deactivate_percent = models.PositiveSmallIntegerField(default=20)
     ad_enabled = models.BooleanField(default=False)  # write AD contact objects, see adsync
     ad_ou = models.CharField(max_length=255, blank=True)
     ad_bind_dn = models.CharField(max_length=255, blank=True)  # empty = LDAP service account
@@ -340,7 +342,7 @@ class Record(models.Model):
 def default_csv_options():
     return {"delimiter": ";", "quotechar": '"', "quoting": "minimal", "encoding": "utf-8-sig",
             "line_ending": "crlf", "header": True, "newlines": "keep", "multi_sep": ", ",
-            "date_format": "%d.%m.%Y", "decimal_sep": ","}
+            "date_format": "%d.%m.%Y", "decimal_sep": ",", "escape_formulas": True}
 
 
 def default_xlsx_options():
@@ -386,6 +388,7 @@ class AuditEntry(models.Model):
 
     class Meta:
         ordering = ["-at", "-id"]
+        indexes = [models.Index(fields=["target_type", "target_id"])]  # a contact's history, purge, import
 
 
 class Review(models.Model):

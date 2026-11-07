@@ -19,7 +19,9 @@
 
   $effect(() => {
     if (!pending.backup && !pending.restore) return
+    const started = Date.now()
     const id = setInterval(async () => {
+      if (Date.now() - started > 15 * 60_000) return void (pending = {}) // no result: stop waiting (is the exporter running?)
       const r = await get<Record<string, any>>('/api/admin/settings').catch(() => null)
       if (!r || !s) return
       const newer = (st: any, since?: string) => since && st?.at && Date.parse(st.at) >= Date.parse(since)

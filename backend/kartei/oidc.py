@@ -46,7 +46,7 @@ def discovery(s):
     if (meta := cache.get(key)) is None:
         try:
             meta = http("GET", issuer + "/.well-known/openid-configuration")
-        except GraphError:
+        except (GraphError, ValueError):  # unreachable, or no JSON (e.g. an HTML error page)
             raise SignInError("sso_failed")
         if (str(meta.get("issuer", "")).rstrip("/") != issuer
                 or not all(str(meta.get(k, "")).startswith("https://") for k in ("authorization_endpoint", "token_endpoint"))):
@@ -89,7 +89,7 @@ def finish(session, s, code, state):
         tok = http("POST", meta["token_endpoint"], form={
             "client_id": s.oidc_client_id, "client_secret": s.oidc_client_secret, "grant_type": "authorization_code",
             "code": code, "redirect_uri": redirect_uri(s), "code_verifier": pending["verifier"]})
-    except GraphError:
+    except (GraphError, ValueError):
         raise SignInError("sso_failed")
     c = _claims(tok.get("id_token", ""))
     aud = c.get("aud")
@@ -109,6 +109,10 @@ def finish(session, s, code, state):
             raise SignInError("sso_unknown_user")
         return bound.user
     name = str(c.get(s.oidc_claim if s.oidc_claim in CLAIMS else "preferred_username") or "").strip()
+    if s.oidc_claim == "email" and c.get("email_verified") is False:
+        # an address the user typed in themselves at the provider must not claim someone else's account
+        # (providers that don't send the flag at all, like Entra ID, vouch for the address themselves)
+        raise SignInError("sso_unverified_email")
     match = Q(profile__source="scim", username__iexact=name)
     if "@" in name:
         match |= Q(profile__source="ldap", email__iexact=name)

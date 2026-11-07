@@ -4,7 +4,7 @@
   import { ApiError, get, post, put } from '../lib/api'
   import { store } from '../lib/store.svelte'
   import { i18n, t, terr, tmsg } from '../lib/i18n.svelte'
-  import { toast } from '../lib/toast.svelte'
+  import { copyText, toast } from '../lib/toast.svelte'
   import Combobox from '../components/Combobox.svelte'
   import { dateTime, relTime } from '../lib/format'
 
@@ -86,6 +86,7 @@
     if (!syncSince) return
     const since = Date.parse(syncSince)
     const id = setInterval(async () => {
+      if (Date.now() - since > 15 * 60_000) return void (syncSince = null) // no result: stop waiting (is the exporter running?)
       const r = await get<Record<string, any>>('/api/admin/settings').catch(() => null)
       if (r?.graph_status?.at && Date.parse(r.graph_status.at) >= since) {
         s!.graph_status = r.graph_status
@@ -155,6 +156,7 @@
     if (!relaySince) return
     const since = Date.parse(relaySince)
     const id = setInterval(async () => {
+      if (Date.now() - since > 15 * 60_000) return void (relaySince = null) // no result: stop waiting (is the exporter running?)
       const r = await get<Record<string, any>>('/api/admin/settings').catch(() => null)
       if (r?.carddav_relay_status?.at && Date.parse(r.carddav_relay_status.at) >= since) {
         s!.carddav_relay_status = r.carddav_relay_status
@@ -200,7 +202,7 @@
   }
 
   const davUrl = $derived(`${(s?.carddav_relay_enabled && s?.carddav_relay_url) || s?.base_url || location.origin}`.replace(/\/$/, '') + '/carddav/')
-  const copy = (v: string) => navigator.clipboard.writeText(v).then(() => toast(t('view.copied')))
+  const copy = copyText
 </script>
 
 {#if s}
@@ -375,6 +377,12 @@
       {/if}
       <h3>{t('ldap.import')}</h3>
       <p class="hint">{t('ldap.import_hint')}</p>
+      <div>
+        <label class="label" for="ldg">{t('ldap.import_guard')}</label>
+        <input id="ldg" class="input narrow" type="number" min="0" max="100" bind:value={s.ldap_users_max_deactivate_percent} />
+        <p class="hint">{t('ldap.import_guard_hint')}</p>
+        {#if errors.ldap_users_max_deactivate_percent}<div class="error-text">{terr(errors.ldap_users_max_deactivate_percent)}</div>{/if}
+      </div>
       <div class="test">
         <button type="button" class="btn" onclick={importUsers} disabled={testing || !s.ldap_uri}><UserPlus size={15} />{t('ldap.import_now')}</button>
       </div>

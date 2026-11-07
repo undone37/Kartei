@@ -3,12 +3,14 @@
 purge() is the one way a contact leaves the recycle bin for good (button and automatic emptying). With
 Settings.purge_anonymize the contact's history keeps who did what and when, but loses all values and the name.
 """
+from django.db import transaction
 from django.utils import timezone
 
 from . import audit, exports
 from .models import ApiToken, AuditEntry, ExportProfile, FieldDef, Proposal, Settings, Webhook
 
 
+@transaction.atomic  # anonymized history, purge entry and the deletion: all or nothing
 def purge(user, r, extra=None):
     """Delete a record from the recycle bin for good."""
     from .api import snapshot

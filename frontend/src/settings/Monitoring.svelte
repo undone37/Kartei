@@ -2,7 +2,7 @@
   import { Copy, KeyRound, RefreshCw, Send } from '@lucide/svelte'
   import { ApiError, get, post, put } from '../lib/api'
   import { t, terr, tmsg } from '../lib/i18n.svelte'
-  import { toast } from '../lib/toast.svelte'
+  import { copyText, toast } from '../lib/toast.svelte'
   import { dateTime } from '../lib/format'
 
   interface Check { name: string; status: 'ok' | 'warn' | 'crit'; detail: string; age_s: number | null }
@@ -30,7 +30,7 @@
 
   const origin = $derived((s?.base_url || location.origin).replace(/\/$/, ''))
   const statusUrl = $derived(`${origin}/api/monitoring/status`)
-  const copy = (v: string) => navigator.clipboard.writeText(v).then(() => toast(t('view.copied')))
+  const copy = copyText
   const age = (sec: number | null) => sec == null ? '—' : sec < 120 ? `${sec} s` : sec < 7200 ? `${Math.round(sec / 60)} min` : `${Math.round(sec / 3600)} h`
   const checkName = (n: string) => {
     const [base, rest] = n.split(/:(.*)/s)

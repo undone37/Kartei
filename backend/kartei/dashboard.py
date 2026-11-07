@@ -1,10 +1,10 @@
 """Dashboard and list tools: recently viewed, favorites, saved filters, recent changes, list export, bulk edit."""
 import uuid
-from datetime import date
 
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
 
 from . import audit, exports, reviews
 from .api import (MAINT, READ, _add_new_options, _soft_delete, delete_with_persons, err, needs, profile_of, record_kinds,
@@ -33,10 +33,32 @@ def share_of(f):
         [f"user:{u.username}" for u in f.share_users.all()]
 
 
-def ser_filter(f, user):
+def _visible_state(state, keys):
+    """A shared filter as someone else sees it: conditions on fields hidden from them are left out (they would show
+    the field and the value, e.g. "salary > 100000"). keys: visible field keys; "@…" are built-in columns."""
+    ok = lambda k: k.startswith("@") or k in keys
+
+    def group(g):
+        items = []
+        for x in g.get("items", []):
+            if "items" in x:
+                items.append(group(x))
+            elif ok(x.get("field", "")):
+                items.append(x)
+        return {**g, "items": items}
+    out = {**state, "filters": {k: v for k, v in state.get("filters", {}).items() if ok(k)}}
+    if isinstance(state.get("adv"), dict):
+        out["adv"] = group(state["adv"])
+    return out
+
+
+def ser_filter(f, user, keys=None):
+    """keys: field keys the viewer may see (None: all, e.g. the owner)."""
     share = share_of(f)
-    return {"id": f.id, "name": f.name, "state": f.state, "shared": bool(share), "owner": f.owner.username,
-            "mine": f.owner_id == user.id, **({"share": share} if f.owner_id == user.id else {})}
+    mine = f.owner_id == user.id
+    state = f.state if mine or keys is None else _visible_state(f.state, keys)
+    return {"id": f.id, "name": f.name, "state": state, "shared": bool(share), "owner": f.owner.username,
+            "mine": mine, **({"share": share} if mine else {})}
 
 
 def visible_filters(user, role):
@@ -53,7 +75,8 @@ def prefs(request):
     p = profile_of(request.user)
     role = "admin" if request.user.is_superuser else p.role
     out = {"recent": p.recent, "favorites": p.favorites,
-           "filters": [ser_filter(f, request.user) for f in visible_filters(request.user, role)]}
+           "filters": [ser_filter(f, request.user, {x.key for x in visible_fields(request.rank)})
+                       for f in visible_filters(request.user, role)]}
     if request.rank >= MAINT:
         out["share_users"] = [{"username": u.username, "name": user_label(u)} for u in
                               User.objects.filter(is_active=True).exclude(pk=request.user.pk).order_by("first_name", "last_name", "username")]
@@ -244,7 +267,7 @@ def export_list(request):
     header = [c["header"] for c in cols]
     data = (exports.render_csv(header, rows, default_csv_options()) if fmt == "csv"
             else exports.render_xlsx(header, rows, default_xlsx_options()))
-    name = f"kartei-{date.today().isoformat()}.{fmt}"
+    name = f"kartei-{timezone.localdate().isoformat()}.{fmt}"
     audit.log(request.user, "export", "export", "-", name, {"rows": [None, len(rows)], "format": [None, fmt]})
     resp = HttpResponse(data, content_type=MIME[fmt])
     resp["Content-Disposition"] = f'attachment; filename="{name}"'

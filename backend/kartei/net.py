@@ -4,21 +4,40 @@ import hashlib
 import ipaddress
 import re
 from contextvars import ContextVar
+from functools import lru_cache
 
 from django.conf import settings
+from django.core.cache import cache
 
 current_ip = ContextVar("current_ip", default=None)  # set per request, read by audit.log
 
 
+@lru_cache
+def _proxies(spec):
+    return [ipaddress.ip_network(n, strict=False) for n in spec]
+
+
+def from_proxy(request):
+    """The request comes from a trusted reverse proxy (settings.TRUSTED_PROXIES), so its X-Forwarded-* count."""
+    try:
+        addr = ipaddress.ip_address(request.META.get("REMOTE_ADDR", ""))
+    except ValueError:
+        return False
+    return settings.PROXY_HEADERS and any(addr in n for n in _proxies(tuple(settings.TRUSTED_PROXIES)))
+
+
 def client_ip(request):
-    # the last X-Forwarded-For entry is the one our proxy appended (clients can only spoof the ones before it)
-    fwd = request.META.get("HTTP_X_FORWARDED_FOR", "") if settings.PROXY_HEADERS else ""
+    # the last X-Forwarded-For entry is the one our proxy appended (clients can only spoof the ones before it);
+    # only a trusted proxy's header counts, a client talking to Kartei directly could write anything there
+    fwd = request.META.get("HTTP_X_FORWARDED_FOR", "") if from_proxy(request) else ""
     return fwd.split(",")[-1].strip() or request.META.get("REMOTE_ADDR", "")
 
 
 def ip_middleware(get_response):
     """Remembers the client address of the running request, so every audit entry carries it."""
     def middleware(request):
+        if not from_proxy(request):  # Django reads X-Forwarded-Proto for is_secure(): not from just anyone
+            request.META.pop("HTTP_X_FORWARDED_PROTO", None)
         try:
             ip = str(ipaddress.ip_address(client_ip(request)))
         except ValueError:  # empty or junk: no address rather than a failing audit insert
@@ -56,5 +75,19 @@ def security_headers(get_response):
         response.setdefault("Content-Security-Policy", csp)
         response.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
         response.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+        if request.path.startswith("/api/") and not response.has_header("Cache-Control"):
+            response["Cache-Control"] = "no-store"  # contact data must not stay in the browser's disk cache
         return response
     return middleware
+
+
+def count_failure(key, timeout=15 * 60):
+    """One more failed attempt for a rate limit; returns the count within the window. The cache is shared by all
+    workers of a container (settings.CACHES), so the limit holds across them."""
+    if cache.add(key, 1, timeout):
+        return 1
+    try:
+        return cache.incr(key)
+    except ValueError:  # expired between add and incr
+        cache.set(key, 1, timeout)
+        return 1

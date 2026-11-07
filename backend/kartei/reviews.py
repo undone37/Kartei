@@ -9,6 +9,7 @@ from datetime import date, timedelta
 
 from django.contrib.auth.models import User
 from django.core.mail import EmailMessage, get_connection
+from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -80,8 +81,10 @@ def schedule(s, today=None):
     if s.review_mode == "campaign":
         day = campaign_date(s, today.year)
         if today >= day and (s.review_last_campaign is None or s.review_last_campaign < day):
-            Settings.objects.filter(pk=1).update(review_last_campaign=day)
-            return start(live(), "campaign")
+            with transaction.atomic():  # marked as done only together with the reviews it started
+                counts = start(live(), "campaign")
+                Settings.objects.filter(pk=1).update(review_last_campaign=day)
+            return counts
     return None
 
 
@@ -205,7 +208,9 @@ def render_mail(s, kind, lang, **values):
     custom = (s.mail_templates or {}).get(kind, {}).get(lang, {})
     for t in (custom, default):
         try:
-            return (t.get("subject") or default["subject"]).format(**values), (t.get("body") or default["body"]).format(**values)
+            subject = (t.get("subject") or default["subject"]).format(**values)
+            # a header can't hold line breaks (a name from LDAP/SCIM or {items} in the subject would make it unsendable)
+            return " ".join(subject.split())[:250], (t.get("body") or default["body"]).format(**values)
         except (KeyError, IndexError, ValueError) as e:  # unknown placeholder or stray brace
             log.warning("mail template %s/%s unusable: %s", kind, lang, e)
     raise AssertionError("default mail template broken")
@@ -227,8 +232,11 @@ def _review_digests(s, conn, pending, kind, reminder=False):
         items = "\n".join(f"- {rv.record.display_name}: {base}/{rv.record.kind}/{rv.record.uid}" for rv in rvs)
         subject, body = render_mail(s, kind, lang_of(u, s), n=len(rvs), name=u.first_name or u.username, items=items,
                                     url=f"{base}/?list=review")
-        msg = EmailMessage(subject, body, mail_from(s), [u.email], connection=conn)
-        msg.send()
+        try:  # one rejected address must not hold up everybody else's mail
+            EmailMessage(subject, body, mail_from(s), [u.email], connection=conn).send()
+        except Exception:
+            log.exception("review mail to %s failed", u.email)
+            continue  # stays un-notified, tried again next time
         done = Review.objects.filter(pk__in=[rv.pk for rv in rvs])
         done.update(notified_at=timezone.now(), **({"reminders": F("reminders") + 1} if reminder else {}))
         sent += 1
@@ -302,7 +310,11 @@ def notify_proposals(s):
             greeting = name or ("zusammen" if lang == "de" else "all")
             subject, body = render_mail(s, "proposals", lang, n=len(mine), name=greeting, items="\n".join(items),
                                         url=f"{base}/?list=proposals")
-            EmailMessage(subject, body, mail_from(s), [to], connection=conn).send()
+            try:  # one rejected address must not stop the others, nor make them get the same mail every tick
+                EmailMessage(subject, body, mail_from(s), [to], connection=conn).send()
+            except Exception:
+                log.exception("proposal mail to %s failed", to)
+                continue
             sent += 1
     Proposal.objects.filter(pk__in=[p.pk for p in props]).update(notified_at=now)
     return sent

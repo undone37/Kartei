@@ -7,7 +7,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 ### Added
 
 - **Nightly security scan:** OWASP ZAP scans a running Kartei every night: the web app signed in as a read-only user (passive), and the REST API with a read token (active). High-risk findings fail the run, and the reports are attached. `.zap/scan.sh` runs it locally.
-- **Share a contact:** a QR-code button in the contact header opens a window with the contact as a QR code (iPhone or Android flavour, without photo) to scan with a phone's camera, and *Download vCard*. It replaces the download icon.
+- **Share a contact:** a QR-code button in the contact header opens a window with the contact as a QR code (iPhone or Android flavour, without photo) to scan with a phone's camera, and *Download vCard*. It replaces the download icon. In the Android QR code, multi-line text (e.g. a description) is written on one line with " · " between the lines, because Android's scanner shows vCard line breaks as a literal \n.
 - **Map link:** a pin next to a street opens the address in a map service. The link template is a setting under *General* (default Google Maps; empty = off). Kartei only builds the link.
 - **Share saved filters with roles or people:** besides *everyone*, a maintainer can share a saved filter with one or more roles and individual colleagues. The choice is made when saving (*Share with*, default *Only me*) and can be changed later from the dashboard. Each user sees their own filters and those shared with them, their role or everyone.
 - **Built-in backups:** the exporter backs up the database every day (default 02:30, kept 14 days) to its own `/backup` volume (`BACKUP_HOST_DIR`, never the export share). Each file is checked with `pg_restore --list`. *Settings → Backup* has *Back up now*, the list of backups, and *Test restore*, which restores the newest backup into a scratch database and compares the row counts. Monitoring reports missing or failed backups. Restoring is a single documented command. The Kartei image now includes the PostgreSQL 18 client tools.
@@ -15,6 +15,37 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Security
 
+- **Pre-1.0 security review, fixes:**
+  - **Django admin:** `/django-admin/` is off unless `DJANGO_ADMIN=1`. It signed in without the second factor, lockout or audit entry.
+  - **LDAP:** an LDAP sign-in can no longer take over a local account that has no profile yet (e.g. created with `createsuperuser`).
+  - **Client address:** `X-Forwarded-For`/`-Proto` count only from `TRUSTED_PROXIES` (default: loopback and Docker networks). Before, anyone reaching port 8000 directly could fake their address and get around the rate limits and the monitoring allowlist.
+  - **Shared rate limits:** sign-in, API, CardDAV and SCIM limits are counted across all server processes (shared cache).
+  - **Numbers:** a number like `1e999999999` no longer freezes a server process. Numbers are limited to 40 characters and 30 digits of magnitude.
+  - **Formula injection:** Excel exports always write formulas as text. CSV exports put `'` before values Excel would run as a formula (new option, on by default); phone numbers and numbers are unchanged.
+  - **Background jobs:** one failing step (an export, a sync) no longer stops the others, and unexpected errors show in the job's status and the monitoring.
+  - **Control characters** are removed from text on input, and vCards can no longer be broken up by line breaks in a value.
+  - **No hidden data:**
+    - The company-to-persons preview, other users' shared filters and proposals by admins no longer reveal fields the user may not see.
+    - The history and photo of trashed contacts are hidden from read-only users.
+  - **Open redirect:** fixed in the old `/crm/` links.
+  - **OIDC:** an email the identity provider marks as unverified can't bind an account.
+  - **Example secrets:** Kartei refuses to start with the example `SECRET_KEY` and won't create the first admin with the example password.
+  - **Mail:** one rejected address no longer stops review and proposal mails to everyone else.
+  - **LDAP user import:**
+    - It stops before deactivating more than a set share of directory users (default 20 %).
+    - LDAP operations time out after 30 s.
+  - **Syslog:** oversized events are shortened for UDP instead of blocking the sender.
+  - **Import:** rows of contacts in the recycle bin are skipped, and too-long names skip the row instead of failing the import.
+  - **Browser:**
+    - Contact data is no longer cached by the browser (`Cache-Control: no-store` on the API).
+    - A sign-out during a background sync no longer leaves data in the browser.
+    - The offline cache is shown only for 24 h without the server.
+    - Background sync now also starts after a normal sign-in.
+  - **Containers and workflows:**
+    - The `web` and `exporter` containers run read-only without capabilities.
+    - Fluent Bit has its own network.
+    - The request log no longer contains query strings.
+    - GitHub Actions are pinned to commit SHAs, and CI runs with a read-only token.
 - **Security headers on every response, static files included:**
   - Content-Security-Policy: scripts only from Kartei itself (the one inline theme script allowed by its hash), no framing, no plugins.
   - Permissions-Policy: no camera, microphone or location.
