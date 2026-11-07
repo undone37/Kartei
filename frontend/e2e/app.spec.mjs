@@ -708,6 +708,30 @@ test.describe('vCard import', () => {
   })
 })
 
+test.describe('phonebook', () => {
+  test('an admin switches the desk-phone phonebook on; phones and the phone system can read it', async ({ as }) => {
+    const page = await as('admin')
+    const before = (await page.api('get', '/api/admin/settings'))
+    await page.goto('/settings/carddav')
+    await page.getByRole('button', { name: /^(Create password|New password)$/ }).click()
+    const password = await page.locator('.secret code').textContent()
+    await page.getByLabel('Phonebook and number lookup on').check()
+    await page.getByRole('button', { name: 'Save' }).last().click()
+    await expect(page.getByText('Saved')).toBeVisible()
+    try {
+      const auth = { Authorization: 'Basic ' + Buffer.from(`telefon:${password}`).toString('base64') }
+      const xml = await (await page.request.get('/phonebook/yealink.xml?q=a', { headers: auth })).text()
+      expect(xml).toContain('<YealinkIPPhoneDirectory>')
+      const p = (await page.records()).find((r) => r.kind === 'person' && r.data.mobile)
+      const who = await page.request.get(`/phonebook/lookup?number=${encodeURIComponent(p.data.mobile)}`, { headers: auth })
+      expect(await who.text()).toContain(p.last_name)
+      expect((await page.request.get('/phonebook/snom.xml')).status()).toBe(401)
+    } finally {
+      await page.api('put', '/api/admin/settings', { phonebook_enabled: before.phonebook_enabled })
+    }
+  })
+})
+
 test.describe('deleting', () => {
   test('delete asks first; the contact goes to the recycle bin and comes back', async ({ as }) => {
     const page = await as('mmuster')

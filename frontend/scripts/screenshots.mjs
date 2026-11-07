@@ -146,6 +146,9 @@ const SHOTS = [
   { name: 'settings-field-editor', user: 'admin', path: '/settings/fields', steps: open('tr.click >> nth=2') },
   { name: 'settings-export-editor', user: 'admin', path: '/settings/exports', steps: open('tr.click') },
   { name: 'settings-review-rolling', user: 'admin', path: '/settings/review', steps: open('input[type=radio][value=rolling]') },
+  { name: 'settings-phonebook', user: 'admin', path: '/settings/carddav', before: publicUrl, after: restoreUrl, steps: async (p) => {
+      await p.locator('h2', { hasText: /Telefonbuch|Phonebook/ }).evaluate((e) => e.scrollIntoView({ block: 'start' })); await wait(300)
+    } },
   { name: 'settings-general-phones', user: 'admin', path: '/settings/general', steps: open('button:has(.lucide-phone)') },
   { name: 'settings-carddav-password', user: 'admin', path: '/settings/carddav', steps: open('button:has(.lucide-key-round)') },
   { name: 'settings-api-token', user: 'admin', path: '/settings/api', steps: async (p) => {

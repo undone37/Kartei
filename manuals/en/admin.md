@@ -16,7 +16,8 @@ Kartei is the central contact directory for persons and companies. Admins define
 | Target | How | Configured under |
 |---|---|---|
 | Phones with an Exchange Online mailbox (iPhone and Android) | contact folder in each mailbox, stored on the phone by the Outlook app | *Settings → Outlook / Exchange* |
-| Phones without a mailbox (e.g. shared phones), or without Microsoft 365 | read-only CardDAV address book (iPhone; Android needs a CardDAV app) | *Settings → CardDAV* |
+| Desk phones (Yealink, Snom, Grandstream) and the caller display of phone systems | remote phonebook (XML) and number lookup | *Settings → Phones & CardDAV* |
+| Phones without a mailbox (e.g. shared phones), or without Microsoft 365 | read-only CardDAV address book (iPhone; Android needs a CardDAV app) | *Settings → Phones & CardDAV* |
 | Systems that read contacts from Active Directory (e.g. caller ID of a phone system, address books of communication clients) | AD contact objects in one OU | *Settings → Active Directory* |
 | Scripts, other applications, spreadsheet users | CSV/XLSX files in a directory | *Settings → Exports* |
 | Other systems (e.g. intranet, phone system) | REST API with tokens (read only, or read and write) | *Settings → API* |
@@ -795,7 +796,7 @@ Kartei includes a read-only CardDAV server with one address book that contains a
 
 ### Set up
 
-1. *Settings → CardDAV*: tick *Built-in CardDAV server enabled* and click *Save*.
+1. *Settings → Phones & CardDAV*: tick *Built-in CardDAV server enabled* and click *Save*.
 2. Optionally change the *Username* (default `carddav`).
 3. Click *Generate password*. The password is shown **only now**; copy it to your password safe.
 4. Check the server address under *Phone setup*. It is built from the *Public URL* (*Settings → General*): `https://kartei.example.de/carddav/`.
@@ -839,7 +840,7 @@ The relay is the same image started with other settings (`docker build --target 
 **Set up**
 
 1. On the DMZ host, copy the repository (or just `Dockerfile`, `backend/`, `compose.relay.yaml`), then `cp .env.relay.example .env.relay` and set `SECRET_KEY` and `ALLOWED_HOSTS` (the host name the phones use).
-2. In Kartei, *Settings → CardDAV → External relay (DMZ)*: enter the *Relay URL* (`https://carddav.example.de`, HTTPS only) and click *Generate token*. Kartei keeps the push token encrypted and shows only its SHA-256 value. Copy that value into `.env.relay` as `RELAY_PUSH_TOKEN_SHA256`. The DMZ host never sees the token itself.
+2. In Kartei, *Settings → Phones & CardDAV → External relay (DMZ)*: enter the *Relay URL* (`https://carddav.example.de`, HTTPS only) and click *Generate token*. Kartei keeps the push token encrypted and shows only its SHA-256 value. Copy that value into `.env.relay` as `RELAY_PUSH_TOKEN_SHA256`. The DMZ host never sees the token itself.
 3. Start the relay: `docker compose -f compose.relay.yaml up -d --build`. It listens on port 8080 (`RELAY_PORT`); put a TLS reverse proxy in front of it, configured like the one for Kartei (pass `Authorization`, `PROPFIND`/`REPORT`, `X-Forwarded-For`, `client_max_body_size 20m`). The SQLite file lives in the volume `relaydata`.
 4. *TLS*: with *Verify TLS certificate* on (default), Kartei checks the relay's certificate against the system CAs or, if given, the *CA certificate* (PEM) of your internal CA. Switch verification off only for tests.
 5. Click *Save & test*: Kartei reaches the relay and checks the token. Then tick *Push to the relay*, set *Max. deletions (%)* and *Save*.
@@ -862,6 +863,29 @@ The relay is the same image started with other settings (`docker build --target 
 | Relay answers 400 for everything | The host name isn't in `ALLOWED_HOSTS` in `.env.relay`. |
 
 The relay logs every request to the container log (`docker compose -f compose.relay.yaml logs`). To start over, stop it and remove the volume `relaydata`; the next push fills it again.
+
+## Phonebook for desk phones {#phonebook}
+
+Desk phones load the contacts as their *remote phonebook*, and phone systems ask Kartei who is calling. Like CardDAV, it contains what *Read only* users see, and only fields with a phone vCard assignment (work, mobile, home, assistant, custom; no fax).
+
+![Phonebook settings](../img/en/settings-phonebook.png)
+
+1. *Settings → Phones & CardDAV*, section *Phonebook for desk phones*: **Create password** (shown once) and note the user name (default `telefon`).
+2. Optionally restrict it to the phones' network under *Allowed addresses*, e.g. `10.0.5.0/24`.
+3. Tick *Phonebook and number lookup on* and **Save**.
+4. Enter the address for your phone brand, with user name and password, as the remote phonebook (provisioning or the phone's web interface):
+
+| Phones | Address | Note |
+|---|---|---|
+| Yealink | `https://kartei.example.com/phonebook/yealink.xml` | for large lists the search URL `…/yealink.xml?q=#SEARCH` (the phone sends what was typed) |
+| Snom | `…/phonebook/snom.xml` | one entry per number: *Name – Company (Mobile)* |
+| Grandstream | `…/phonebook/grandstream.xml` | first name, last name, company, numbers by type |
+
+All three accept `?q=` with a name, company or number part. Without it the whole phonebook is sent; with tens of thousands of contacts that's several MB, too much for most phones: use the search URL then. Phones that read LDAP instead (e.g. Gigaset) can use the [Active Directory sync](#active-directory).
+
+**Number lookup** for phone systems (3CX, Starface, Asterisk …): `GET /phonebook/lookup?number=+495111000` with the same login returns `Name · Company` as text, or with `&format=json` `{"found": true, "name", "company", "kind", "uid"}`. Unknown numbers give `404`. Numbers are compared in any notation (`+49…`, `0049…`, `0…`); if the exact number is unknown, the longest stored number it starts with wins, so an unknown extension still shows the company. An unencoded `+` in the URL is understood too.
+
+Kartei builds the phonebook in memory and checks for changes at most once a minute, so a lookup takes under a millisecond even with 50 000 contacts; a new or changed number shows up within a minute. Failed sign-ins appear in the audit log (channel *phonebook*) and count towards the usual lockout.
 
 ## Outlook / Exchange sync {#outlook-sync}
 

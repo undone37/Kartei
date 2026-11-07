@@ -4,6 +4,11 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- **Phonebook for desk phones:** Yealink, Snom and Grandstream phones load the contacts as their remote phonebook (`/phonebook/yealink.xml`, `snom.xml`, `grandstream.xml`, each with `?q=` for the phones' remote search). Same contacts and fields as CardDAV, only dialable numbers. Own login (password shown once), optionally limited to certain addresses; *Settings → Phones & CardDAV* (renamed from *CardDAV*).
+- **Number lookup for phone systems:** `/phonebook/lookup?number=…` tells a phone system (3CX, Starface, Asterisk …) who is calling, as `Name · Company` or JSON. Any notation of the number; an unknown extension finds the company's switchboard. Under a millisecond with 50 000 contacts.
+
 ## [0.6.1-beta] – 2026-11-07
 
 Dependency updates only; nothing to configure. Pull the new image or rebuild; there is no database migration.
