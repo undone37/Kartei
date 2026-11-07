@@ -20,6 +20,7 @@
     ['Yealink', `${origin}/phonebook/yealink.xml`, `${origin}/phonebook/yealink.xml?q=#SEARCH`],
     ['Snom', `${origin}/phonebook/snom.xml`, ''],
     ['Grandstream', `${origin}/phonebook/grandstream.xml`, ''],
+    ['Swyx (CSV)', `${origin}/phonebook/swyx.csv`, ''],
   ])
   const lookup = $derived(`${origin}/phonebook/lookup?number=`)
 

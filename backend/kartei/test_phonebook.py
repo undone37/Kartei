@@ -43,6 +43,27 @@ class PhonebookTests(TestCase):
         self.assertEqual([(p.get("type"), p.findtext("phonenumber")) for p in koch.findall("Phone")],
                          [("Work", "+49511123123217"), ("Cell", "+491609997381")])
         self.assertEqual(self.get("/phonebook/nokia.xml").status_code, 404)
+        self.assertEqual(self.get("/phonebook/swyx.xml").status_code, 404)
+
+    def test_swyx(self):
+        Record.objects.create(kind="person", first_name="Jonas", last_name="Koch", data={"phone_work": "0511 777"})  # same name
+        r = self.get("/phonebook/swyx.csv")
+        self.assertEqual(r["Content-Type"], "text/csv; charset=utf-8")
+        text = r.content.decode("utf-8-sig")
+        self.assertTrue(r.content.startswith("\ufeff".encode()))
+        rows = [line.split('";"') for line in text.strip().split("\r\n")]
+        rows = [[c.strip('"') for c in row] for row in rows]
+        self.assertIn(["Koch,Jonas (Telefon)", "+49511123123217", "ACME GmbH · Telefon"], rows)
+        self.assertIn(["Koch,Jonas (Mobil)", "+491609997381", "ACME GmbH · Mobil"], rows)
+        self.assertIn(["Koch,Jonas", "0511777", "Telefon"], rows)  # one number: no label in the name
+        self.assertIn(["ACME GmbH", "05111231232", "Zentrale"], rows)
+        names = [row[0] for row in rows]
+        self.assertEqual(len(names), len(set(names)))  # Swyx needs unique names
+        self.assertTrue(all(" " not in row[1] for row in rows))  # no blanks in numbers
+        ansi = self.get("/phonebook/swyx.csv?charset=windows-1252")
+        self.assertEqual(ansi["Content-Type"], "text/csv; charset=windows-1252")
+        self.assertIn("ACME GmbH · Mobil".encode("cp1252"), ansi.content)  # "·" is 0xB7 in Windows-1252
+
 
     def test_remote_search(self):
         names = lambda q: [e.findtext("Name") for e in ET.fromstring(self.get(f"/phonebook/yealink.xml?q={q}").content)]

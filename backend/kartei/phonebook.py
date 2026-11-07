@@ -2,6 +2,7 @@
 
 - /phonebook/yealink.xml, /phonebook/snom.xml, /phonebook/grandstream.xml: the contacts in each brand's remote
   phonebook format; ?q= narrows them down (the phones' remote search sends what was typed).
+- /phonebook/swyx.csv: the same for SwyxWare's Global Phonebook import (caller names on all Swyx phones).
 - /phonebook/lookup?number=…: who is calling, as "Name · Company" (text) or JSON (?format=json), for the caller
   display of a phone system (3CX, Starface, Asterisk …).
 
@@ -133,7 +134,27 @@ def grandstream(items):
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<AddressBook>{"".join(rows)}</AddressBook>\n'
 
 
-FORMATS = {"yealink": yealink, "snom": snom, "grandstream": grandstream}
+def swyx(items):
+    """SwyxWare's Global Phonebook import (Swyx Administration → Global Phonebook → Import): one line per number,
+    "Name";"Number";"Description", every field quoted. Names must be unique there, so a contact with several numbers
+    gets the number's label, and a name that is still taken the company, then a counter."""
+    q = lambda v: '"' + str(v).replace('"', "'").replace("\r", " ").replace("\n", " ") + '"'
+    taken, lines = set(), []
+    for e in items:
+        base = f"{e['last']},{e['first']}" if e["first"] else e["last"]  # "Schmidt,Eva" like Swyx's own entries
+        for label, _, n in e["numbers"]:
+            name = f"{base} ({label})" if len(e["numbers"]) > 1 else base
+            if name in taken and e["company"]:
+                name = f"{name} – {e['company']}"
+            unique, i = name, 2
+            while unique in taken:
+                unique, i = f"{name} {i}", i + 1
+            taken.add(unique)
+            lines.append(";".join(q(x) for x in (unique, _dial(n), " · ".join(filter(None, (e["company"], label))))))
+    return "\r\n".join(lines) + "\r\n"
+
+
+FORMATS = {"yealink": yealink, "snom": snom, "grandstream": grandstream, "swyx": swyx}
 
 
 def _guard(request):
@@ -163,8 +184,17 @@ def directory(request, brand):
     if refused := _guard(request):
         return refused
     items, _ = entries()
-    return HttpResponse(FORMATS[brand](_search(items, request.GET.get("q", "")[:100])),
-                        content_type="text/xml; charset=utf-8")
+    body = FORMATS[brand](_search(items, request.GET.get("q", "")[:100]))
+    if brand != "swyx":
+        return HttpResponse(body, content_type="text/xml; charset=utf-8")
+    # a Windows import: UTF-8 with BOM by default, ?charset=windows-1252 for an older SwyxWare that expects ANSI
+    if request.GET.get("charset", "").lower() in ("windows-1252", "cp1252", "ansi"):
+        data, charset = body.encode("cp1252", "replace"), "windows-1252"
+    else:
+        data, charset = "\ufeff".encode() + body.encode(), "utf-8"
+    r = HttpResponse(data, content_type=f"text/csv; charset={charset}")
+    r["Content-Disposition"] = 'attachment; filename="kartei-swyx.csv"'
+    return r
 
 
 @csrf_exempt

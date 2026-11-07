@@ -106,7 +106,8 @@ urlpatterns = [
     path("api/admin/phones/normalize", M(POST=quality.normalize_view)),
     path("sw.js", views.service_worker),
     path("phonebook/lookup", phonebook.lookup),
-    re_path(r"^phonebook/(?P<brand>[a-z]+)\.xml$", phonebook.directory),
+    re_path(r"^phonebook/(?P<brand>yealink|snom|grandstream)\.xml$", phonebook.directory),
+    re_path(r"^phonebook/(?P<brand>swyx)\.csv$", phonebook.directory),
     re_path(r"^crm(?:/(?P<rest>.*))?$", views.legacy_redirect),  # links from before the rename (mails, vCards)
     re_path(r"^(?!api/|static/|carddav|phonebook/|scim/|django-admin|\.well-known/).*$", views.spa),
 ]

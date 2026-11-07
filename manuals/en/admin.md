@@ -880,8 +880,11 @@ Desk phones load the contacts as their *remote phonebook*, and phone systems ask
 | Yealink | `https://kartei.example.com/phonebook/yealink.xml` | for large lists the search URL `…/yealink.xml?q=#SEARCH` (the phone sends what was typed) |
 | Snom | `…/phonebook/snom.xml` | one entry per number: *Name – Company (Mobile)* |
 | Grandstream | `…/phonebook/grandstream.xml` | first name, last name, company, numbers by type |
+| SwyxWare | `…/phonebook/swyx.csv` | file for the Global Phonebook import, see below |
 
 All three accept `?q=` with a name, company or number part. Without it the whole phonebook is sent; with tens of thousands of contacts that's several MB, too much for most phones: use the search URL then. Phones that read LDAP instead (e.g. Gigaset) can use the [Active Directory sync](#active-directory).
+
+**SwyxWare.** Swyx shows caller names from its *Global Phonebook*, on every SwyxIt! client and Swyx phone. `swyx.csv` is the phonebook in Swyx's import format: one line per number (`"Name";"Number";"Description"`, all quoted, numbers without blanks), names in Swyx style (`Muster,Erika`) and unique, as Swyx requires (with the number's label for contacts with several numbers, e.g. `Muster,Erika (Mobil)`); the description holds company and label. Download it in the browser with the phonebook login, then in *Swyx Administration → Global Phonebook → Import* choose the file and the update mode *Update existing entry*. Choose *Delete existing entries* only if the Global Phonebook holds nothing but Kartei's contacts. The file is UTF-8; for an older SwyxWare that shows umlauts wrongly, use `swyx.csv?charset=windows-1252`. `?q=` works here too, e.g. for one company. Swyx offers no documented automatic import, so repeat the import after larger changes.
 
 **Number lookup** for phone systems (3CX, Starface, Asterisk …): `GET /phonebook/lookup?number=+495111000` with the same login returns `Name · Company` as text, or with `&format=json` `{"found": true, "name", "company", "kind", "uid"}`. Unknown numbers give `404`. Numbers are compared in any notation (`+49…`, `0049…`, `0…`); if the exact number is unknown, the longest stored number it starts with wins, so an unknown extension still shows the company. An unencoded `+` in the URL is understood too.
 

@@ -215,7 +215,7 @@ export default {
   'settings.ldap': 'LDAP / AD',
   'settings.carddav': 'Phones & CardDAV',
   'phonebook.title': 'Phonebook for desk phones',
-  'phonebook.hint': 'Desk phones (Yealink, Snom, Grandstream) load the contacts as their remote phonebook, and phone systems ask who is calling. Same contacts and fields as CardDAV (what Read Only users see), only phone numbers, no fax.',
+  'phonebook.hint': 'Desk phones (Yealink, Snom, Grandstream) and SwyxWare (CSV for its Global Phonebook) load the contacts as their remote phonebook, and phone systems ask who is calling. Same contacts and fields as CardDAV (what Read Only users see), only phone numbers, no fax.',
   'phonebook.enabled': 'Phonebook and number lookup on',
   'phonebook.username': 'User name',
   'phonebook.password': 'Password',
