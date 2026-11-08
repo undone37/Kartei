@@ -4,9 +4,17 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.8.1-beta] – 2026-11-08
+
+A security update for the images, plus a new documentation site:
+- **Security:** the images include Debian's zlib fix (two high, one medium vulnerability). Update recommended.
+- **Documentation:** https://undone37.github.io/Kartei/ now has full-text search and one page per chapter. The PDF manuals carry the version in the file name.
+
+Upgrading: pull the new images; no migrations.
+
 ### Changed
 
-- **Documentation site:** rebuilt with Astro Starlight in the Kartei look. Full-text search across all manuals (German and English separately), one page per chapter with "On this page" navigation, a language switch that stays on the chapter, a new start page, light and dark theme. Old links such as `/de/admin.html#reverse-proxy` forward to the right chapter. The manuals stay in `manuals/` (the PDFs are unchanged).
+- **Documentation site:** rebuilt with Astro Starlight in the Kartei look. Full-text search across all manuals (German and English separately), one page per chapter with "On this page" navigation, a language switch that stays on the chapter, a new start page, light and dark theme. Old links such as `/de/admin.html#reverse-proxy` forward to the right chapter. The manuals stay in `manuals/`; the PDFs look as before.
 - **PDF manuals:** the release files carry the version in their name, e.g. `Kartei-User-manual-EN-0.9.0.pdf`, so downloads of different versions stay apart.
 
 ### Security
@@ -295,7 +303,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.0-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.1-beta...HEAD
+[0.8.1-beta]: https://github.com/undone37/Kartei/compare/v0.8.0-beta...v0.8.1-beta
 [0.8.0-beta]: https://github.com/undone37/Kartei/compare/v0.7.0-beta...v0.8.0-beta
 [0.7.0-beta]: https://github.com/undone37/Kartei/compare/v0.6.1-beta...v0.7.0-beta
 [0.6.1-beta]: https://github.com/undone37/Kartei/compare/v0.6.0-beta...v0.6.1-beta
