@@ -4,10 +4,18 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.8.0-beta] – 2026-11-08
+
+Kartei now reports what needs your attention:
+- **Notifications:** contacts to review, proposals awaiting a decision and decisions on your own proposals arrive on the phone or in the browser.
+- **Phone list:** a real PDF download, with the organisation's logo and shaded rows.
+- **Per user:** each user picks the list order and how names are shown.
+
+Upgrading: migrations `0017`–`0019` run on start. For notifications, Kartei must run over HTTPS and the `exporter` container must reach the browsers' push services (see the admin manual, *Notifications (push)*). The relay is unchanged.
+
 ### Added
 
 - **Notifications:** Kartei notifies on the phone or in the browser about contacts to review, proposals awaiting a decision (maintainers and admins) and decisions on your own proposals. The browser asks right after signing in; *My account → Notifications* switches them on or off per device, sends a test and chooses the kinds (all on by default). Only a count and a link, no contact data, end-to-end encrypted (Web Push, no Apple or Google account needed). iPhone: in the installed app, iOS 16.4 or newer. Needs HTTPS and outbound access to the browsers' push services, see the admin manual.
-
 - **Logo on the phone list:** *Settings → General → Logo on the phone list*: the Kartei logo, the organisation's own (PNG/JPEG upload) or none, in the PDF and when printing.
 - **Order and names per user:** the sort icon above the list sorts it by last name, first name, last change or last created, and shows person names as "First Last" or "Last, First" throughout Kartei. Saved with the account (same on every device, only for that user).
 
@@ -278,7 +286,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.7.0-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.0-beta...HEAD
+[0.8.0-beta]: https://github.com/undone37/Kartei/compare/v0.7.0-beta...v0.8.0-beta
 [0.7.0-beta]: https://github.com/undone37/Kartei/compare/v0.6.1-beta...v0.7.0-beta
 [0.6.1-beta]: https://github.com/undone37/Kartei/compare/v0.6.0-beta...v0.6.1-beta
 [0.6.0-beta]: https://github.com/undone37/Kartei/compare/v0.5.0-beta...v0.6.0-beta
