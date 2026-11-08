@@ -220,6 +220,43 @@ server {
 
 Läuft der Proxy auf demselben Host, setz `WEB_PORT=127.0.0.1:8000`, damit Port 8000 aus dem Netz nicht erreichbar ist. Wer Port 8000 direkt erreicht, könnte sonst seine Adresse in `X-Forwarded-For` fälschen. Betreibst du Kartei ohne Reverse Proxy, setz `PROXY_HEADERS=0`.
 
+### Netzwerk und Firewall {#netzwerk-und-firewall}
+
+Ohne Einrichtung baut Kartei keine Verbindung nach außen auf: keine Telemetrie, keine Update-Prüfung, keine nachgeladenen Inhalte aus dem Internet. Jedes Ziel unten kommt erst dazu, wenn du die Funktion einrichtest, oder bei Push, wenn ein Benutzer Benachrichtigungen erlaubt. *Test*-Schaltflächen in den Einstellungen verbinden sich vom Container `web` aus, alles andere läuft im Container `exporter`.
+
+**Microsoft 365 und Entra ID** (HTTPS, Port 443):
+
+| Ziel | Wofür | Container |
+|---|---|---|
+| `login.microsoftonline.com` | Token für Microsoft Graph; Single Sign-on mit Entra ID (Discovery und Token) | `exporter`, `web` |
+| `graph.microsoft.com` | Outlook-Sync (Kontakte in die Postfächer) und E-Mail-Versand über Microsoft 365 | `exporter`, `web` (Test-Mail) |
+
+Bei Single Sign-on leitet Kartei außerdem den **Browser** zur Microsoft-Anmeldung weiter. SCIM läuft umgekehrt: Entra ID ruft Kartei auf.
+
+**Weitere Ziele im Internet** (HTTPS, Port 443):
+
+| Ziel | Wofür | Container |
+|---|---|---|
+| `fcm.googleapis.com`, `*.push.apple.com`, `*.push.services.mozilla.com`, `*.notify.windows.com` | Benachrichtigungen (Push); andere Adressen nimmt Kartei nicht an | `exporter`, `web` (*Test senden*) |
+| Die Adressen unter *Einstellungen → Webhooks* | Änderungen an andere Systeme | `exporter`, `web` (Ping) |
+| Ein anderer OpenID-Connect-Anbieter (z. B. Okta, Authentik) | Single Sign-on | `web` |
+
+**Im eigenen Netz:**
+
+| Ziel | Protokoll | Container |
+|---|---|---|
+| PostgreSQL (`db` oder eigener Server) | 5432 | `web`, `exporter` |
+| Domain Controller / LDAP-Server | LDAP 389 oder LDAPS 636 | `web` (Anmeldung, Test), `exporter` (Benutzerimport, AD-Sync) |
+| SMTP-Server | 25, 465 oder 587 | `exporter`, `web` (Test-Mail) |
+| [Relay in der DMZ](#relay-dmz) | HTTPS (`…/push`) | `exporter` |
+| Syslog-Server bzw. SIEM | UDP, TCP oder TLS, Port nach Einstellung | `web`, `exporter`; mit `compose.logging.yaml` auch `fluent-bit` |
+
+Dazu kommen DNS-Abfragen über den Resolver des Docker-Hosts. Der Container `db` und das Relay bauen selbst keine Verbindungen auf. Das Relay nimmt nur Verbindungen an, von Kartei (`/push`) und von den Telefonen.
+
+**Proxy:** Die HTTPS-Ziele beachten `HTTPS_PROXY` und `NO_PROXY` aus der `.env`. Interne HTTPS-Ziele wie das Relay gehören dann in `NO_PROXY`. LDAP, SMTP und Syslog gehen nicht über einen HTTP-Proxy und brauchen direkte Freigaben.
+
+**Der Browser** spricht nur mit Kartei selbst; die Content-Security-Policy lässt nichts anderes zu. Ausnahmen sind die Anmeldung bei Benachrichtigungen, die der Browser direkt mit seinem Push-Dienst erledigt, und Links wie der Karten-Link, die erst beim Klick öffnen.
+
 ### Erste Anmeldung
 
 1. Öffne `https://kartei.example.de` und melde dich mit `ADMIN_USERNAME` und `ADMIN_PASSWORD` an.
@@ -992,7 +1029,7 @@ Unter *Vorschläge* schickt *Bearbeiter per E-Mail über neue und geänderte Vor
 Benutzer bekommen neue Prüfungen, wartende Vorschläge und Entscheidungen über ihre Vorschläge auch als Benachrichtigung aufs Handy oder in den Browser (siehe Benutzerhandbuch, *Benachrichtigungen*). Einzurichten ist nichts: Kartei erzeugt seinen Schlüssel (VAPID) beim ersten Gebrauch selbst und speichert ihn verschlüsselt. Es braucht kein Apple- oder Google-Konto. Voraussetzungen:
 
 - Kartei läuft über **HTTPS**. Browser erlauben Benachrichtigungen nur dort (Ausnahme: `localhost`).
-- Der Container `exporter` erreicht die Push-Dienste der Browser per HTTPS (Port 443): `fcm.googleapis.com` (Chrome, Edge auf Android), `*.push.apple.com` (Safari, iPhone), `*.push.services.mozilla.com` (Firefox), `*.notify.windows.com` (Edge unter Windows). Über einen Proxy: Umgebungsvariable `HTTPS_PROXY` am Container `exporter` setzen.
+- Der Container `exporter` erreicht die Push-Dienste der Browser per HTTPS (Port 443): `fcm.googleapis.com` (Chrome, Edge auf Android), `*.push.apple.com` (Safari, iPhone), `*.push.services.mozilla.com` (Firefox), `*.notify.windows.com` (Edge unter Windows). Über einen Proxy: `HTTPS_PROXY` in der `.env` setzen (siehe [Netzwerk und Firewall](#netzwerk-und-firewall)).
 - Die *Öffentliche Adresse* (*Einstellungen → Allgemein*) sollte gesetzt sein. Apple verlangt eine Kontaktangabe und bekommt diese Adresse (sonst die Absenderadresse der E-Mails).
 
 Kartei schickt nur Anzahl und Link, keine Kontaktdaten. Die Nachricht ist bis zum Gerät verschlüsselt, der Push-Dienst kann sie nicht lesen. Benachrichtigungen gehen unabhängig vom E-Mail-Versand raus, auch wenn die Vorschlags-E-Mails aus sind; Erinnerungen gibt es nur per E-Mail. Wird `SECRET_KEY` geändert, erzeugt Kartei einen neuen Schlüssel, und die Geräte melden sich beim nächsten Öffnen der App neu an.
