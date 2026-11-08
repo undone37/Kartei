@@ -120,8 +120,8 @@ def reassign(record):
     if name is None:
         finish(Review.objects.filter(pk=rv.pk), "cancelled")
     elif rv.assignee_id != active[name].id:
-        rv.assignee, rv.notified_at = active[name], None  # the new responsible gets mailed
-        rv.save(update_fields=["assignee", "notified_at"])
+        rv.assignee, rv.notified_at, rv.pushed_at = active[name], None, None  # the new responsible gets mailed and pushed
+        rv.save(update_fields=["assignee", "notified_at", "pushed_at"])
 
 
 # ---------------------------------------------------------------- mail

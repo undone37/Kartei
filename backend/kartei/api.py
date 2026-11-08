@@ -23,7 +23,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from . import (adsync, audit, backup, batch, exports, gdpr, graph, handover, importer, ldapusers, monitoring, oidc, relaypush,
+from . import (adsync, audit, backup, batch, exports, gdpr, graph, handover, importer, ldapusers, monitoring, oidc, push, relaypush,
                reviews, syslog, totp)
 from .msg import msg
 from .net import client_ip, count_failure
@@ -167,7 +167,7 @@ def ser_user(u):
     p = profile_of(u)
     return {"id": u.id, "username": u.username, "first_name": u.first_name, "last_name": u.last_name,
             "email": u.email, "role": Role.ADMIN if u.is_superuser else p.role, "language": p.language,
-            "list_sort": p.list_sort, "name_order": p.name_order,
+            "list_sort": p.list_sort, "name_order": p.name_order, "push_off": p.push_off,
             "source": p.source, "is_active": u.is_active, "is_superuser": u.is_superuser, "totp": bool(p.totp_secret_enc),
             "totp_due": totp_due(u), "last_login": u.last_login.isoformat() if u.last_login else None}
 
@@ -319,6 +319,22 @@ def _second_factor(user, p, code):
         p.totp_failures, p.totp_failed_at = p.totp_failures + 1, timezone.now()
         p.save(update_fields=["totp_failures", "totp_failed_at"])
         return False
+
+
+@needs(READ)
+def my_push(request):
+    """Web Push on this device. GET: the server key to subscribe with. POST: keep the browser's subscription
+    (PushSubscription.toJSON()), or {"test": true} to send a test to all own devices. DELETE {endpoint}: stop."""
+    if request.method == "GET":
+        return JsonResponse({"key": push.public_key()})
+    if request.method == "DELETE":
+        push.unsubscribe(request.user, request.json.get("endpoint", ""))
+        return JsonResponse({})
+    if request.json.get("test"):
+        return JsonResponse({"sent": push.send_test(request.user)})
+    if not push.subscribe(request.user, request.json):
+        return err("validation", fields={"endpoint": "invalid"})
+    return JsonResponse({})
 
 
 @needs(READ)
@@ -798,6 +814,11 @@ def update_me(request):
                 return err("validation", fields={key: "invalid"})
             setattr(p, key, body[key])
             p.save(update_fields=[key])
+    if "push_off" in body:
+        if not isinstance(body["push_off"], list) or any(k not in push.KINDS for k in body["push_off"]):
+            return err("validation", fields={"push_off": "invalid"})
+        p.push_off = sorted(set(body["push_off"]))
+        p.save(update_fields=["push_off"])
     if "password" in body:
         if p.source != "local":
             return err("forbidden", 403)

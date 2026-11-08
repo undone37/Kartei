@@ -96,6 +96,8 @@ export interface User {
   /** contact list order and how person names are shown, per user */
   list_sort?: 'last_name' | 'first_name' | 'updated' | 'created'
   name_order?: 'first_last' | 'last_first'
+  /** Web Push kinds switched off (on all devices); empty = all on */
+  push_off?: PushKind[]
   source: 'local' | 'ldap' | 'scim'
   is_active: boolean
   is_superuser: boolean
@@ -119,6 +121,8 @@ export interface AuditEntry {
   /** client address; only in the admin audit log */
   ip?: string | null
 }
+
+export type PushKind = 'review' | 'proposals' | 'decided'
 
 export const RANK: Record<Role, number> = { read: 0, maintainer: 1, admin: 2 }
 

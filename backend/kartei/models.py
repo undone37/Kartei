@@ -47,6 +47,7 @@ class Profile(models.Model):
     # how this user's contact list is sorted and how person names are shown (per user, on every device)
     list_sort = models.CharField(max_length=12, default="last_name")  # last_name | first_name | updated | created
     name_order = models.CharField(max_length=12, default="first_last")  # first_last ("Anna Müller") | last_first
+    push_off = models.JSONField(default=list, blank=True)  # Web Push kinds this user doesn't want (push.KINDS); [] = all
     source = models.CharField(max_length=5, choices=[("local", "local"), ("ldap", "ldap"), ("scim", "scim")], default="local")
     recent = models.JSONField(default=list, blank=True)  # record uids, last viewed first (dashboard)
     favorites = models.JSONField(default=list, blank=True)  # record uids, starred first
@@ -175,6 +176,8 @@ class Settings(models.Model):
     review_remind_days = models.PositiveSmallIntegerField(default=0)  # 0 = no reminders
     proposal_notify = models.BooleanField(default=False)  # mail new/edited proposals to maintainers
     proposal_notify_to = models.CharField(max_length=500, blank=True)  # comma-separated; empty = all maintainers/admins
+    vapid_private_enc = models.TextField(blank=True)  # Web Push signing key (PEM), made on first use, see push.py
+    vapid_private = _secret("vapid_private_enc")
     ldap_users_status = models.JSONField(default=dict, blank=True)  # last AD user import (daily, see ldapusers)
     # the import stops instead of deactivating more than this share of the directory users (a renamed group, a typo)
     ldap_users_max_deactivate_percent = models.PositiveSmallIntegerField(default=20)
@@ -425,6 +428,7 @@ class Review(models.Model):
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     notified_at = models.DateTimeField(null=True, blank=True)  # last mail, first digest or reminder
     reminders = models.PositiveSmallIntegerField(default=0)
+    pushed_at = models.DateTimeField(null=True, blank=True)  # looked at by push.deliver_due (sent or nobody subscribed)
     done_at = models.DateTimeField(null=True, blank=True, db_index=True)
     outcome = models.CharField(max_length=10, blank=True)  # confirmed / proposed / cancelled
 
@@ -449,6 +453,7 @@ class Proposal(models.Model):
     decision_note = models.TextField(blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     notified_at = models.DateTimeField(null=True, blank=True)  # mailed to maintainers; again if updated_at is newer
+    pushed_at = models.DateTimeField(null=True, blank=True)  # like notified_at, for Web Push
 
 
     @property
@@ -535,6 +540,15 @@ class WebhookDelivery(models.Model):
     attempts = models.PositiveSmallIntegerField(default=0)
     next_at = models.DateTimeField(db_index=True)
     last_error = models.CharField(max_length=300, blank=True)
+
+
+class PushSubscription(models.Model):
+    """A browser (usually the installed app on a phone) that gets Web Push notifications for its user."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="push_subscriptions")
+    endpoint = models.URLField(max_length=1000, unique=True)
+    p256dh = models.CharField(max_length=100)
+    auth = models.CharField(max_length=40)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class SavedFilter(models.Model):

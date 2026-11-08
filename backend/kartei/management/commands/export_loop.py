@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 from django.utils import timezone
 
-from kartei import adsync, backup, exports, gdpr, graph, ldapusers, quality, relaypush, reviews, webhooks
+from kartei import adsync, backup, exports, gdpr, graph, ldapusers, push, quality, relaypush, reviews, webhooks
 from kartei.models import AuditEntry, ExportProfile, Record, Settings
 
 log = logging.getLogger(__name__)
@@ -53,6 +53,7 @@ STEPS = [
     ("backup", lambda s: backup.due(s) and log.info("backup: %s", backup.run())),
     ("quality snapshot", _logged("quality snapshot", quality.take_snapshot)),
     ("webhooks", lambda s: (webhooks.deliver_due(), webhooks.cleanup())),
+    ("web push", lambda s: push.deliver_due()),
 ]
 
 
@@ -112,3 +113,7 @@ class Command(BaseCommand):
                     webhooks.deliver_due()  # every POLL seconds, not only per export interval
                 except Exception:
                     log.exception("webhook delivery failed")
+                try:
+                    push.deliver_due()  # new proposals come at any time, not only per export interval
+                except Exception:
+                    log.exception("web push failed")
