@@ -77,6 +77,22 @@ Verlangt dein Administrator die Zwei-Faktor-Anmeldung, zeigt Kartei diese Einric
 
 Bei der Anmeldung fragt Kartei nach dem Passwort den Code ab. Mit dem aktuellen Code (oder einem Wiederherstellungscode) holst du dir auf derselben Seite **Neue Wiederherstellungscodes** oder **schaltest** die Zwei-Faktor-Anmeldung **aus**. Handy und Codes verloren? Die Administration kann sie zurücksetzen.
 
+### Benachrichtigungen {#benachrichtigungen}
+
+Kartei kann dir auf dem Handy oder Computer Bescheid geben, ohne dass du nachsehen musst:
+
+- **Kontakte zu prüfen**: dir wurden Prüfungen zugewiesen.
+- **Vorschläge warten auf Entscheidung**: nur für Bearbeiter und Admins, ohne deine eigenen.
+- **Entscheidungen über deine Vorschläge**: angenommen oder abgelehnt.
+
+Nach der Anmeldung fragt dein Browser einmal, ob Kartei Benachrichtigungen schicken darf. Sagst du **Zulassen**, bist du fertig. Auf dem iPhone und in Firefox oder Safari kommt die Frage erst beim ersten Tippen oder Klicken.
+
+Unter **Mein Konto** → **Benachrichtigungen** schaltest du sie für das Gerät ein oder aus, schickst dir einen **Test** und wählst, worüber du benachrichtigt wirst. Die Auswahl gilt für alle deine Geräte. Eine Benachrichtigung enthält nur die Anzahl und einen Link, keine Kontaktdaten. Ein Tipp darauf öffnet die passende Liste.
+
+- **iPhone:** nur in der [installierten App](#als-app-installieren) (iOS 16.4 oder neuer), nicht in Safari selbst.
+- **Abmelden** schaltet die Benachrichtigungen auf diesem Gerät aus.
+- Hast du sie im Browser blockiert, erlaubst du sie in den Einstellungen des Browsers bzw. des Telefons wieder.
+
 ### Der Bildschirmaufbau
 
 - **Oben:** Suchfeld, der Knopf **Jetzt synchronisieren**, für Bearbeiter der Knopf **Neu**, und das Benutzermenü.
@@ -286,7 +302,7 @@ Kontaktdaten veralten: Leute wechseln die Stelle, Firmen ziehen um oder geben au
 
 ### So wirst du benachrichtigt
 
-Sind Prüfungen fällig, bekommst du **eine E-Mail** mit einer Liste deiner Kontakte und direkten Links. Bleiben sie liegen, schickt Kartei eventuell später eine Erinnerung. Wann Prüfungen starten und ob erinnert wird, legt die Administration fest.
+Sind Prüfungen fällig, bekommst du **eine E-Mail** mit einer Liste deiner Kontakte und direkten Links und, wenn du sie eingeschaltet hast, eine [Benachrichtigung](#benachrichtigungen) auf dem Handy. Bleiben sie liegen, schickt Kartei eventuell später eine Erinnerung. Wann Prüfungen starten und ob erinnert wird, legt die Administration fest.
 
 In Kartei zeigt die Startseite **… meiner Kontakte zu prüfen**, und im Listenumschalter erscheint **Zu prüfen** mit der Zahl der offenen Prüfungen.
 

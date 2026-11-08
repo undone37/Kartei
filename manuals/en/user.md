@@ -77,6 +77,22 @@ If your administrator requires two-factor sign-in, Kartei shows this setup right
 
 When signing in, Kartei asks for the code after the password. With the current code (or a recovery code) you can get **New recovery codes** or **Switch off** the two-factor sign-in on the same page. Lost your phone and the codes? Your administrator can reset it.
 
+### Notifications {#notifications}
+
+Kartei can let you know on your phone or computer, without you having to check:
+
+- **Contacts to review**: reviews were assigned to you.
+- **Proposals awaiting a decision**: only for maintainers and admins, without your own.
+- **Decisions on your proposals**: accepted or rejected.
+
+After you sign in, your browser asks once whether Kartei may send notifications. Choose **Allow** and you're done. On an iPhone and in Firefox or Safari the question only comes at the first tap or click.
+
+Under **My account** → **Notifications** you switch them on or off for the device, send yourself a **test**, and choose what you're notified about. The choice applies to all your devices. A notification only contains the count and a link, no contact data. Tapping it opens the matching list.
+
+- **iPhone:** only in the [installed app](#installing-the-app) (iOS 16.4 or newer), not in Safari itself.
+- **Signing out** switches notifications off on that device.
+- If you blocked them in the browser, allow them again in the browser's or phone's settings.
+
 ### The screen layout
 
 - **Top bar:** search box, the sync button (**Sync now**), for maintainers the **New** button, and the user menu.
@@ -286,7 +302,7 @@ Contact details go out of date: people change jobs, companies move or close down
 
 ### How you are notified
 
-When reviews are due, you get **one email** listing your contacts with direct links. If you don't get to them, Kartei may send a reminder later. Your administrator decides when reviews start and whether reminders are sent.
+When reviews are due, you get **one email** listing your contacts with direct links and, if you switched them on, a [notification](#notifications) on your phone. If you don't get to them, Kartei may send a reminder later. Your administrator decides when reviews start and whether reminders are sent.
 
 In Kartei, the dashboard shows **… of my contacts to review**, and the list switch shows **To review** with the number of open reviews.
 

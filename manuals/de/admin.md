@@ -987,6 +987,16 @@ Ohne E-Mail-Adresse oder eingerichteten Versand sind die Prüfungen trotzdem in 
 
 Unter *Vorschläge* schickt *Bearbeiter per E-Mail über neue und geänderte Vorschläge informieren* den Bearbeitern eine Sammel-E-Mail mit neuen und geänderten Vorschlägen. *Empfänger*: kommagetrennte Adressen; leer = alle aktiven Bearbeiter und Admins mit E-Mail-Adresse (niemand bekommt Post zu den eigenen Vorschlägen).
 
+### Benachrichtigungen (Push)
+
+Benutzer bekommen neue Prüfungen, wartende Vorschläge und Entscheidungen über ihre Vorschläge auch als Benachrichtigung aufs Handy oder in den Browser (siehe Benutzerhandbuch, *Benachrichtigungen*). Einzurichten ist nichts: Kartei erzeugt seinen Schlüssel (VAPID) beim ersten Gebrauch selbst und speichert ihn verschlüsselt. Es braucht kein Apple- oder Google-Konto. Voraussetzungen:
+
+- Kartei läuft über **HTTPS**. Browser erlauben Benachrichtigungen nur dort (Ausnahme: `localhost`).
+- Der Container `exporter` erreicht die Push-Dienste der Browser per HTTPS (Port 443): `fcm.googleapis.com` (Chrome, Edge auf Android), `*.push.apple.com` (Safari, iPhone), `*.push.services.mozilla.com` (Firefox), `*.notify.windows.com` (Edge unter Windows). Über einen Proxy: Umgebungsvariable `HTTPS_PROXY` am Container `exporter` setzen.
+- Die *Öffentliche Adresse* (*Einstellungen → Allgemein*) sollte gesetzt sein. Apple verlangt eine Kontaktangabe und bekommt diese Adresse (sonst die Absenderadresse der E-Mails).
+
+Kartei schickt nur Anzahl und Link, keine Kontaktdaten. Die Nachricht ist bis zum Gerät verschlüsselt, der Push-Dienst kann sie nicht lesen. Benachrichtigungen gehen unabhängig vom E-Mail-Versand raus, auch wenn die Vorschlags-E-Mails aus sind; Erinnerungen gibt es nur per E-Mail. Wird `SECRET_KEY` geändert, erzeugt Kartei einen neuen Schlüssel, und die Geräte melden sich beim nächsten Öffnen der App neu an.
+
 ## E-Mail
 
 Unter *Einstellungen → E-Mail* legst du fest, wie Kartei seine E-Mails (neue Prüfungen, Erinnerungen, Vorschläge) verschickt und was darin steht. Solange kein Versandweg vollständig eingerichtet ist, verschickt Kartei keine E-Mails.

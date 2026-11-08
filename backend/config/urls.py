@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/changes", api.changes),
     path("api/me", M(PATCH=api.update_me)),
     path("api/me/totp", M(POST=api.my_totp)),
+    path("api/me/push", M(GET=api.my_push, POST=api.my_push, DELETE=api.my_push)),
     path("api/oidc/start", api.oidc_start),
     path("api/oidc/callback", api.oidc_callback),
     re_path(r"^scim/v2/(?P<path>.*)$", scim.scim),

@@ -858,6 +858,24 @@ test.describe('order and names', () => {
   })
 })
 
+test.describe('notifications', () => {
+  test('a user switches off one kind of notification; it stays after a reload', async ({ as }) => {
+    const page = await as('kkramer')
+    await page.goto('/account')
+    try {
+      const box = page.getByLabel('decisions on my proposals')
+      await expect(box).toBeChecked() // all on by default
+      await box.uncheck()
+      await expect.poll(async () => (await page.api('get', '/api/session')).user.push_off).toEqual(['decided'])
+      await page.reload()
+      await expect(page.getByLabel('decisions on my proposals')).not.toBeChecked()
+      await expect(page.getByLabel("contacts I'm asked to review")).toBeChecked()
+    } finally {
+      await page.api('patch', '/api/me', { push_off: [] })
+    }
+  })
+})
+
 test.describe('deleting', () => {
   test('delete asks first; the contact goes to the recycle bin and comes back', async ({ as }) => {
     const page = await as('mmuster')

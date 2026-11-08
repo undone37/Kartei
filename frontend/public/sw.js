@@ -48,3 +48,23 @@ self.addEventListener('fetch', (e) => {
     }).catch(async () => (await caches.match('/')) || Response.error()))
   }
 })
+
+// Web Push (see backend kartei/push.py): {title, body, tag, url}; only a count and a link, no contact data
+self.addEventListener('push', (e) => {
+  let d = {}
+  try { d = e.data ? e.data.json() : {} } catch { /* not ours: show the default */ }
+  e.waitUntil(self.registration.showNotification(d.title || 'Kartei', {
+    body: d.body || '', tag: d.tag, data: { url: d.url || '/' }, icon: '/icon-192.png',
+  }))
+})
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  const url = new URL(e.notification.data?.url || '/', self.location.origin)
+  if (url.origin !== self.location.origin) return
+  e.waitUntil((async () => {
+    const open = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    if (open[0]) return (await open[0].focus()).navigate(url.href)
+    return self.clients.openWindow(url.href)
+  })())
+})

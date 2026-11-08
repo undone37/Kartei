@@ -6,6 +6,8 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ### Added
 
+- **Notifications:** Kartei notifies on the phone or in the browser about contacts to review, proposals awaiting a decision (maintainers and admins) and decisions on your own proposals. The browser asks right after signing in; *My account → Notifications* switches them on or off per device, sends a test and chooses the kinds (all on by default). Only a count and a link, no contact data, end-to-end encrypted (Web Push, no Apple or Google account needed). iPhone: in the installed app, iOS 16.4 or newer. Needs HTTPS and outbound access to the browsers' push services, see the admin manual.
+
 - **Logo on the phone list:** *Settings → General → Logo on the phone list*: the Kartei logo, the organisation's own (PNG/JPEG upload) or none, in the PDF and when printing.
 - **Order and names per user:** the sort icon above the list sorts it by last name, first name, last change or last created, and shows person names as "First Last" or "Last, First" throughout Kartei. Saved with the account (same on every device, only for that user).
 

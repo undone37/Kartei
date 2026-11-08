@@ -2,9 +2,10 @@ import { del as idbDel, get as idbGet, set as idbSet } from 'idb-keyval'
 import { ApiError, del, get, onUnauthorized, patch, post } from './api'
 import { setLang, t } from './i18n.svelte'
 import { clearDrafts } from './drafts'
+import { disablePush, startPush } from './push'
 import { buildIndex, displayName, type Indexed, type ListSort, type NameOrder } from './search'
 import { RANK, type Field, type Kind, type Section, type Lang, type ListState, type Proposal, type Rec, type Review,
-         type SavedFilter, type User } from './types'
+         type PushKind, type SavedFilter, type User } from './types'
 
 // bumped when records gain a property the delta sync wouldn't backfill (2: created_at)
 const CACHE_KEY = 'kartei:boot2'
@@ -155,6 +156,7 @@ class Store {
     if (this.user.totp_due) return void (this.status = 'totp')
     await this.sync()
     this.status = 'ready'
+    startPush()
   }
 
   private apply(s: Snapshot) {
@@ -206,10 +208,11 @@ class Store {
     if (user.totp_due) return void (this.status = 'totp')
     await this.sync()
     this.status = 'ready'
+    startPush()
   }
 
-  /** list order / name display: applied at once, then saved with the user (on every device the same) */
-  async setListPrefs(prefs: { list_sort?: ListSort; name_order?: NameOrder }) {
+  /** list order / name display / notification kinds: applied at once, then saved with the user (on every device the same) */
+  async setListPrefs(prefs: { list_sort?: ListSort; name_order?: NameOrder; push_off?: PushKind[] }) {
     if (!this.user) return
     const before = this.user
     this.user = { ...this.user, ...prefs }
@@ -223,6 +226,7 @@ class Store {
   }
 
   async logout() {
+    await disablePush().catch(() => {}) // signed out on purpose: this device gets nothing more for this user
     await post('/api/logout').catch(() => {})
     clearDrafts() // signing out on purpose: no unsaved input stays in the tab (an expired session keeps it)
     this.toLogin()

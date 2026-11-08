@@ -987,6 +987,16 @@ Without an email address or a configured email transport, the reviews are still 
 
 Under *Proposals*, *Email maintainers about new and edited proposals* sends maintainers a digest of new and edited proposals. *Recipients*: comma-separated addresses; empty = all active maintainers and admins with an email address (nobody gets mail about their own proposals).
 
+### Notifications (push)
+
+Users also get new reviews, waiting proposals and decisions on their proposals as notifications on their phone or in the browser (see the user manual, *Notifications*). There is nothing to set up: Kartei makes its own key (VAPID) on first use and stores it encrypted. No Apple or Google account is needed. Requirements:
+
+- Kartei runs over **HTTPS**. Browsers only allow notifications there (except `localhost`).
+- The `exporter` container reaches the browsers' push services over HTTPS (port 443): `fcm.googleapis.com` (Chrome, Edge on Android), `*.push.apple.com` (Safari, iPhone), `*.push.services.mozilla.com` (Firefox), `*.notify.windows.com` (Edge on Windows). Through a proxy: set the `HTTPS_PROXY` environment variable on the `exporter` container.
+- The *Public address* (*Settings → General*) should be set. Apple requires contact details and gets this address (otherwise the email sender address).
+
+Kartei sends only a count and a link, no contact data. The message is encrypted all the way to the device, so the push service can't read it. Notifications go out independently of email, also when proposal emails are off; reminders are email only. If `SECRET_KEY` changes, Kartei makes a new key, and devices subscribe again the next time the app is opened.
+
 ## Email
 
 *Settings → Email* sets how Kartei sends its emails (new reviews, reminders, proposals) and what they say. As long as no transport is complete, Kartei sends no emails.
