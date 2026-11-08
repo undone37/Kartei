@@ -15,11 +15,12 @@ const VERSION = arg('version', '').replace(/^v/, '') || (() => {
   try { return execFileSync('git', ['describe', '--tags', '--always'], { cwd: ROOT }).toString().trim().replace(/^v/, '') } catch { return 'dev' }
 })()
 
+// file names get the version: Kartei-User-manual-EN-1.2.0.pdf (release assets of different versions stay apart)
 const MANUALS = [
-  { lang: 'de', role: 'user', file: 'Kartei-Benutzerhandbuch-DE.pdf', title: 'Benutzerhandbuch', sub: 'Kontakte finden, prüfen und pflegen – für die Rollen Nur Lesen und Bearbeiter' },
-  { lang: 'de', role: 'admin', file: 'Kartei-Administrationshandbuch-DE.pdf', title: 'Administrationshandbuch', sub: 'Installation, Einrichtung und Betrieb' },
-  { lang: 'en', role: 'user', file: 'Kartei-User-manual-EN.pdf', title: 'User manual', sub: 'Finding, reviewing and maintaining contacts – for the Read only and Maintainer roles' },
-  { lang: 'en', role: 'admin', file: 'Kartei-Administrator-manual-EN.pdf', title: 'Administrator manual', sub: 'Installation, configuration and operation' },
+  { lang: 'de', role: 'user', file: 'Kartei-Benutzerhandbuch-DE', title: 'Benutzerhandbuch', sub: 'Kontakte finden, prüfen und pflegen – für die Rollen Nur Lesen und Bearbeiter' },
+  { lang: 'de', role: 'admin', file: 'Kartei-Administrationshandbuch-DE', title: 'Administrationshandbuch', sub: 'Installation, Einrichtung und Betrieb' },
+  { lang: 'en', role: 'user', file: 'Kartei-User-manual-EN', title: 'User manual', sub: 'Finding, reviewing and maintaining contacts – for the Read only and Maintainer roles' },
+  { lang: 'en', role: 'admin', file: 'Kartei-Administrator-manual-EN', title: 'Administrator manual', sub: 'Installation, configuration and operation' },
 ]
 const WORDS = {
   de: { chapter: 'Kapitel', contents: 'Inhalt', about: 'Über dieses Handbuch', page: 'Seite', of: 'von', version: 'Version', doc: 'Dokumentation' },
@@ -159,8 +160,9 @@ try {
     execFileSync('pdftotext', [body1, '-']).toString().split('\f').forEach((text, p) => {
       for (const [, i] of text.matchAll(/QQ(\d+)QQ/g)) pages[i] ??= p + 1
     })
-    await pdf(page, doc(pages, false), join(OUT, m.file))
-    console.log(join(OUT, m.file))
+    const out = join(OUT, `${m.file}-${VERSION}.pdf`)
+    await pdf(page, doc(pages, false), out)
+    console.log(out)
   }
 } finally {
   await browser.close()

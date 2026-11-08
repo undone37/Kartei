@@ -48,7 +48,17 @@ With a development server on port 8000 on a fresh, seeded database (`seed_demo -
 
 The animation in the README (`manuals/img/en/demo.webp`) comes from `npm run demo-video` on the same kind of database (needs ffmpeg). It changes one job title, so reseed before running it again.
 
-The manuals are published to GitHub Pages by the *Documentation* workflow (`.github/workflows/pages.yml`) with every release. `cd frontend && npm run manuals-pdf` builds the PDF versions into `dist/` (needs pandoc and poppler-utils).
+`cd frontend && npm run manuals-pdf` builds the PDF versions into `dist/` (needs pandoc and poppler-utils).
+
+### Documentation site
+
+The site (https://undone37.github.io/Kartei/) is built with [Astro Starlight](https://starlight.astro.build/) in `docs-site/`. The *Documentation* workflow (`.github/workflows/pages.yml`) publishes it with every release; between releases: *Actions → Documentation → Run workflow*.
+
+- The manuals stay one Markdown file each in `manuals/{en,de}/{user,admin}.md`, because the PDFs use them too. `docs-site/src/manuals.ts` splits each one into an overview page and one page per chapter (`##`) when the site is built. It also turns the Kramdown parts (`{: .tip}`, `{: .warn}`, `{#id}`, image widths) into Starlight's format and points `#anchor` links to the chapter that holds the heading.
+- English and German need the same chapters in the same order: the pages use the English chapter's slug in both languages, so the language switch stays on the chapter. The build fails otherwise.
+- The old one-page addresses (`/de/admin.html#reverse-proxy`) forward to the right chapter.
+- The start pages are `docs-site/src/content/docs/index.mdx` and `de/index.mdx`, and the Kartei look is in `docs-site/src/styles/kartei.css`.
+- `cd docs-site && npm ci && npm run dev` shows the site at http://localhost:4321/Kartei/. `npm run build && npm run check` builds it and checks every internal link and anchor (CI does the same).
 
 ## Making a change
 

@@ -4,6 +4,11 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Changed
+
+- **Documentation site:** rebuilt with Astro Starlight in the Kartei look. Full-text search across all manuals (German and English separately), one page per chapter with "On this page" navigation, a language switch that stays on the chapter, a new start page, light and dark theme. Old links such as `/de/admin.html#reverse-proxy` forward to the right chapter. The manuals stay in `manuals/` (the PDFs are unchanged).
+- **PDF manuals:** the release files carry the version in their name, e.g. `Kartei-User-manual-EN-0.9.0.pdf`, so downloads of different versions stay apart.
+
 ## [0.8.0-beta] – 2026-11-08
 
 Kartei now reports what needs your attention:

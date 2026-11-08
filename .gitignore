@@ -19,3 +19,4 @@ trainings/
 dist/
 frontend/test-results/
 frontend/playwright-report/
+docs-site/.astro/

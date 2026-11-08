@@ -20,6 +20,12 @@ updates:
       - dependency-name: typescript
         versions: [">=7"]
 
+  - package-ecosystem: npm
+    directory: /docs-site
+    schedule: { interval: weekly }
+    groups:
+      docs: { patterns: ["*"], update-types: [minor, patch] }
+
   - package-ecosystem: docker
     directory: /
     schedule: { interval: weekly }

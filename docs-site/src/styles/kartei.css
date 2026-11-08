@@ -1,0 +1,87 @@
+/* Kartei look for Starlight: the design tokens of the web app (frontend/src/app.css), zinc greys and indigo */
+:root {
+  --sl-font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --sl-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sl-content-width: 50rem;
+  /* dark */
+  --sl-color-accent-low: #1e1b4b;
+  --sl-color-accent: #818cf8;
+  --sl-color-accent-high: #c7d2fe;
+  --sl-color-white: #fafafa;
+  --sl-color-gray-1: #ededf0;
+  --sl-color-gray-2: #d4d4d8;
+  --sl-color-gray-3: #a1a1aa;
+  --sl-color-gray-4: #71717a;
+  --sl-color-gray-5: #2a2a31;
+  --sl-color-gray-6: #17171b;
+  --sl-color-black: #0f0f12;
+  --kt-shadow: 0 2px 4px rgb(0 0 0 / 0.4), 0 24px 48px -12px rgb(0 0 0 / 0.6);
+}
+:root[data-theme='light'] {
+  --sl-color-accent-low: #eef2ff;
+  --sl-color-accent: #4f46e5;
+  --sl-color-accent-high: #3730a3;
+  --sl-color-white: #18181b;
+  --sl-color-gray-1: #27272a;
+  --sl-color-gray-2: #3f3f46;
+  --sl-color-gray-3: #52525b;
+  --sl-color-gray-4: #71717a;
+  --sl-color-gray-5: #e4e4e7;
+  --sl-color-gray-6: #f2f2f4;
+  --sl-color-gray-7: #f7f7f8;
+  --sl-color-black: #ffffff;
+  --kt-shadow: 0 2px 4px rgb(0 0 0 / 0.04), 0 24px 48px -12px rgb(30 27 75 / 0.2);
+}
+
+.site-title { gap: 0.6rem; font-weight: 650; letter-spacing: -0.02em; }
+.site-title img { height: 1.8rem; width: auto; }
+.sl-markdown-content h2, .sl-markdown-content h3, h1#_top { letter-spacing: -0.015em; }
+
+/* screenshots: framed like the app's cards, a click enlarges them (script in astro.config.mjs) */
+.sl-markdown-content img:not(.kt-shot img) {
+  border: 1px solid var(--sl-color-gray-5); border-radius: 0.6rem; box-shadow: var(--kt-shadow); cursor: zoom-in;
+}
+.sl-markdown-content table { display: table; width: 100%; font-size: var(--sl-text-sm); }
+.sl-markdown-content kbd {
+  font: 0.8em var(--sl-font-mono); padding: 0.05em 0.4em; border: 1px solid var(--sl-color-gray-5); border-bottom-width: 2px;
+  border-radius: 0.3rem; background: var(--sl-color-black);
+}
+
+/* start page: the demo in a browser window, cards with a lift */
+.hero > .hero-html { width: 100%; }
+@media (min-width: 50rem) {
+  .hero { grid-template-columns: 5fr 6fr; gap: 4%; padding-block: clamp(2rem, 6vw, 5rem); }
+  .hero > .hero-html { width: 100%; }
+}
+.hero h1 { letter-spacing: -0.03em; }
+.kt-shot {
+  margin: 0; border-radius: 0.8rem; overflow: hidden; border: 1px solid var(--sl-color-gray-5); background: var(--sl-color-black);
+  box-shadow: var(--kt-shadow);
+}
+.kt-shot::before {
+  content: ''; display: block; height: 1.6rem; border-bottom: 1px solid var(--sl-color-gray-5);
+  background: radial-gradient(circle at 1rem 50%, #f87171 0.25rem, transparent 0.28rem),
+    radial-gradient(circle at 2rem 50%, #fbbf24 0.25rem, transparent 0.28rem),
+    radial-gradient(circle at 3rem 50%, #34d399 0.25rem, transparent 0.28rem), var(--sl-color-gray-6);
+}
+.kt-shot img { display: block; width: 100%; height: auto; }
+.card { border-radius: 0.8rem; transition: border-color 0.15s, transform 0.15s; }
+.card:hover { border-color: var(--sl-color-accent); transform: translateY(-2px); }
+.card { --sl-card-border: var(--sl-color-accent); --sl-card-bg: var(--sl-color-accent-low); }  /* one colour, not Starlight's rainbow */
+.card .icon { border-radius: 0.4rem; color: var(--sl-color-accent-high); }
+.sl-link-card { border-radius: 0.8rem; }
+
+/* image zoom: a full-window dialog, the image centred (Starlight's reset sets margin: 0, which the browser's
+   own centring of dialogs relies on) */
+.kt-zoom[open] {
+  display: grid; place-items: center; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0;
+  padding: 2vmin; border: 0; background: none; cursor: zoom-out;
+}
+.kt-zoom::backdrop { background: rgb(0 0 0 / 0.8); backdrop-filter: blur(3px); }
+.kt-zoom img {
+  max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: 0.6rem;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.5);
+}
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+.sl-markdown-content h2 { font-size: var(--sl-text-h3); }
+.sl-markdown-content h3 { font-size: var(--sl-text-h4); }
