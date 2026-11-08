@@ -220,6 +220,43 @@ server {
 
 With the proxy on the same host, set `WEB_PORT=127.0.0.1:8000` so that port 8000 is not reachable from the network. Clients that could reach port 8000 directly could otherwise fake their address in `X-Forwarded-For`. If you run Kartei without a reverse proxy, set `PROXY_HEADERS=0`.
 
+### Network and firewall {#network-and-firewall}
+
+Without configuration, Kartei makes no outbound connections: no telemetry, no update check, no content loaded from the internet. Each target below only comes into play once you set up the feature, or for push, once a user allows notifications. *Test* buttons in the settings connect from the `web` container; everything else runs in the `exporter` container.
+
+**Microsoft 365 and Entra ID** (HTTPS, port 443):
+
+| Target | Purpose | Container |
+|---|---|---|
+| `login.microsoftonline.com` | Tokens for Microsoft Graph; single sign-on with Entra ID (discovery and token) | `exporter`, `web` |
+| `graph.microsoft.com` | Outlook sync (contacts into the mailboxes) and sending email through Microsoft 365 | `exporter`, `web` (test email) |
+
+With single sign-on, Kartei also sends the **browser** to the Microsoft sign-in page. SCIM works the other way round: Entra ID calls Kartei.
+
+**Other internet targets** (HTTPS, port 443):
+
+| Target | Purpose | Container |
+|---|---|---|
+| `fcm.googleapis.com`, `*.push.apple.com`, `*.push.services.mozilla.com`, `*.notify.windows.com` | Notifications (push); Kartei accepts no other addresses | `exporter`, `web` (*Send test*) |
+| The addresses under *Settings → Webhooks* | Changes to other systems | `exporter`, `web` (ping) |
+| Another OpenID Connect provider (e.g. Okta, Authentik) | Single sign-on | `web` |
+
+**In your own network:**
+
+| Target | Protocol | Container |
+|---|---|---|
+| PostgreSQL (`db` or your own server) | 5432 | `web`, `exporter` |
+| Domain controller / LDAP server | LDAP 389 or LDAPS 636 | `web` (sign-in, test), `exporter` (user import, AD sync) |
+| SMTP server | 25, 465 or 587 | `exporter`, `web` (test email) |
+| [Relay in the DMZ](#relay-dmz) | HTTPS (`…/push`) | `exporter` |
+| Syslog server or SIEM | UDP, TCP or TLS, port as configured | `web`, `exporter`; with `compose.logging.yaml` also `fluent-bit` |
+
+On top of that come DNS queries through the Docker host's resolver. The `db` container and the relay make no connections of their own. The relay only accepts connections, from Kartei (`/push`) and from the phones.
+
+**Proxy:** the HTTPS targets use `HTTPS_PROXY` and `NO_PROXY` from `.env`. Internal HTTPS targets such as the relay then belong in `NO_PROXY`. LDAP, SMTP and syslog don't go through an HTTP proxy and need direct access.
+
+**The browser** only talks to Kartei itself; the Content Security Policy allows nothing else. The exceptions are the notification sign-up, which the browser does directly with its push service, and links such as the map link, which only open on click.
+
 ### First sign-in
 
 1. Open `https://kartei.example.de` and sign in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
@@ -992,7 +1029,7 @@ Under *Proposals*, *Email maintainers about new and edited proposals* sends main
 Users also get new reviews, waiting proposals and decisions on their proposals as notifications on their phone or in the browser (see the user manual, *Notifications*). There is nothing to set up: Kartei makes its own key (VAPID) on first use and stores it encrypted. No Apple or Google account is needed. Requirements:
 
 - Kartei runs over **HTTPS**. Browsers only allow notifications there (except `localhost`).
-- The `exporter` container reaches the browsers' push services over HTTPS (port 443): `fcm.googleapis.com` (Chrome, Edge on Android), `*.push.apple.com` (Safari, iPhone), `*.push.services.mozilla.com` (Firefox), `*.notify.windows.com` (Edge on Windows). Through a proxy: set the `HTTPS_PROXY` environment variable on the `exporter` container.
+- The `exporter` container reaches the browsers' push services over HTTPS (port 443): `fcm.googleapis.com` (Chrome, Edge on Android), `*.push.apple.com` (Safari, iPhone), `*.push.services.mozilla.com` (Firefox), `*.notify.windows.com` (Edge on Windows). Through a proxy: set `HTTPS_PROXY` in `.env` (see [Network and firewall](#network-and-firewall)).
 - The *Public address* (*Settings → General*) should be set. Apple requires contact details and gets this address (otherwise the email sender address).
 
 Kartei sends only a count and a link, no contact data. The message is encrypted all the way to the device, so the push service can't read it. Notifications go out independently of email, also when proposal emails are off; reminders are email only. If `SECRET_KEY` changes, Kartei makes a new key, and devices subscribe again the next time the app is opened.

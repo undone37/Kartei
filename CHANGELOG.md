@@ -4,6 +4,10 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- **Admin manual, Network and firewall:** every target the containers connect to at runtime, i.e. Microsoft 365/Entra ID, push services, webhooks, LDAP, SMTP, relay and syslog, with protocol, container and when it applies. Includes the proxy settings (`HTTPS_PROXY`, `NO_PROXY`, now also in `.env.example`).
+
 ## [0.8.1-beta] – 2026-11-08
 
 A security update for the images, plus a new documentation site:
