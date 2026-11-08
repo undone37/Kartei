@@ -1,0 +1,53 @@
+---
+title: Kartei
+description: The contact directory for persons and companies. Manuals for users and administrators.
+template: splash
+editUrl: false
+hero:
+  tagline: The contact directory for persons and companies. One well-kept source of contact data for people, phones, Outlook, Active Directory and every other system.
+  image:
+    html: '<figure class="kt-shot"><img src="/Kartei/img/en/demo.webp" width="1080" height="675" alt="Kartei in the browser: searching, opening a person, editing the job title, showing the contact as a QR code, and filtering the list by a keyword" /></figure>'
+  actions:
+    - text: User manual
+      link: /Kartei/user/
+      icon: right-arrow
+    - text: Administrator manual
+      link: /Kartei/admin/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/undone37/Kartei
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
+
+<CardGrid>
+  <Card title="Found in an instant" icon="magnifier">
+    The whole directory is in the browser: search names, companies, phone numbers in any format and every field. Nested filters, saved lists, favorites, and it starts offline as an installed app.
+  </Card>
+  <Card title="Kept up to date" icon="approve-check">
+    Every contact has a responsible colleague who reviews it regularly. Read-only users propose changes, maintainers decide. Notifications on the phone, a data-quality trend and retention rules.
+  </Card>
+  <Card title="On every phone" icon="phone">
+    Contacts in the Outlook app, as CardDAV address books and as the phonebook of desk phones. Phone systems ask Kartei who is calling.
+  </Card>
+  <Card title="In sync with your systems" icon="random">
+    Active Directory, Exchange Online, single sign-on (OpenID Connect, SCIM), LDAP, CSV/XLSX exports, webhooks and a REST API.
+  </Card>
+  <Card title="Your own fields" icon="list-format">
+    Admins define fields, options, validation and who sees what, all in the web interface, in German and English.
+  </Card>
+  <Card title="Self-hosted and open" icon="server">
+    Docker and PostgreSQL, daily backups with a restore test, monitoring endpoints and an audit log. Free software under the AGPL.
+  </Card>
+</CardGrid>
+
+## Manuals
+
+<CardGrid>
+  <LinkCard title="User manual" href="/Kartei/user/" description="Finding, viewing and reviewing contacts; editing for the Maintainer role." />
+  <LinkCard title="Administrator manual" href="/Kartei/admin/" description="Installation, settings, sign-in, syncs, exports and operation." />
+</CardGrid>
+
+Also available: the manuals as **PDF** with every [release](https://github.com/undone37/Kartei/releases/latest), the [REST API](https://github.com/undone37/Kartei/blob/main/docs/API.md) and the [changelog](https://github.com/undone37/Kartei/blob/main/CHANGELOG.md).

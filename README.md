@@ -30,8 +30,8 @@ Kartei is a contact directory for persons and companies. It suits organizations 
 
 | | English | Deutsch |
 |---|---|---|
-| User manual (Read only, Maintainer) | [online](https://undone37.github.io/Kartei/en/user.html) · [source](manuals/en/user.md) | [online](https://undone37.github.io/Kartei/de/user.html) · [Quelle](manuals/de/user.md) |
-| Administrator manual | [online](https://undone37.github.io/Kartei/en/admin.html) · [source](manuals/en/admin.md) | [online](https://undone37.github.io/Kartei/de/admin.html) · [Quelle](manuals/de/admin.md) |
+| User manual (Read only, Maintainer) | [online](https://undone37.github.io/Kartei/user/) · [source](manuals/en/user.md) | [online](https://undone37.github.io/Kartei/de/user/) · [Quelle](manuals/de/user.md) |
+| Administrator manual | [online](https://undone37.github.io/Kartei/admin/) · [source](manuals/en/admin.md) | [online](https://undone37.github.io/Kartei/de/admin/) · [Quelle](manuals/de/admin.md) |
 | REST API (read and write, for other systems) | [docs/API.md](docs/API.md), [docs/openapi.yaml](docs/openapi.yaml) | |
 | Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | |
 
@@ -48,7 +48,7 @@ Instead of building, you can use the released images: set `KARTEI_IMAGE=ghcr.io/
 
 To use a dedicated PostgreSQL server or cluster instead of the bundled database container, set `DATABASE_URL` and use `compose.external-db.yaml`; the administrator manual (Installation) has the details.
 
-Kartei listens on port 8000; put a TLS reverse proxy in front of it. On the first start it creates the database, a few starter fields (`examples/fields-default.json`) and the admin account from `.env`. Everything else is configured in the browser under *Settings*: the [administrator manual](https://undone37.github.io/Kartei/en/admin.html) walks through it, including backups, monitoring and forwarding logs to a SIEM (`compose.logging.yaml`).
+Kartei listens on port 8000; put a TLS reverse proxy in front of it. On the first start it creates the database, a few starter fields (`examples/fields-default.json`) and the admin account from `.env`. Everything else is configured in the browser under *Settings*: the [administrator manual](https://undone37.github.io/Kartei/admin/) walks through it, including backups, monitoring and forwarding logs to a SIEM (`compose.logging.yaml`).
 
 ### Try it with sample data
 

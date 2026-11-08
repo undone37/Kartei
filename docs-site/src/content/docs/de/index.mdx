@@ -1,0 +1,53 @@
+---
+title: Kartei
+description: Das Adressbuch für Personen und Firmen. Handbücher für Benutzer und Administration.
+template: splash
+editUrl: false
+hero:
+  tagline: Das Adressbuch für Personen und Firmen. Eine gepflegte Quelle für Kontaktdaten, für Menschen, Telefone, Outlook, Active Directory und alle anderen Systeme.
+  image:
+    html: '<figure class="kt-shot"><img src="/Kartei/img/en/demo.webp" width="1080" height="675" alt="Kartei im Browser: suchen, eine Person öffnen, die Funktion ändern, den Kontakt als QR-Code zeigen und die Liste nach einem Schlagwort filtern" /></figure>'
+  actions:
+    - text: Benutzerhandbuch
+      link: /Kartei/de/user/
+      icon: right-arrow
+    - text: Administrationshandbuch
+      link: /Kartei/de/admin/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/undone37/Kartei
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
+
+<CardGrid>
+  <Card title="Sofort gefunden" icon="magnifier">
+    Das ganze Verzeichnis liegt im Browser: Namen, Firmen, Telefonnummern in jeder Schreibweise und alle Felder durchsuchen. Verschachtelte Filter, gespeicherte Listen, Favoriten, und als installierte App startet es auch offline.
+  </Card>
+  <Card title="Immer aktuell" icon="approve-check">
+    Jeder Kontakt hat einen Zuständigen, der ihn regelmäßig prüft. Nur-Lesen-Benutzer schlagen Änderungen vor, Bearbeiter entscheiden. Benachrichtigungen aufs Handy, Datenqualität im Verlauf und Aufbewahrungsregeln.
+  </Card>
+  <Card title="Auf jedem Telefon" icon="phone">
+    Kontakte in der Outlook-App, als CardDAV-Adressbücher und als Telefonbuch der Tischtelefone. Telefonanlagen fragen Kartei, wer anruft.
+  </Card>
+  <Card title="Im Takt mit euren Systemen" icon="random">
+    Active Directory, Exchange Online, Single Sign-on (OpenID Connect, SCIM), LDAP, CSV/XLSX-Exporte, Webhooks und eine REST-API.
+  </Card>
+  <Card title="Eigene Felder" icon="list-format">
+    Die Administration legt Felder, Auswahlwerte, Prüfregeln und Sichtbarkeit fest, alles in der Weboberfläche, auf Deutsch und Englisch.
+  </Card>
+  <Card title="Selbst betrieben und offen" icon="server">
+    Docker und PostgreSQL, tägliche Sicherungen mit Wiederherstellungstest, Endpunkte fürs Monitoring und ein Audit-Log. Freie Software unter der AGPL.
+  </Card>
+</CardGrid>
+
+## Handbücher
+
+<CardGrid>
+  <LinkCard title="Benutzerhandbuch" href="/Kartei/de/user/" description="Kontakte finden, ansehen und prüfen; Kontakte pflegen (Rolle Bearbeiter)." />
+  <LinkCard title="Administrationshandbuch" href="/Kartei/de/admin/" description="Installation, Einstellungen, Anmeldung, Synchronisierung, Exporte und Betrieb." />
+</CardGrid>
+
+Außerdem: die Handbücher als **PDF** bei jeder [Version](https://github.com/undone37/Kartei/releases/latest), die [REST-API](https://github.com/undone37/Kartei/blob/main/docs/API.md) und die [Änderungen](https://github.com/undone37/Kartei/blob/main/CHANGELOG.md).
