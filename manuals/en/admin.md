@@ -760,7 +760,7 @@ The list shows each profile with *Format*, *Target file*, *Schedule* and *Last r
 
 ### Excel options
 
-*Sheet name*, *Date format* and *Number format* (Excel format codes), plus *Header row*, *Bold header*, *Autofilter*, *Freeze header row* and *Auto column width*. Dates and numbers are written as real Excel values, not as text.
+*Sheet name*, *Date format* and *Number format* (Excel format codes), plus *Header row*, *Bold header*, *Autofilter*, *Freeze header row* and *Auto column width*. Dates and numbers are written as real Excel values, not as text. The font is Tahoma.
 
 ### The shrink guard
 

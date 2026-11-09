@@ -8,6 +8,15 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 - **Admin manual, Network and firewall:** every target the containers connect to at runtime, i.e. Microsoft 365/Entra ID, push services, webhooks, LDAP, SMTP, relay and syslog, with protocol, container and when it applies. Includes the proxy settings (`HTTPS_PROXY`, `NO_PROXY`, now also in `.env.example`).
 
+### Changed
+
+- **Excel exports** (export profiles and the list download) use Tahoma as the font instead of Calibri.
+- **User manual:** the user menu section no longer mentions the source code link.
+
+### Fixed
+
+- **Start page, Recent changes:** the columns line up across all rows (each row used to size its own columns).
+
 ## [0.8.1-beta] – 2026-11-08
 
 A security update for the images, plus a new documentation site:
