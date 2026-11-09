@@ -4,6 +4,15 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.8.2-beta] – 2026-11-09
+
+Small improvements:
+- **Excel exports** use Tahoma as the font.
+- **Start page:** the columns of *Recent changes* line up again.
+- **Admin manual:** a new section lists every connection the containers make at runtime (Microsoft 365, push services, LDAP, SMTP …) for firewall and proxy setup.
+
+Upgrading: pull the new images; no migrations.
+
 ### Added
 
 - **Admin manual, Network and firewall:** every target the containers connect to at runtime, i.e. Microsoft 365/Entra ID, push services, webhooks, LDAP, SMTP, relay and syslog, with protocol, container and when it applies. Includes the proxy settings (`HTTPS_PROXY`, `NO_PROXY`, now also in `.env.example`).
@@ -316,7 +325,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.1-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.2-beta...HEAD
+[0.8.2-beta]: https://github.com/undone37/Kartei/compare/v0.8.1-beta...v0.8.2-beta
 [0.8.1-beta]: https://github.com/undone37/Kartei/compare/v0.8.0-beta...v0.8.1-beta
 [0.8.0-beta]: https://github.com/undone37/Kartei/compare/v0.7.0-beta...v0.8.0-beta
 [0.7.0-beta]: https://github.com/undone37/Kartei/compare/v0.6.1-beta...v0.7.0-beta
