@@ -1030,6 +1030,7 @@ class ExportTests(TestCase):
         ws = load_workbook(p.path).active
         self.assertEqual(ws["A1"].value, "ID")
         self.assertEqual(ws.freeze_panes, "A2")
+        self.assertEqual((ws["A1"].font.name, ws["A1"].font.b, ws["A2"].font.name), ("Tahoma", True, "Tahoma"))
 
 
 class ImportTests(TestCase):

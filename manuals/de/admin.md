@@ -760,7 +760,7 @@ Die Liste zeigt jedes Profil mit *Format*, *Zieldatei*, *Ausführung* und *Letzt
 
 ### Excel-Optionen
 
-*Tabellenblatt*, *Datumsformat* und *Zahlenformat* (Excel-Formatcodes), dazu *Kopfzeile*, *Kopfzeile fett*, *Autofilter*, *Kopfzeile fixieren* und *Spaltenbreite automatisch*. Datum und Zahlen werden als echte Excel-Werte geschrieben, nicht als Text.
+*Tabellenblatt*, *Datumsformat* und *Zahlenformat* (Excel-Formatcodes), dazu *Kopfzeile*, *Kopfzeile fett*, *Autofilter*, *Kopfzeile fixieren* und *Spaltenbreite automatisch*. Datum und Zahlen werden als echte Excel-Werte geschrieben, nicht als Text. Die Schriftart ist Tahoma.
 
 ### Der Schrumpfschutz
 

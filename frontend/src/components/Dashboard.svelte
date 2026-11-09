@@ -189,8 +189,11 @@
   .apply { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 5px 6px; margin-left: -6px; border-radius: 7px;
     color: var(--accent); font-weight: 500; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .apply:hover { background: var(--panel-2); }
-  .changes li { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr auto; gap: 12px; align-items: baseline;
+  /* one grid for the whole list, rows share its columns: otherwise every row sizes its own (the "auto" column varies) */
+  .changes { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr) auto; column-gap: 12px; }
+  .changes li { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline;
     padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .changes li.empty { display: block; }
   .changes li:last-child { border-bottom: 0; }
   .changes a, .changes span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .what .badge { margin-left: 6px; }
@@ -199,6 +202,6 @@
   .keys { text-align: center; }
   @media (max-width: 860px) {
     .dash { padding: 14px 16px; }
-    .changes li { grid-template-columns: 1fr; gap: 0; }
+    .changes { grid-template-columns: 1fr; }
   }
 </style>

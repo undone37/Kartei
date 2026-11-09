@@ -219,15 +219,19 @@ def render_xlsx(header, rows, o):
     from openpyxl import Workbook
     from openpyxl.styles import Font
     from openpyxl.utils import get_column_letter
+    from openpyxl.utils.indexed_list import IndexedList
 
     wb = Workbook()
+    # default font for every cell (index 0) and the Normal style; ponytail: openpyxl has no public API for this
+    wb._fonts = IndexedList([Font(name="Tahoma", size=11, family=2)])
+    wb._named_styles["Normal"].font = wb._fonts[0]
     ws = wb.active
     ws.title = (o["sheet_name"] or "Export")[:31]
     if o["header"]:
         ws.append(header)
         if o["bold_header"]:
             for cell in ws[1]:
-                cell.font = Font(bold=True)
+                cell.font = Font(name="Tahoma", size=11, family=2, bold=True)
     first = 2 if o["header"] else 1
     for r, row in enumerate(rows, first):
         cells = [", ".join(map(str, v)) if isinstance(v, list) else (float(v) if isinstance(v, Decimal) else v) for v in row]

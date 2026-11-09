@@ -59,7 +59,7 @@ Click the person icon at the top right to open the **user menu**. It shows your 
 
 Under **My account** you can also choose the language (*Default (…)* uses the default language of your installation) and, if you have a local account, change your password (*New password (min. 10 characters)*). If you sign in with your network account, you change your password there (*Your password is managed in Active Directory.*).
 
-At the bottom, the user menu shows the Kartei version (useful in bug reports) and a link to the **Source code**.
+At the bottom, the user menu shows the Kartei version (useful in bug reports).
 
 The screenshot shows a maintainer's menu. Read only users don't see **Recycle bin**, **Data quality** and **Duplicates**; administrators also see **Settings**.
 
