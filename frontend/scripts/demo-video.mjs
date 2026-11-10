@@ -66,10 +66,10 @@ const search = page.getByRole('searchbox')
 await click(search, 300)
 await search.pressSequentially('koch', { delay: 140 })
 await wait(800)
-await click(page.getByRole('listbox').getByRole('option').first(), 1500)
+await click(page.getByRole('listbox').getByRole('option').filter({ hasText: /koch/i }).first(), 1500) // not a match via the manager
 
 // edit and save
-await click(page.getByRole('button', { name: 'Edit', exact: true }), 900)
+await click(page.getByRole('button', { name: 'Edit', exact: true }).first(), 900) // the header one; a review banner has another
 const title = page.getByLabel(/job title/i).first()
 await click(title, 200)
 await page.keyboard.press('Control+A')
