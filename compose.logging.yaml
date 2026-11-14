@@ -5,7 +5,7 @@
 # Kartei's audit events are sent by Kartei itself (Settings -> Monitoring & logging) and skipped here by default.
 services:
   fluent-bit:
-    image: fluent/fluent-bit:5.1.5
+    image: fluent/fluent-bit:5.2.0
     restart: unless-stopped
     command: ["/fluent-bit/bin/fluent-bit", "-c", "/fluent-bit/etc/kartei.yaml"]
     environment:
