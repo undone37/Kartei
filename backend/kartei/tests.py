@@ -1090,7 +1090,8 @@ class FakeGraph:
         p, _, q = path.partition("?")
         parts = p.strip("/").split("/")
         if parts[0] == "groups":
-            return {"status": 200, "body": {"value": [{"@odata.type": "#microsoft.graph.user", "id": u, "mail": m}
+            return {"status": 200, "body": {"value": [{"@odata.type": "#microsoft.graph.user", "id": u, "mail": m,
+                                                       "userPrincipalName": f"{u}@x.de"}
                                                       for u, m in self.users.items()]}}
         user = parts[1]
         if user not in self.users and not any(k[0] == user for k in self.folders):
@@ -1162,6 +1163,7 @@ class GraphSyncTests(TestCase):
         self.assertEqual(len(c["emailAddresses"]), 3)
         self.assertIn("Fax: 051112345671117", c["personalNotes"])
         self.assertEqual(c["department"], "Informatik")
+        self.assertEqual(c["categories"], [])
         co = graph.contact(self.company, list(FieldDef.objects.all()))
         self.assertEqual((co["displayName"], co["companyName"], co["givenName"]), ("ACME GmbH", "ACME GmbH", ""))
 
@@ -1196,6 +1198,12 @@ class GraphSyncTests(TestCase):
         st = graph.run()
         self.assertIn("@graph_no_records", st["error"])
         self.assertEqual(len(self.fake.contacts("u1")), 3)  # untouched
+
+    def test_missing_user_read_permission(self):
+        # without User.Read.All Graph returns members with id and type only
+        with mock.patch.object(self.fake, "_one", return_value={"status": 200, "body": {"value": [
+                {"@odata.type": "#microsoft.graph.user", "id": "u1", "mail": None, "userPrincipalName": None}]}}):
+            self.assertIn("@graph_no_user_read", graph.test(Settings.get())["error"])
 
     def test_personal_folders(self):
         FieldDef.objects.create(key="owner", label_de="Zuständig", label_en="Owner", type="user", applies_to="both")

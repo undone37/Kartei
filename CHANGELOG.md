@@ -4,6 +4,14 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Fixed
+
+- **Outlook sync found 0 mailboxes:** without the application permission `User.Read.All`, Microsoft Graph returns group members without their email address. The setup instructions (admin manual and settings page) now list `User.Read.All` next to `Contacts.ReadWrite` and `GroupMember.Read.All`, and *Test connection* names the missing permission instead of reporting 0 mailboxes. Add the permission and grant admin consent.
+
+### Changed
+
+- **Outlook sync, keywords:** the keywords go into the contact notes (`Schlagworte: …`) instead of becoming Outlook categories. The new Outlook shows contact folders as categories, and the keywords buried them. The next sync removes the old keyword categories from the contacts.
+
 ## [0.8.2-beta] – 2026-11-09
 
 Small improvements:

@@ -939,7 +939,7 @@ Voraussetzungen: Exchange-Online-Postfächer (Microsoft 365) und eine App-Regist
 ### App in Entra ID registrieren
 
 1. Entra Admin Center → *App-Registrierungen* → *Neue Registrierung*, z. B. Name „Kartei Kontakte“, einzelner Mandant, ohne Umleitungs-URI.
-2. *API-Berechtigungen* → *Berechtigung hinzufügen* → *Microsoft Graph* → *Anwendungsberechtigungen*: `Contacts.ReadWrite` und `GroupMember.Read.All`. Danach *Administratorzustimmung erteilen*.
+2. *API-Berechtigungen* → *Berechtigung hinzufügen* → *Microsoft Graph* → *Anwendungsberechtigungen*: `Contacts.ReadWrite`, `GroupMember.Read.All` und `User.Read.All` (ohne `User.Read.All` liefert Graph die Gruppenmitglieder ohne E-Mail-Adresse, der Sync findet dann 0 Postfächer). Danach *Administratorzustimmung erteilen*.
 3. *Zertifikate & Geheimnisse* → *Neuer geheimer Clientschlüssel*. Kopier den Wert und notier dir das Ablaufdatum.
 4. Notier auf der Übersichtsseite die *Verzeichnis-ID (Mandant)* und die *Anwendungs-ID (Client)*.
 5. Leg die Gruppe der Benutzer an (oder wähl sie aus), deren Telefone die Kontakte bekommen sollen, und notier ihre Objekt-ID. Verschachtelte Gruppen werden aufgelöst.
