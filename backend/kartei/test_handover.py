@@ -35,6 +35,17 @@ class HandoverTests(ApiTestBase):
         self.assertTrue(AuditEntry.objects.filter(action="handover", target_label="read").exists())
         self.assertIn("handover", AuditEntry.objects.filter(target_type="record", target_label="A").last().changes)
 
+    def test_marker_of_a_hidden_field_stays_hidden(self):
+        """F-8: the handover marker must not show who was in a field the reader cannot see."""
+        FieldDef.objects.filter(key="colleagues").update(visible_to="admin", editable_by="admin")
+        self.j("post", f"/api/admin/users/{self.read.id}/handover", {"to": "next"})
+        viewer = User.objects.create_user("viewer", password="x" * 12)
+        Profile.objects.create(user=viewer, role="read")
+        self.client.force_login(viewer)
+        self.assertEqual(self.j("get", f"/api/records/{self.b.uid}/history")["entries"], [])  # only the hidden field
+        changes = self.j("get", f"/api/records/{self.a.uid}/history")["entries"][0]["changes"]
+        self.assertEqual(changes, {"internal_contact": ["read", "next"], "handover": ["read", "next"]})
+
     def test_delete_only_after_handover(self):
         self.assertEqual(self.j("delete", f"/api/admin/users/{self.read.id}", status=409)["error"], "handover_first")
         self.j("post", f"/api/admin/users/{self.read.id}/handover", {"to": "next"})

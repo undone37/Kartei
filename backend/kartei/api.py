@@ -683,7 +683,7 @@ def history(request, uid):
     if request.rank < MAINT and Record.objects.filter(uid=uid, deleted_at__isnull=False).exists():
         return err("not_found", 404)  # the recycle bin is for maintainers, like the contact itself
     entries = AuditEntry.objects.filter(target_type="record", target_id=str(uid))[:200]
-    return JsonResponse({"entries": [ser_audit(e, request.rank) for e in entries]})
+    return JsonResponse({"entries": visible_audit(entries, request.rank)})
 
 
 # Keys of record audit entries that are not fields: core columns and workflow markers (see SPECIAL in frontend/src/lib/audit.ts).
@@ -700,11 +700,19 @@ def ser_audit(e, rank, kinds=None):
         fields = {f.key: f.visible(rank) for f in FieldDef.objects.all()}
         if e.target_type == "record":  # allowlist: a deleted field's old values must not resurface
             changes = {k: v for k, v in changes.items() if fields.get(k) or (k in RECORD_AUDIT_KEYS and k not in fields)}
+            if not any(fields.get(k) for k in changes):  # a handover marker alone would name a hidden field's user
+                changes.pop("handover", None), changes.pop("renamed", None)
         else:
             changes = {k: v for k, v in changes.items() if fields.get(k, True)}
     return {"id": e.id, "at": e.at.isoformat(), "user": e.username, "action": e.action,
             "target_type": e.target_type, "target_id": e.target_id, "target_label": e.target_label,
             "kind": (kinds or {}).get(e.target_id), "changes": changes, **({"ip": e.ip} if rank >= ADMIN else {})}
+
+
+def visible_audit(entries, rank, kinds=None):
+    """ser_audit for lists: an entry whose changes were all hidden is left out (its time alone tells something)."""
+    out = [(e, ser_audit(e, rank, kinds)) for e in entries]
+    return [s for e, s in out if s["changes"] or not e.changes]
 
 
 def record_kinds(entries):

@@ -251,6 +251,11 @@ class RetentionTrendTests(ApiTestBase):
         c = quality.take_snapshot()
         self.assertEqual((c["total"], c["reviewed_ok"], c["never_reviewed"]), (2, 1, 1))
         self.assertIsNone(quality.take_snapshot())  # already taken today
+        QualitySnapshot.objects.all().delete()  # F-9: maintainers see the trend, so it counts over their fields only
+        from unittest import mock
+        with mock.patch.object(quality, "report", wraps=quality.report) as rep:
+            quality.take_snapshot()
+        rep.assert_called_once_with(quality.MAINT)
         today = timezone.localdate()
         for days in (5, 100, 110, 400, 800):  # 100/110 days back: same month only once if in one month
             QualitySnapshot.objects.create(day=today - timedelta(days=days), counts={"total": days})

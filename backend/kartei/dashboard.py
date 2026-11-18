@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from . import audit, exports, reviews
 from .api import (MAINT, READ, _add_new_options, _soft_delete, delete_with_persons, err, needs, profile_of, record_kinds,
-                  ser_audit, ser_record, snapshot, visible_fields)
+                  ser_record, snapshot, visible_audit, visible_fields)
 from .models import (AuditEntry, FieldDef, Kind, Profile, Record, Role, SavedFilter, Settings, default_csv_options,
                      default_xlsx_options, ref_names, user_label)
 from .validation import EMPTY, merge_data
@@ -267,7 +267,7 @@ def recent_changes(request):
     """The last record changes for the dashboard; like a record's history, hidden fields are filtered out."""
     entries = list(AuditEntry.objects.filter(target_type="record")[:20])
     kinds = record_kinds(entries)
-    return JsonResponse({"entries": [ser_audit(e, request.rank, kinds) for e in entries]})
+    return JsonResponse({"entries": visible_audit(entries, request.rank, kinds)})
 
 
 # ---------------------------------------------------------------- export of the current list
