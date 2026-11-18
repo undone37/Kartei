@@ -85,6 +85,12 @@ class PhonebookTests(TestCase):
         self.assertEqual((j["name"], j["company"], j["uid"]), ("Jonas Koch", "ACME GmbH", str(self.koch.uid)))
         self.assertEqual(self.get("/phonebook/lookup?number=123&format=json").json(), {"found": False})
 
+    def test_trashed_company_name_is_gone(self):
+        """F-4: a company in the recycle bin no longer names its (live) persons' company."""
+        Record.objects.filter(pk=self.company.pk).update(deleted_at="2026-01-01T00:00:00Z")
+        phonebook._cache["at"] = 0
+        self.assertEqual(self.get("/phonebook/lookup?number=%2B491609997381").content.decode(), "Jonas Koch")
+
     def test_only_what_read_only_users_see(self):
         FieldDef.objects.filter(key="mobile").update(visible_to="maintainer")
         phonebook._cache["at"] = 0

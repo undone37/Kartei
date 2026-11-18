@@ -182,21 +182,29 @@ def mailboxes(c, group_id):
 
 
 def kartei_users():
-    """{lowercased email, username: username} of active users, to find a mailbox's Kartei user."""
-    out = {}
+    """({username lower: (username, email lower)}, {email lower: username}) of active users, to find a mailbox's owner."""
+    names, emails = {}, {}
     for name, email in User.objects.filter(is_active=True).values_list("username", "email"):
-        out[name.lower()] = name
+        names[name.lower()] = (name, (email or "").lower())
         if email:
-            out.setdefault(email.lower(), name)
-    return out
+            emails.setdefault(email.lower(), name)
+    return names, emails
 
 
 def owner(member, users):
-    """Kartei username of a mailbox: matched by mail, UPN, or the UPN/mail local part (an AD account name)."""
-    keys = [member.get("mail", ""), member.get("userPrincipalName") or ""]
-    for k in keys + [k.split("@")[0] for k in keys]:
-        if k and k.lower() in users:
-            return users[k.lower()]
+    """Kartei username of a mailbox: by full mail or UPN, else by the local part (an AD account name), but only for an
+    account without an email or with one of this mailbox's addresses: never another person's account with the same name."""
+    names, emails = users
+    full = [k.lower() for k in (member.get("mail") or "", member.get("userPrincipalName") or "") if k]
+    for k in full:
+        if k in emails:
+            return emails[k]
+        if k in names:
+            return names[k][0]
+    for k in full:
+        hit = names.get(k.split("@")[0])
+        if hit and (not hit[1] or hit[1] in full):
+            return hit[0]
     return None
 
 
@@ -280,15 +288,24 @@ def _sync(s):
     personal = [(name, ks, t) for name, ks, t in ((s.graph_folder_responsible, keys("user"), "user"),
                                                   (s.graph_folder_internal, keys("users"), "users")) if name and ks]
     published = list(SavedFilter.objects.filter(outlook_folder=True))
-    users = kartei_users() if personal or published else {}
+    personal_names = [n for n in (s.graph_folder_responsible, s.graph_folder_internal) if n]
+    users = kartei_users() if personal_names or published else ({}, {})
     by_filter = FilterFolders(wanted) if published else None
     reserved = {n for n in (s.graph_folder, s.graph_folder_responsible, s.graph_folder_internal) if n}
     folders_now = {}
     out = {"mailboxes": len(boxes), "created": 0, "updated": 0, "deleted": 0, "photos": 0, "failed": []}
     for user, member in boxes.items():
         jobs = [(s.graph_folder, wanted)]
-        # ponytail: a mailbox without a Kartei user gets no personal folders; earlier ones stay until it leaves the group
-        if name := owner(member, users):
+        name = owner(member, users)
+        # no (active) Kartei user any more, or no fields for the folder: earlier personal folders must not stay stale
+        active = {f for f, _, _ in personal} if name else set()
+        try:
+            for folder in personal_names:
+                if folder not in active and (fid := _folder(c, user, folder, create=False)):
+                    c.call("DELETE", f"/users/{user}/contactFolders/{fid}")
+        except GraphError as e:
+            out["failed"].append(f"{member['mail']}: {e}")
+        if name:
             for folder, ks, t in personal:
                 mine = (lambda d: any(d.get(k) == name for k in ks)) if t == "user" else \
                     (lambda d: any(name in (d.get(k) or []) for k in ks))

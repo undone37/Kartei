@@ -979,7 +979,7 @@ Auf dem Telefon (iPhone oder Android) installieren die Benutzer die Outlook-App,
   - *meine Kontakte*: Kontakte, bei denen der Benutzer in einem Einzel-Benutzerfeld steht (zuständige Person);
   - *meine internen Kontakte*: Kontakte, bei denen der Benutzer in einem Mehrfach-Benutzerfeld steht.
 
-  Kartei ordnet ein Postfach über E-Mail-Adresse, UPN oder den Teil vor dem `@` (AD-Kontoname) einem Kartei-Benutzer zu. Postfächer ohne passenden Kartei-Benutzer bekommen nur den Ordner mit allen Kontakten.
+  Kartei ordnet ein Postfach über E-Mail-Adresse oder UPN einem Kartei-Benutzer zu, sonst über den Teil vor dem `@` (AD-Kontoname); Letzteres nur, wenn der Benutzer keine E-Mail-Adresse hat oder eine des Postfachs. Postfächer ohne passenden aktiven Kartei-Benutzer bekommen nur den Ordner mit allen Kontakten; persönliche Ordner, die sie früher bekommen haben (z. B. bevor der Benutzer deaktiviert wurde), werden gelöscht.
 - **Ordner aus gespeicherten Filtern:** Bearbeiter können einen gespeicherten Filter als Outlook-Ordner veröffentlichen (siehe Benutzerhandbuch, *Gespeicherte Filter*). Alle Postfach-Inhaber, die den Filter sehen, bekommen einen Ordner mit seinem Namen und den Kontakten, die der Filter ihnen zeigt (ihre eigenen Listen *Verantwortlich*/*Intern*, nur Felder ihrer Rolle). Wird ein Filter zurückgezogen, umbenannt oder nicht mehr mit jemandem geteilt, verschwindet sein Ordner beim nächsten Lauf. Ein Filter kann nicht den Namen des Haupt- oder eines persönlichen Ordners tragen. Höchstens 10 Filter können veröffentlicht sein (Outlook-Ordner und Adressbücher zusammen).
 - Drosselungen durch Microsoft fängt Kartei mit automatischen Wiederholungen ab; ein großer erster Lauf kann etwas dauern.
 

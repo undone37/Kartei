@@ -63,7 +63,7 @@ def entries():
             continue
         e = {"uid": str(r.uid), "kind": r.kind, "name": r.display_name,
              "first": r.first_name if r.kind == "person" else "", "last": r.last_name if r.kind == "person" else r.name,
-             "company": r.company.name if r.kind == "person" and r.company else "", "numbers": nums}
+             "company": r.company.name if r.kind == "person" and r.company and not r.company.deleted_at else "", "numbers": nums}
         e["text"] = _fold(f"{e['name']} {e['company']}")
         e["digits"] = [_key(n, s.phone_country_code) for _, _, n in nums]
         out.append(e)
