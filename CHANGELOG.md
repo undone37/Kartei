@@ -4,6 +4,16 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.8.4-beta] – 2026-11-18
+
+Security fixes from an internal audit (nothing critical, none reachable without signing in):
+- **History:** values of deleted restricted fields and handover notes of hidden fields stay hidden from lower roles.
+- **LDAP:** a user name given to a different directory account no longer takes over the previous holder's Kartei user.
+- **Own password:** wrong passwords inside a session are limited; with two-factor sign-in, a password change needs the code.
+- Smaller fixes for control characters (Excel, CardDAV), the quality trend, the recycle bin in API v1 and the phone book, Outlook personal folders and the relay connection.
+
+Upgrading: pull the new images; no migrations. Check that the *Relay URL* (if you use the DMZ relay) does not redirect: Kartei no longer follows redirects. Users with two-factor sign-in need their code to change their password.
+
 ### Security
 
 - **Record history:** values of a field limited to maintainers or administrators stay hidden from lower roles after the field is deleted. Before, deleting such a field made its old values in the history (and in *Recent changes*) readable for everyone.
@@ -353,7 +363,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.3-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.4-beta...HEAD
+[0.8.4-beta]: https://github.com/undone37/Kartei/compare/v0.8.3-beta...v0.8.4-beta
 [0.8.3-beta]: https://github.com/undone37/Kartei/compare/v0.8.2-beta...v0.8.3-beta
 [0.8.2-beta]: https://github.com/undone37/Kartei/compare/v0.8.1-beta...v0.8.2-beta
 [0.8.1-beta]: https://github.com/undone37/Kartei/compare/v0.8.0-beta...v0.8.1-beta
