@@ -7,6 +7,8 @@ import base64
 import re
 from collections import defaultdict
 
+XML_ILLEGAL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]")
+
 _ADR_PARTS = ["pobox", "extra", "street", "city", "state", "zip", "country"]  # vCard ADR order
 
 TARGETS = [
@@ -210,4 +212,5 @@ def render(record, fields, flavour, base_url="", names=None, photo=True, one_lin
     # a raw line break inside a value would start a new property (or card) on the phone: never let one through
     if one_line:
         lines = [_plain(line) for line in lines]
-    return "\r\n".join(fold(l.replace("\r", " ").replace("\n", " ")) for l in lines) + "\r\n"
+    # control characters are illegal in XML: one stored before validation stripped them would break every CardDAV sync
+    return "\r\n".join(fold(XML_ILLEGAL.sub("", l.replace("\r", " ").replace("\n", " "))) for l in lines) + "\r\n"
