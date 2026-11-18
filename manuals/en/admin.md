@@ -613,7 +613,7 @@ Other changes are refused with *Type change not possible because data exists*.
 ### Archive and delete
 
 - *Archive* hides the field everywhere (forms, contact view, search, filters, CardDAV, Outlook, imports) after a confirmation. The data is kept, and *Restore* brings it back.
-- *Delete* is only offered for archived fields and asks first (*Delete the field … permanently?*). It only works if no contact, including those in the recycle bin, has a value in it; otherwise *Field contains data – archive it instead*. Deleting cannot be undone.
+- *Delete* is only offered for archived fields and asks first (*Delete the field … permanently?*). It only works if no contact, including those in the recycle bin, has a value in it; otherwise *Field contains data – archive it instead*. Deleting cannot be undone. Old values stay in the contacts' history; only administrators see the values of deleted fields there.
 
 ### Export and import field definitions
 
@@ -879,7 +879,7 @@ The relay is the same image started with other settings (`docker build --target 
 **Set up**
 
 1. On the DMZ host, copy the repository (or just `Dockerfile`, `backend/`, `compose.relay.yaml`), then `cp .env.relay.example .env.relay` and set `SECRET_KEY` and `ALLOWED_HOSTS` (the host name the phones use).
-2. In Kartei, *Settings → Phones & CardDAV → External relay (DMZ)*: enter the *Relay URL* (`https://carddav.example.de`, HTTPS only) and click *Generate token*. Kartei keeps the push token encrypted and shows only its SHA-256 value. Copy that value into `.env.relay` as `RELAY_PUSH_TOKEN_SHA256`. The DMZ host never sees the token itself.
+2. In Kartei, *Settings → Phones & CardDAV → External relay (DMZ)*: enter the *Relay URL* (`https://carddav.example.de`, HTTPS only; Kartei follows no redirects, so enter the address the relay answers at) and click *Generate token*. Kartei keeps the push token encrypted and shows only its SHA-256 value. Copy that value into `.env.relay` as `RELAY_PUSH_TOKEN_SHA256`. The DMZ host never sees the token itself.
 3. Start the relay: `docker compose -f compose.relay.yaml up -d --build`. It listens on port 8080 (`RELAY_PORT`); put a TLS reverse proxy in front of it, configured like the one for Kartei (pass `Authorization`, `PROPFIND`/`REPORT`, `X-Forwarded-For`, `client_max_body_size 20m`). The SQLite file lives in the volume `relaydata`.
 4. *TLS*: with *Verify TLS certificate* on (default), Kartei checks the relay's certificate against the system CAs or, if given, the *CA certificate* (PEM) of your internal CA. Switch verification off only for tests.
 5. Click *Save & test*: Kartei reaches the relay and checks the token. Then tick *Push to the relay*, set *Max. deletions (%)* and *Save*.
@@ -897,6 +897,7 @@ The relay is the same image started with other settings (`docker build --target 
 | *The relay rejected the push token* | `RELAY_PUSH_TOKEN_SHA256` on the relay host doesn't match the value in Kartei (restart the relay after changing `.env.relay`). |
 | `certificate verify failed` | The relay's certificate isn't trusted: add the CA certificate, or check the host name in the URL. |
 | `timed out`, `Connection refused`, `Name or service not known` | Firewall rule inside → DMZ, DNS name or reverse proxy of the relay. |
+| `HTTP 301`, `HTTP 302`, `HTTP 307`, `HTTP 308` | The relay URL redirects (e.g. another host name or path). Kartei doesn't follow redirects, so the push token never goes elsewhere: enter the final address. |
 | `HTTP 400` / `HTTP 413` | The reverse proxy in front of the relay limits the request size (set `client_max_body_size 20m`) or changes the request. |
 | Phones get 401 | Wrong password, or the relay hasn't received the login yet (see *Last run*). 20 wrong passwords from one address lock it out for 15 minutes. |
 | Relay answers 400 for everything | The host name isn't in `ALLOWED_HOSTS` in `.env.relay`. |
@@ -1356,7 +1357,7 @@ Kartei holds personal data. Two functions help with the rights of the people in 
 
 - **`SECRET_KEY`:** the LDAP password, the AD writing password, the Outlook client secret and the SMTP password are stored encrypted with a key derived from `SECRET_KEY`. If the key changes, these values are lost (they read as empty) and must be entered again, and all users are signed out. Keep `SECRET_KEY` stable and in your backup.
 - **Shown once:** the CardDAV password, API tokens and the monitoring token are stored only as hashes. They are shown once when created; afterwards they can only be replaced.
-- **Rate limits:** after 10 failed sign-ins for one username, after 20 different failed CardDAV logins and after 20 different invalid API tokens, the client address is blocked for 15 minutes. The same wrong login repeated (a phone or script with an old password) counts only once, so it doesn't lock out everybody else behind the same address. The counters are shared by all server processes. Behind the reverse proxy, the address is the last entry of `X-Forwarded-For`, believed only from `TRUSTED_PROXIES`; make sure the proxy appends it (without a proxy: `PROXY_HEADERS=0`).
+- **Rate limits:** after 10 wrong passwords when a signed-in user changes their password or switches on two-factor sign-in, that check is locked for the user for 15 minutes (a failed sign-in in the log). After 10 failed sign-ins for one username, after 20 different failed CardDAV logins and after 20 different invalid API tokens, the client address is blocked for 15 minutes. The same wrong login repeated (a phone or script with an old password) counts only once, so it doesn't lock out everybody else behind the same address. The counters are shared by all server processes. Behind the reverse proxy, the address is the last entry of `X-Forwarded-For`, believed only from `TRUSTED_PROXIES`; make sure the proxy appends it (without a proxy: `PROXY_HEADERS=0`).
 - **Secrets at startup:** Kartei refuses to start with the example `SECRET_KEY` from `.env.example` or one shorter than 32 characters, and doesn't create the first admin with the example password or one shorter than 10 characters.
 - **HSTS:** let the reverse proxy send `Strict-Transport-Security` (e.g. `max-age=31536000`), so browsers only use HTTPS.
 - **OpenID Connect:** bind accounts by a claim users can't change themselves at the identity provider (Entra ID: `upn` or `preferred_username`). With the claim `email`, an address the provider marks as unverified is refused.

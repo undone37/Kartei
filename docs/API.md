@@ -218,7 +218,7 @@ DELETE /api/v1/contacts/<uid>?with_persons=1
 
 Moves the contact to the **recycle bin**, exactly like deleting in the web interface: maintainers can restore it there until it's purged after the configured retention. Open reviews of the contact are cancelled. Delta syncs report it under `deleted`.
 
-For a company, `?with_persons=1` also moves all its persons to the recycle bin. Without it, the persons stay and keep pointing to the (deleted) company.
+For a company, `?with_persons=1` also moves all its persons to the recycle bin. Without it, the persons stay; while the company is in the recycle bin, their `company` and `company_name` are `null`.
 
 ```json
 { "ok": true, "deleted": ["d8c52355-6825-4f0c-a0f6-1300ce45a0e6", "5b1c7a0e-3f7d-4c55-9a3e-0d6f1b2c3d4e"] }
@@ -322,7 +322,7 @@ API changes behave like changes in the web interface:
 | `first_name`, `last_name` | string | Persons only (empty for companies). |
 | `name` | string | Company name (empty for persons). |
 | `company` | string (UUID) \| null | Persons: the UID of their company. |
-| `company_name` | string \| null | Persons: the name of their company. |
+| `company_name` | string \| null | Persons: the name of their company (`null` while it is in the recycle bin, like `company`). |
 | `display_name` | string | "First Last" for persons, the name for companies. |
 | `data` | object | All admin-defined fields that have a value, keyed by field key. Empty fields are left out. |
 | `version` | integer | Increases with every change. Send it with a [`PATCH`](#change-a-contact) to detect conflicts. |
