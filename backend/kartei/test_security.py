@@ -101,6 +101,18 @@ class AccessTests(ApiTestBase):
         f = FieldDef(key="t", type="longtext")
         self.assertEqual(clean_value(f, "a\x01b\rc"), "ab\nc")
 
+    def test_options_contacts_and_emails_lose_control_characters(self):
+        """F-5/F-11: control characters break XLSX formula checks and CardDAV XML."""
+        sel = FieldDef(key="s", type="select", options=[], open_options=True)
+        self.assertEqual(clean_value(sel, "\x02=1+1"), "=1+1")
+        con = FieldDef(key="c", type="contact", open_options=True)
+        self.assertEqual(clean_value(con, "Max\x01 Muster"), "Max Muster")
+        with self.assertRaises(ValueError):
+            clean_value(FieldDef(key="e", type="email"), '"\x01"@example.com')
+        rec = Record(kind="person", first_name="A", last_name="B", data={})
+        rec.last_name = "Max\x01Muster"  # stored before validation stripped it
+        self.assertNotIn("\x01", vcard.render(rec, [], "android"))
+
 
 class ProxyTests(ApiTestBase):
     def ip(self, remote, fwd):
@@ -153,9 +165,10 @@ class ExportTests(ApiTestBase):
     def test_formulas_are_neutralised(self):
         from openpyxl import load_workbook
         from .models import default_csv_options, default_xlsx_options
-        x = exports.render_xlsx(["a"], [['=HYPERLINK("http://x")'], ["ok\x01"]], default_xlsx_options())
+        x = exports.render_xlsx(["a"], [['=HYPERLINK("http://x")'], ["ok\x01"], ["\x01=1+1"]], default_xlsx_options())
         cells = [c for c in load_workbook(io.BytesIO(x)).active["A"]][1:]
-        self.assertEqual([(c.value, c.data_type) for c in cells], [('=HYPERLINK("http://x")', "s"), ("ok", "s")])
+        self.assertEqual([(c.value, c.data_type) for c in cells],
+                         [('=HYPERLINK("http://x")', "s"), ("ok", "s"), ("=1+1", "s")])  # F-5: checked after stripping
         csv_ = exports.render_csv(["a"], [["=1+1"], ["+49 511 1"], ["-12,5"], ["@SUM(A1)"]], default_csv_options()).decode("utf-8-sig")
         self.assertEqual(csv_.split("\r\n")[1:5], ["'=1+1", "+49 511 1", "-12,5", "'@SUM(A1)"])
         raw = exports.render_csv(["a"], [["=1+1"]], {**default_csv_options(), "escape_formulas": False}).decode("utf-8-sig")

@@ -235,7 +235,8 @@ def render_xlsx(header, rows, o):
     first = 2 if o["header"] else 1
     for r, row in enumerate(rows, first):
         cells = [", ".join(map(str, v)) if isinstance(v, list) else (float(v) if isinstance(v, Decimal) else v) for v in row]
-        ws.append([CONTROL.sub("", v) if isinstance(v, str) else v for v in cells])
+        cells = [CONTROL.sub("", v) if isinstance(v, str) else v for v in cells]  # check what is written, not the input
+        ws.append(cells)
         for c, v in enumerate(cells, 1):  # not ws.max_row: that scans every cell, quadratic on large exports
             if isinstance(v, str) and v.startswith("="):  # contact data is never a formula: "=HYPERLINK(…)" stays text
                 ws.cell(r, c).data_type = "s"

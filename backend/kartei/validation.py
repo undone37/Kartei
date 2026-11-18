@@ -77,7 +77,7 @@ def _option(f, value):
         return value
     if not f.open_options or not isinstance(value, str):
         raise ValueError("invalid_option")
-    v = " ".join(value.split())
+    v = " ".join(CONTROL.sub("", value).split())
     if not v or len(v) > 100:
         raise ValueError("invalid_option")
     for o in f.options:
@@ -115,7 +115,7 @@ def _clean(f, value, old=None, cc=None):
             return value
         if not f.open_options:
             raise ValueError("invalid_contact")
-        v = " ".join(value.split())
+        v = " ".join(CONTROL.sub("", value).split())
         if not v or len(v) > 200:
             raise ValueError("invalid_contact")
         return v
@@ -160,6 +160,8 @@ def _clean(f, value, old=None, cc=None):
         try:
             _email(v)
         except ValidationError:
+            raise ValueError("invalid_email")
+        if CONTROL.search(v):  # a quoted local part may carry them; they break CardDAV XML
             raise ValueError("invalid_email")
         return v
     if t == "url":
