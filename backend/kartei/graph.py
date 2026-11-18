@@ -2,7 +2,7 @@
 
 The Outlook app for iOS and Android syncs that folder into the phone's native address book, which gives caller ID
 without CardDAV. App-only auth (client credentials); needs the application permissions
-Contacts.ReadWrite and GroupMember.Read.All. The folder belongs to Kartei: anything else in it is removed.
+Contacts.ReadWrite, GroupMember.Read.All and User.Read.All. The folder belongs to Kartei: anything else in it is removed.
 """
 import hashlib
 import json
@@ -136,6 +136,9 @@ def contact(r, fields, names=None):
     for t, label in [("tel_fax_work", "Fax"), ("tel_fax_home", "Fax privat"), ("tel_assistant", "Assistenz")]:
         notes += [f"{label}: {v}" for v in vals(t)]
     notes += [f"{label}: {v}" for v, label in g.get("tel_fax_custom", []) + g.get("related_custom", [])]
+    # new Outlook shows contact folders as categories; tags as categories would bury the folders, so they go to the notes
+    if tags := [c for v in vals("categories") for c in (v if isinstance(v, list) else [v])]:
+        notes.append("Schlagworte: " + ", ".join(tags))
     cells = vals("tel_cell")
     emails = [{"address": v, "name": v} for t in ("email_work", "email_custom", "email_home") for v in vals(t)]
     notes += [f"E-Mail: {e['address']}" for e in emails[3:]]  # Graph keeps at most 3
@@ -161,7 +164,7 @@ def contact(r, fields, names=None):
         "homePhones": vals("tel_home"),
         "businessAddress": _addr(g, "work"), "homeAddress": _addr(g, "home"),
         "assistantName": first("related_assistant"), "manager": first("related_manager"),
-        "categories": [c for v in vals("categories") for c in (v if isinstance(v, list) else [v])],
+        "categories": [],  # always sent, so a PATCH clears the categories of earlier versions
         "personalNotes": "\n".join(notes),
     }
 
@@ -171,7 +174,11 @@ def contact(r, fields, names=None):
 def mailboxes(c, group_id):
     """{user id: member} for all (nested) user members of the group that have a mailbox address."""
     members = c.get_all(f"/groups/{quote(group_id)}/transitiveMembers?$select=id,mail,userPrincipalName&$top=999")
-    return {m["id"]: m for m in members if m.get("@odata.type") == "#microsoft.graph.user" and m.get("mail")}
+    users = [m for m in members if m.get("@odata.type") == "#microsoft.graph.user"]
+    # without User.Read.All, Graph returns users with only id and type: every mail and UPN is null
+    if users and not any(m.get("userPrincipalName") for m in users):
+        raise GraphError(msg("graph_no_user_read"))
+    return {m["id"]: m for m in users if m.get("mail")}
 
 
 def kartei_users():

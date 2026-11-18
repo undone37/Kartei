@@ -939,7 +939,7 @@ Requirements: Exchange Online mailboxes (Microsoft 365) and an app registration 
 ### Register the app in Entra ID
 
 1. Entra admin center → *App registrations* → *New registration*, e.g. name "Kartei Contacts", single tenant, no redirect URI.
-2. *API permissions* → *Add a permission* → *Microsoft Graph* → *Application permissions*: `Contacts.ReadWrite` and `GroupMember.Read.All`. Then *Grant admin consent*.
+2. *API permissions* → *Add a permission* → *Microsoft Graph* → *Application permissions*: `Contacts.ReadWrite`, `GroupMember.Read.All` and `User.Read.All` (without `User.Read.All`, Graph returns the group members without an email address and the sync finds 0 mailboxes). Then *Grant admin consent*.
 3. *Certificates & secrets* → *New client secret*. Copy the value and note the expiry date.
 4. Note the *Directory (tenant) ID* and the *Application (client) ID* on the overview page.
 5. Create (or choose) the group of users whose phones should get the contacts and note its object ID. Nested groups are resolved.
