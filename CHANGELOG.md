@@ -9,6 +9,8 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 - **Record history:** values of a field limited to maintainers or administrators stay hidden from lower roles after the field is deleted. Before, deleting such a field made its old values in the history (and in *Recent changes*) readable for everyone.
 - **LDAP, reused user names:** if the directory gives a user name to a different account (another `objectGUID`/`entryUUID`), the new holder no longer takes over the previous holder's Kartei user, including its single sign-on binding and two-factor sign-in. The old user is renamed and deactivated; the new holder gets a new one.
 - **Control characters:** open select options, free-text contacts and email addresses lose invisible control characters when saved, like text fields already did. Excel exports check for formulas after removing them, and vCards (CardDAV, relay) never contain characters that XML does not allow. Before, one such character could turn a value into a live Excel formula or break the CardDAV sync of the shared address book.
+- **Own password inside a session:** wrong passwords when changing the password or switching on two-factor sign-in now count like failed sign-ins: after 10 the check is locked for 15 minutes (entry in the sign-in log). With two-factor sign-in, changing the password also needs the code from the app or a recovery code.
+- **CardDAV relay:** Kartei no longer follows HTTP redirects from the relay, so the relay token cannot be sent to another host.
 
 ## [0.8.3-beta] – 2026-11-18
 

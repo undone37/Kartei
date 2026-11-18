@@ -121,3 +121,20 @@ class TotpTests(ApiTestBase):
         Settings.objects.update(totp_required="all")
         self.as_("read")
         self.assertEqual(self.j("get", "/api/bootstrap", status=403)["error"], "totp_setup_required")
+
+    def test_wrong_step_up_passwords_lock(self):
+        """F-3: a session alone must not be able to guess the password (or take the account by changing it)."""
+        self.as_("read")
+        for _ in range(10):
+            self.j("patch", "/api/me", {"old_password": "guess", "password": "x" * 12}, status=400)
+        self.j("patch", "/api/me", {"old_password": "pw-readreadread", "password": "x" * 12}, status=429)
+        self.j("post", "/api/me/totp", {"action": "confirm", "code": "000000", "password": "pw-readreadread"}, status=429)
+        self.assertTrue(AuditEntry.objects.filter(action="login_failed", target_label="read").exists())
+
+    def test_password_change_needs_the_code_with_two_factor(self):
+        secret, recovery = self.enable()
+        self.client.force_login(self.users["maintainer"])
+        body = {"old_password": "pw-" + "maintainer" * 3, "password": "y" * 12}
+        r = self.j("patch", "/api/me", body, status=400)
+        self.assertEqual(r["fields"], {"code": "invalid_code"})
+        self.j("patch", "/api/me", body | {"code": recovery[0]})

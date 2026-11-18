@@ -9,6 +9,7 @@
 
   let oldPw = $state('')
   let newPw = $state('')
+  let pwCode = $state('')
   let errors = $state<Record<string, string>>({})
 
   async function setLanguage(language: string) {
@@ -56,11 +57,14 @@
     e.preventDefault()
     errors = {}
     try {
-      await patch('/api/me', { old_password: oldPw, password: newPw })
-      oldPw = newPw = ''
+      await patch('/api/me', { old_password: oldPw, password: newPw, ...(store.user?.totp ? { code: pwCode } : {}) })
+      oldPw = newPw = pwCode = ''
       toast(t('account.pw_changed'))
     } catch (err) {
-      if (err instanceof ApiError) errors = err.fields
+      if (err instanceof ApiError) {
+        errors = err.fields
+        if (err.status === 429) toast(t('err.too_many_attempts'), { kind: 'error' })
+      }
     }
   }
 </script>
@@ -84,7 +88,12 @@
       <label class="label" for="new">{t('account.new_pw')}</label>
       <input id="new" class="input" type="password" bind:value={newPw} autocomplete="new-password" />
       {#if errors.password}<div class="error-text">{terr(errors.password)}</div>{/if}
-      <button class="btn primary" disabled={!oldPw || !newPw}>{t('common.save')}</button>
+      {#if store.user?.totp}
+        <label class="label" for="pw-code">{t('totp.code_or_recovery')}</label>
+        <input id="pw-code" class="input" bind:value={pwCode} autocomplete="one-time-code" />
+        {#if errors.code}<div class="error-text">{terr(errors.code)}</div>{/if}
+      {/if}
+      <button class="btn primary" disabled={!oldPw || !newPw || (store.user?.totp && !pwCode)}>{t('common.save')}</button>
     </form>
   {:else}
     <p class="muted">{t(store.user?.source === 'scim' ? 'account.scim_hint' : 'account.ldap_hint')}</p>

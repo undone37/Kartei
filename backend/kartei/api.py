@@ -353,7 +353,10 @@ def my_totp(request):
         # the password as well: a session alone (e.g. on an unlocked computer) must not be able to lock the owner out;
         # users without one (SCIM) instead need a single sign-on in the last 10 minutes
         if u.has_usable_password() or p.source != "scim":
-            if authenticate(request, username=u.username, password=str(b.get("password") or "")) != u:
+            ok = _stepup(u, lambda: authenticate(request, username=u.username, password=str(b.get("password") or "")) == u)
+            if ok is None:
+                return err("too_many_attempts", 429)
+            if not ok:
                 return err("validation", fields={"password": "invalid"})
         elif time.time() - request.session.get("sso_at", 0) > 600:
             return err("sso_reauth", 403)
@@ -810,6 +813,19 @@ LIST_SORTS = ("last_name", "first_name", "updated", "created")
 NAME_ORDERS = ("first_last", "last_first")
 
 
+def _stepup(u, check):
+    """Re-check of the own password from inside a session. Counts failures per user like the sign-in does:
+    a stolen session must not be able to guess the password. -> True, False, or None (locked for 15 minutes)."""
+    key = f"stepup-fail:{u.id}"
+    if cache.get(key, 0) >= 10:
+        return None
+    if check():
+        return True
+    if count_failure(key) == 10:
+        _signin_failed(u.username, "too_many_attempts", u)  # in the sign-in log, like a lockout at the login
+    return False
+
+
 @needs(READ)
 def update_me(request):
     body, p, u = request.json, profile_of(request.user), request.user
@@ -832,8 +848,16 @@ def update_me(request):
     if "password" in body:
         if p.source != "local":
             return err("forbidden", 403)
-        if not u.check_password(body.get("old_password", "")):
+        ok = _stepup(u, lambda: u.check_password(str(body.get("old_password", ""))))
+        if ok is None:
+            return err("too_many_attempts", 429)
+        if not ok:
             return err("validation", fields={"old_password": "invalid"})
+        if p.totp_secret_enc:  # with two-factor sign-in, a guessed password alone must not take the account
+            if totp_locked(p):
+                return err("too_many_attempts", 429)
+            if not _second_factor(u, p, str(body.get("code") or "")):
+                return err("validation", fields={"code": "invalid_code"})
         if not isinstance(body["password"], str) or len(body["password"]) < 10:
             return err("validation", fields={"password": "too_short"})
         u.set_password(body["password"])
