@@ -94,7 +94,9 @@ class DbLDAPBackend(LDAPBackend):
     def get_or_build_user(self, username, ldap_user):
         # an account renamed in the directory signs in under its new name: rename the Kartei user it already has
         # (found by the directory id) instead of creating a second one
-        if (did := directory_id(ldap_user.attrs or {})) and not User.objects.filter(username__iexact=username).exists():
+        did = directory_id(ldap_user.attrs or {})
+        evict_reused(username, did)
+        if did and not User.objects.filter(username__iexact=username).exists():
             if p := Profile.objects.filter(directory_id=did, source="ldap").select_related("user").first():
                 rename(p.user, username.lower())
         user, built = super().get_or_build_user(username, ldap_user)
@@ -143,3 +145,21 @@ def rename(user, new_name, actor=None):
     user.save(update_fields=["username"])
     audit.log(actor, "update", "user", user.id, new_name, {"username": [old, new_name]})
     handover.renamed(old, user, actor)
+
+
+def evict_reused(name, did, actor=None):
+    """The directory gave `name` to a different account (another directory id). The Kartei user with that name belongs
+    to the previous holder: rename and deactivate it, so the new holder gets a fresh account and never inherits the
+    previous holder's SSO binding, TOTP or push subscriptions. A later import finds it again by its directory id."""
+    p = Profile.objects.filter(user__username__iexact=name, source="ldap").exclude(directory_id="").exclude(
+        directory_id=did).select_related("user").first() if did else None
+    if not p:
+        return False
+    u = p.user
+    log.warning("directory gave %s to a different account; the old Kartei user is renamed and deactivated", name)
+    rename(u, f"{name}-{p.directory_id[:8]}", actor)
+    if u.is_active:
+        u.is_active = False
+        u.save(update_fields=["is_active"])
+        audit.log(actor, "update", "user", u.id, u.username, {"is_active": [True, False]})
+    return True

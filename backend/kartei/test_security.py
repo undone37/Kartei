@@ -36,6 +36,29 @@ class AccessTests(ApiTestBase):
         self.as_("maintainer")
         self.j("get", f"/api/records/{rec.uid}/history")
 
+    def test_deleted_restricted_field_stays_hidden_in_history(self):
+        """F-1: deleting a maintainer/admin-only field must not unmask its old values in the history."""
+        from .models import AuditEntry
+        self.as_("admin")
+        for key, vis in (("memo_m", "maintainer"), ("memo_a", "admin")):
+            self.j("post", "/api/admin/fields", {"label": {"de": key, "en": key}, "key": key, "applies_to": "both",
+                                                 "type": "text", "visible_to": vis, "editable_by": vis}, status=201)
+        uid = self.j("post", "/api/records", {"kind": "company", "name": "Dummy GmbH",
+                                              "data": {"memo_m": "SECRET-M", "memo_a": "SECRET-A"}}, status=201)["uid"]
+        self.j("patch", f"/api/records/{uid}", {"version": 1, "data": {"memo_m": "", "memo_a": ""}})
+        for f in FieldDef.objects.filter(key__in=["memo_m", "memo_a"]):
+            self.j("delete", f"/api/admin/fields/{f.id}")
+        self.as_("read")
+        self.assertNotIn(b"SECRET", self.client.get(f"/api/records/{uid}/history").content)
+        self.as_("maintainer")
+        self.assertNotIn(b"SECRET-A", self.client.get("/api/recent-changes").content)
+        self.as_("admin")  # admins keep the full history
+        self.assertIn(b"SECRET-A", self.client.get(f"/api/records/{uid}/history").content)
+        self.as_("read")  # core columns and markers still show
+        names = [e["changes"].get("name") for e in self.j("get", f"/api/records/{uid}/history")["entries"]]
+        self.assertIn([None, "Dummy GmbH"], names)
+        self.assertTrue(AuditEntry.objects.filter(target_id=uid).exists())
+
     def test_shared_filter_hides_fields_the_viewer_cannot_see(self):
         FieldDef.objects.filter(key="customer_no").update(visible_to="admin")
         admin = self.users["admin"]

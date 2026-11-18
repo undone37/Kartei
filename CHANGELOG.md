@@ -4,6 +4,11 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Security
+
+- **Record history:** values of a field limited to maintainers or administrators stay hidden from lower roles after the field is deleted. Before, deleting such a field made its old values in the history (and in *Recent changes*) readable for everyone.
+- **LDAP, reused user names:** if the directory gives a user name to a different account (another `objectGUID`/`entryUUID`), the new holder no longer takes over the previous holder's Kartei user, including its single sign-on binding and two-factor sign-in. The old user is renamed and deactivated; the new holder gets a new one.
+
 ## [0.8.3-beta] – 2026-11-18
 
 Outlook sync fix:

@@ -468,6 +468,7 @@ The result shows whether the connection and the bind of the service account work
 - Disabled AD accounts are skipped (and thereby deactivated in Kartei).
 - Users who have left all groups are deactivated, not deleted.
 - A renamed AD account (new `sAMAccountName`) stays the same Kartei user: Kartei recognises it by its `objectGUID` (or `entryUUID`), takes over the new name and updates the contacts that name the user. Users are matched by name only until their directory id is known (the first import or sign-in after the update).
+- If the directory gives a user name to a different account (another `objectGUID`), the existing Kartei user still belongs to the previous holder: Kartei renames it to `<name>-<first 8 characters of the old id>` and deactivates it, and the new holder gets a new Kartei user. Nothing carries over, neither single sign-on nor two-factor sign-in nor favourites.
 - Local users are never touched; an AD account with the same name as a local user is counted as *local skipped*.
 - If no members are found at all (e.g. wrong search base), nothing is changed and an error is shown, so a typo cannot deactivate everybody.
 - *Deactivate at most (% of directory users per run)* (default 20): if more users would be deactivated, e.g. after a role group was renamed, the run stops without changing anything and shows how many. Up to two users may always leave. Raise the limit for one run if the change is intended.

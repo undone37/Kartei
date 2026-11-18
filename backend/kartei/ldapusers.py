@@ -16,7 +16,7 @@ from ldap.controls import SimplePagedResultsControl
 from ldap.filter import escape_filter_chars
 
 from . import audit
-from .auth import directory_id, ldap_settings, rename, role_groups
+from .auth import directory_id, evict_reused, ldap_settings, rename, role_groups
 from .msg import msg
 from .models import Profile, Settings
 
@@ -95,6 +95,9 @@ def apply(found, actor=None, limit=None):
     """Create/update/deactivate users from members(). -> counts. limit: the most directory users (percent of the
     active ones) one run may deactivate; more raises LdapError before anything changes. Two always pass (small teams)."""
     counts = {"created": 0, "updated": 0, "deactivated": 0, "skipped_local": 0, "renamed": 0}
+    for name, (role, a) in found.items():
+        if evict_reused(name, directory_id(a), actor):  # the name now belongs to someone else
+            counts["renamed"] += 1
     users = {u.username.lower(): u for u in User.objects.select_related("profile")}
     # renamed in the directory: the user with that directory id gets the new name (found by name otherwise)
     by_id = {u.profile.directory_id: u for u in users.values()
