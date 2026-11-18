@@ -12,7 +12,7 @@ import logging
 import ssl
 import time
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import HTTPSHandler, Request, build_opener
 
 from django.utils import timezone
 
@@ -20,6 +20,7 @@ from .carddav import _card_etag, _etags, _fields, _records, _schema_hash
 from .models import Settings, ref_names
 from .msg import msg
 from .vcard import render
+from .webhooks import _NoRedirect
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +37,11 @@ def _context(s):
     if s.carddav_relay_ca_cert.strip():
         return ssl.create_default_context(cadata=s.carddav_relay_ca_cert.strip() + "\n")
     return ssl.create_default_context()
+
+
+def urlopen(req, timeout, context):
+    """Never follows a redirect: it would carry the bearer token to wherever the relay (or its proxy) points."""
+    return build_opener(_NoRedirect, HTTPSHandler(context=context)).open(req, timeout=timeout)
 
 
 def call(s, method, body=None):

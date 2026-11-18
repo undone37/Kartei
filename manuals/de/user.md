@@ -57,7 +57,7 @@ Ein Klick auf das Personen-Symbol oben rechts öffnet das **Benutzermenü**. Dor
 
 ![Benutzermenü](../img/de/user-menu.png)
 
-Unter **Mein Konto** kannst du die Sprache ebenfalls wählen (*Standard (…)* nimmt die Standardsprache eurer Installation) und, wenn du ein lokales Konto hast, dein Passwort ändern (*Neues Passwort (min. 10 Zeichen)*). Meldest du dich mit deinem Netzwerk-Konto an, änderst du das Passwort dort (*Dein Passwort wird im Active Directory verwaltet.*).
+Unter **Mein Konto** kannst du die Sprache ebenfalls wählen (*Standard (…)* nimmt die Standardsprache eurer Installation) und, wenn du ein lokales Konto hast, dein Passwort ändern (*Neues Passwort (min. 10 Zeichen)*); mit Zwei-Faktor-Anmeldung gehört der Code aus der App (oder ein Wiederherstellungscode) dazu. Meldest du dich mit deinem Netzwerk-Konto an, änderst du das Passwort dort (*Dein Passwort wird im Active Directory verwaltet.*).
 
 Ganz unten zeigt das Benutzermenü die Kartei-Version (hilfreich bei Fehlermeldungen).
 

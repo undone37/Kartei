@@ -57,7 +57,7 @@ Click the person icon at the top right to open the **user menu**. It shows your 
 
 ![User menu](../img/en/user-menu.png)
 
-Under **My account** you can also choose the language (*Default (…)* uses the default language of your installation) and, if you have a local account, change your password (*New password (min. 10 characters)*). If you sign in with your network account, you change your password there (*Your password is managed in Active Directory.*).
+Under **My account** you can also choose the language (*Default (…)* uses the default language of your installation) and, if you have a local account, change your password (*New password (min. 10 characters)*); with two-factor sign-in, the code from the app (or a recovery code) is needed as well. If you sign in with your network account, you change your password there (*Your password is managed in Active Directory.*).
 
 At the bottom, the user menu shows the Kartei version (useful in bug reports).
 

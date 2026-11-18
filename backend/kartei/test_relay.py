@@ -185,6 +185,30 @@ class ClientTests(TestCase):
         s.carddav_relay_tls_verify, s.carddav_relay_ca_cert = True, "-----BEGIN CERTIFICATE-----\nnope\n-----END CERTIFICATE-----"
         self.assertIn("error", relaypush.test(s))
 
+    def test_redirects_are_not_followed(self):
+        """F-10: a redirecting relay must not get the bearer token sent anywhere else."""
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        hits = []
+
+        class H(BaseHTTPRequestHandler):
+            def do_GET(self):
+                hits.append((self.path, self.headers.get("Authorization")))
+                self.send_response(302 if self.path == "/push" else 200)
+                self.send_header("Location", "/elsewhere")
+                self.send_header("Content-Length", "2")
+                self.end_headers()
+                self.wfile.write(b"{}")
+
+            def log_message(self, *a):
+                pass
+        srv = HTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.shutdown)
+        s = configure(carddav_relay_url=f"http://127.0.0.1:{srv.server_port}")
+        self.assertIn("error", relaypush.test(s))
+        self.assertEqual([p for p, _ in hits], ["/push"])
+
 
 class SettingsApiTests(ApiTestBase):
     def test_settings_token_sync(self):
