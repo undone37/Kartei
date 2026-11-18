@@ -318,8 +318,8 @@ components:
         first_name: { type: string, description: Persons only }
         last_name: { type: string, description: Persons only }
         name: { type: string, description: Companies only }
-        company: { type: [string, "null"], format: uuid, description: "Persons: UID of their company" }
-        company_name: { type: [string, "null"], description: "Persons: name of their company" }
+        company: { type: [string, "null"], format: uuid, description: "Persons: UID of their company (null while it is in the recycle bin)" }
+        company_name: { type: [string, "null"], description: "Persons: name of their company (null while it is in the recycle bin)" }
         display_name: { type: string }
         data:
           type: object

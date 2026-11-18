@@ -595,7 +595,7 @@ Before creating, check that the contact doesn't exist yet: the form shows the us
 | **Review overdue** | the last review is older than the review interval |
 | **Retention expired** | only if the administration has set a retention period: contacts nobody has changed or reviewed for longer than that |
 
-**Trend.** At the top, a chart shows how the share of contacts reviewed within the interval developed over the last two years. The selection switches to the count of one area, e.g. *Invalid values*. Kartei records the numbers once a day; *Values as a table* lists them. Point at the line to see the value of a day.
+**Trend.** At the top, a chart shows how the share of contacts reviewed within the interval developed over the last two years. The selection switches to the count of one area, e.g. *Invalid values*. Kartei records the numbers once a day; *Values as a table* lists them. Point at the line to see the value of a day. The trend counts over the fields maintainers can see, so for administrators it can differ slightly from the current figures below.
 
 **Retention expired.** Contacts nobody needs any more should not stay forever (GDPR storage limitation). For each contact in this area, decide:
 - **Keep**: the contact is still needed. It counts as reviewed, so it only shows up again after another retention period.
