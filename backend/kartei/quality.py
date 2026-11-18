@@ -339,7 +339,7 @@ def take_snapshot():
     today = timezone.localdate()
     if QualitySnapshot.objects.filter(day=today).exists():
         return None
-    r = report(ADMIN)
+    r = report(MAINT)  # maintainers see the trend: no counts over admin-only fields (they would confirm guessed values)
     counts = {k: v["count"] for k, v in r.items() if isinstance(v, dict)}
     counts["total"] = r["total"]
     counts["reviewed_ok"] = r["total"] - counts["never_reviewed"] - counts["overdue"]
