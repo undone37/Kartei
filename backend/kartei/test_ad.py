@@ -150,6 +150,36 @@ class UserImportTests(AdTestBase):
         rec.refresh_from_db()
         self.assertEqual(rec.data["internal_contact"], "lneu")  # the contact follows the rename
 
+    def test_reused_name_does_not_inherit_the_old_account(self):
+        """F-2: AD gives a former user's sAMAccountName to someone else (new objectGUID)."""
+        import uuid
+        from types import SimpleNamespace
+        from .auth import DbLDAPBackend
+        old, new, other = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+        entry = self.fake.entries["CN=Lea Leser,OU=Users,DC=ex,DC=local"]
+        entry["objectGUID"] = [old.bytes_le]
+        ldapusers.run()
+        lea = User.objects.get(username="lleser")
+        Profile.objects.filter(user=lea).update(sso_subject="https://idp sub-lea")
+        rec = Record.objects.create(kind="company", name="Lea's", data={"internal_contact": "lleser"})
+
+        entry["objectGUID"] = [new.bytes_le]  # import path: the name now belongs to another account
+        ldapusers.run()
+        lea.refresh_from_db()
+        self.assertEqual((lea.username, lea.is_active, lea.profile.sso_subject, lea.profile.directory_id),
+                         (f"lleser-{str(old)[:8]}", False, "https://idp sub-lea", str(old)))
+        fresh = User.objects.get(username="lleser")
+        self.assertEqual((fresh.profile.sso_subject, fresh.profile.directory_id), ("", str(new)))
+        rec.refresh_from_db()
+        self.assertEqual(rec.data["internal_contact"], lea.username)  # contacts keep naming the previous holder
+
+        # login path: someone else signs in under the name before the next import
+        attrs = {"objectGUID": [other.bytes_le]}
+        user, built = DbLDAPBackend().get_or_build_user("lleser", SimpleNamespace(attrs=attrs))
+        self.assertTrue(built)
+        fresh.refresh_from_db()
+        self.assertEqual((fresh.username, fresh.is_active), (f"lleser-{str(new)[:8]}", False))
+
     def test_nobody_found_changes_nothing(self):
         ldapusers.run()
         self.fake.groups = {g: [] for g in G.values()}

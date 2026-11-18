@@ -683,12 +683,22 @@ def history(request, uid):
     return JsonResponse({"entries": [ser_audit(e, request.rank) for e in entries]})
 
 
+# Keys of record audit entries that are not fields: core columns and workflow markers (see SPECIAL in frontend/src/lib/audit.ts).
+RECORD_AUDIT_KEYS = frozenset({
+    "first_name", "last_name", "name", "company", "image",
+    "anonymized", "proposed_by", "note", "comment", "delete", "reviewed", "batch_from", "started", "adjusted", "kind", "reason",
+    "bulk", "normalized", "merged_from", "merged_into", "not_duplicate", "with_company", "handover", "renamed"})
+
+
 def ser_audit(e, rank, kinds=None):
     """kinds: {record uid: person/company} so the UI can name and link the object."""
     changes = e.changes
-    if rank < ADMIN:  # hide values of fields the user may not see
-        hidden = {f.key for f in FieldDef.objects.all() if not f.visible(rank)}
-        changes = {k: v for k, v in changes.items() if k not in hidden}
+    if rank < ADMIN:
+        fields = {f.key: f.visible(rank) for f in FieldDef.objects.all()}
+        if e.target_type == "record":  # allowlist: a deleted field's old values must not resurface
+            changes = {k: v for k, v in changes.items() if fields.get(k) or (k in RECORD_AUDIT_KEYS and k not in fields)}
+        else:
+            changes = {k: v for k, v in changes.items() if fields.get(k, True)}
     return {"id": e.id, "at": e.at.isoformat(), "user": e.username, "action": e.action,
             "target_type": e.target_type, "target_id": e.target_id, "target_label": e.target_label,
             "kind": (kinds or {}).get(e.target_id), "changes": changes, **({"ip": e.ip} if rank >= ADMIN else {})}
