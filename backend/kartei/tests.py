@@ -1226,9 +1226,23 @@ class GraphSyncTests(TestCase):
         Record.objects.filter(pk=self.company.pk).update(data={})  # no longer an internal contact
         graph.run()
         self.assertEqual(folder("u1", "Intern"), [])
+        User.objects.filter(username="anna").update(is_active=False)  # F-6: no Kartei user any more, mailbox stays
+        self.assertEqual(graph.run()["failed"], [])
+        self.assertEqual(sorted(d["name"] for (u, _), d in self.fake.folders.items() if u == "u1"), ["Kartei"])
+        self.assertEqual(folder("u2", "Intern"), ["Alexander Meier"])  # others keep theirs
         del self.fake.users["u1"]  # leaver: all three folders go
         graph.run()
         self.assertEqual([d["name"] for (u, _), d in self.fake.folders.items() if u == "u1"], [])
+
+    def test_owner_by_local_part_only_for_the_same_person(self):
+        """F-7: mailbox kim@x.de must not get the folders of Kartei user 'kim' whose email is another mailbox's."""
+        User.objects.create(username="kim", email="kim.kramer@x.de")
+        User.objects.create(username="lea")  # no email: the AD account name fallback still works
+        users = graph.kartei_users()
+        self.assertIsNone(graph.owner({"mail": "kim@x.de", "userPrincipalName": "u1@x.de"}, users))
+        self.assertEqual(graph.owner({"mail": "kim.kramer@x.de"}, users), "kim")
+        self.assertEqual(graph.owner({"mail": "Kim@x.de", "userPrincipalName": "kim.kramer@x.de"}, users), "kim")
+        self.assertEqual(graph.owner({"mail": "lea@x.de"}, users), "lea")
 
     def test_photos(self):
         jpeg = b"\xff\xd8\xff" + b"x" * 50

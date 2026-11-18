@@ -54,6 +54,10 @@ class ApiWriteTests(ApiTestBase):
             "data": {"mobile": "0170/1234567", "department": "Einkauf", "keywords": ["Neu-Tag"]}}, status=201)
         self.assertEqual((p["first_name"], p["company"], p["company_name"]), ("Anna", c["uid"], "Beispiel GmbH"))
         self.assertEqual(p["data"]["mobile"], "+49 170 1234567")  # phone normalization as in the UI
+        Record.objects.filter(uid=c["uid"]).update(deleted_at="2026-01-01T00:00:00Z")  # F-4: trashed company
+        gone = self.api("get", f"/api/v1/contacts/{p['uid']}")
+        self.assertEqual((gone["company"], gone["company_name"]), (None, None))
+        Record.objects.filter(uid=c["uid"]).update(deleted_at=None)
         self.assertIn("Neu-Tag", [o["value"] for o in FieldDef.objects.get(key="keywords").options])  # open field
 
         url = f"/api/v1/contacts/{p['uid']}"

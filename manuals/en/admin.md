@@ -979,7 +979,7 @@ On the phone (iPhone or Android), users install the Outlook app, sign in with th
   - *my contacts*: contacts where the user is entered in a single-user field (the responsible person);
   - *my internal contacts*: contacts where the user is entered in a multi-user field.
 
-  Kartei matches a mailbox to a Kartei user by email address, UPN, or the part before the `@` (the AD account name). Mailboxes without a matching Kartei user get only the folder with all contacts.
+  Kartei matches a mailbox to a Kartei user by email address or UPN, else by the part before the `@` (the AD account name); the latter only if that user has no email address or one of the mailbox's. Mailboxes without a matching active Kartei user get only the folder with all contacts; personal folders they got earlier (e.g. before the user was deactivated) are deleted.
 - **Folders from saved filters:** maintainers can publish a saved filter as an Outlook folder (see the user manual, *Saved filters*). Each mailbox owner who sees the filter gets a folder named after it, with the contacts the filter shows them (their own *Responsible*/*Internal* lists, only fields their role sees). When a filter is unpublished, renamed or no longer shared with someone, its folder is removed at the next run. A filter can't use the name of the main or a personal folder. At most 10 filters can be published (Outlook folders and address books together).
 - Throttling by Microsoft is handled with automatic retries; a large first run can take a while.
 

@@ -67,8 +67,9 @@ def token_auth(*allowed):
 
 def ser_contact(r, fields):
     d = ser_record(r, fields)
-    return {k: d[k] for k in ("uid", "kind", "legacy_id", "first_name", "last_name", "name", "company")} | {
-        "company_name": r.company.name if r.company_id and r.company else None,
+    co = r.company if r.company_id and r.company and not r.company.deleted_at else None  # a trashed one is gone
+    return {k: d[k] for k in ("uid", "kind", "legacy_id", "first_name", "last_name", "name")} | {
+        "company": str(co.uid) if co else None, "company_name": co.name if co else None,
         "display_name": r.display_name, "data": d["data"], "version": r.version, "updated_at": d["updated_at"]}
 
 
