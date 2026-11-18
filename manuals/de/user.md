@@ -595,7 +595,7 @@ Prüf vor dem Anlegen, ob es den Kontakt schon gibt: Das Formular zeigt dazu wie
 | **Prüfung überfällig** | die letzte Prüfung ist älter als das Prüfintervall |
 | **Aufbewahrung abgelaufen** | nur wenn die Administration eine Aufbewahrungsdauer eingestellt hat: Kontakte, die länger als diese weder geändert noch geprüft wurden |
 
-**Verlauf.** Oben zeigt eine Grafik, wie sich der Anteil der innerhalb des Intervalls geprüften Kontakte in den letzten zwei Jahren entwickelt hat. Die Auswahl schaltet auf die Anzahl eines Bereichs um, z. B. *Ungültige Werte*. Kartei hält die Zahlen einmal täglich fest; *Werte als Tabelle* listet sie auf. Zeigt man auf die Linie, erscheint der Wert des Tages. Der Verlauf zählt über die Felder, die Maintainer sehen; für Administratoren kann er daher leicht von den aktuellen Zahlen darunter abweichen.
+**Verlauf.** Oben zeigt eine Grafik, wie sich der Anteil der innerhalb des Intervalls geprüften Kontakte in den letzten zwei Jahren entwickelt hat. Die Auswahl schaltet auf die Anzahl eines Bereichs um, z. B. *Ungültige Werte*. Kartei hält die Zahlen einmal täglich fest; *Werte als Tabelle* listet sie auf. Zeigt man auf die Linie, erscheint der Wert des Tages. Der Verlauf zählt über die Felder, die Bearbeiter sehen; für Admins kann er daher leicht von den aktuellen Zahlen darunter abweichen.
 
 **Aufbewahrung abgelaufen.** Kontakte, die niemand mehr braucht, sollen nicht ewig bleiben (DSGVO, Speicherbegrenzung). Für jeden Kontakt in diesem Bereich entscheidest du:
 - **Behalten**: der Kontakt wird noch gebraucht. Er gilt als geprüft und erscheint erst nach einer weiteren Aufbewahrungsdauer wieder.
