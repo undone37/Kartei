@@ -4,6 +4,14 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.8.3-beta] – 2026-11-18
+
+Outlook sync fix:
+- **Outlook sync** finds the mailboxes again; it needs the additional application permission `User.Read.All`.
+- **Keywords** go into the contact notes instead of becoming Outlook categories.
+
+Upgrading: pull the new images; no migrations. If you use the Outlook sync, add the application permission `User.Read.All` to the app registration and grant admin consent.
+
 ### Fixed
 
 - **Outlook sync found 0 mailboxes:** without the application permission `User.Read.All`, Microsoft Graph returns group members without their email address. The setup instructions (admin manual and settings page) now list `User.Read.All` next to `Contacts.ReadWrite` and `GroupMember.Read.All`, and *Test connection* names the missing permission instead of reporting 0 mailboxes. Add the permission and grant admin consent.
@@ -333,7 +341,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.2-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.3-beta...HEAD
+[0.8.3-beta]: https://github.com/undone37/Kartei/compare/v0.8.2-beta...v0.8.3-beta
 [0.8.2-beta]: https://github.com/undone37/Kartei/compare/v0.8.1-beta...v0.8.2-beta
 [0.8.1-beta]: https://github.com/undone37/Kartei/compare/v0.8.0-beta...v0.8.1-beta
 [0.8.0-beta]: https://github.com/undone37/Kartei/compare/v0.7.0-beta...v0.8.0-beta
