@@ -4,13 +4,23 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.8.5-beta] – 2026-11-19
+
+Fixes from a second internal security audit (nothing critical; one medium finding, the rest low):
+- **Outlook sync:** a saved filter can no longer take over or delete a user's own contact folder of the same name. Filter folders now have a prefix ("Kartei: ") and are tracked by id.
+- **Data minimisation and erasure:** proposals no longer send values to the log or syslog, and permanent deletion also anonymises the proposal a contact came from.
+- **Shared services:** one maintainer filter or name can no longer break CardDAV, the DMZ relay, the Outlook sync, the phone books or push notifications.
+- **Sign-in:** recovery codes are stored keyed with the `SECRET_KEY`, and switching on two-factor sign-in ends other sessions.
+- **Deployment defaults:** ports are published on `127.0.0.1` only, and the trusted proxies are narrowed to the container's own network.
+
+Upgrading: pull the new images; the migration adds the setting *Prefix for filter folders*. **If your reverse proxy runs on another host**, set `WEB_PORT=0.0.0.0:8000` (relay: `RELAY_PORT=0.0.0.0:8080` in `.env.relay`) and `TRUSTED_PROXIES=<the proxy's address>` before restarting, otherwise Kartei is not reachable from the proxy. With the Outlook sync, folders from saved filters are created once under the new name "Kartei: <filter>" and the old ones are removed. Users with two-factor sign-in see a hint to create new recovery codes; the old ones keep working. Webhooks show *Secret can't be read* if the `SECRET_KEY` was changed since they were created; create a new secret for them. `DEBUG=1` must not be set on a server any more.
+
 ### Changed
 
 - **Deployment defaults (breaking for some setups):** `web` is published on `127.0.0.1:8000` and the DMZ relay on `127.0.0.1:8080`, no longer on all interfaces. `TRUSTED_PROXIES` defaults to `auto`: loopback plus the container's own Compose network, no longer all of `172.16.0.0/12`. Before, a client that reached port 8000 directly from such an address could fake its address in `X-Forwarded-For` and get around the sign-in lockout, the failure counters and the monitoring and phone book allowlists. **If your reverse proxy runs on another host**, set `WEB_PORT=0.0.0.0:8000` (relay: `RELAY_PORT=0.0.0.0:8080` in `.env.relay`) and `TRUSTED_PROXIES=<the proxy's address>`, and allow the port in the firewall from the proxy only.
 
 ### Security
 
-- **Release pipeline:** the manuals PDF build (npm, Playwright, apt) runs in its own job without write access; the job that publishes images and the release no longer stores the token in the checkout. Base images in the `Dockerfile` are pinned by digest.
 - **Outlook sync, folders from saved filters:** Kartei remembers the folders it created and only syncs into or deletes those. Before, a filter named like a folder a user already had in their mailbox (e.g. "Privat") took that folder over: its own contacts were removed, and the whole folder was deleted when the filter was unpublished. Such a folder is now left alone, and the sync status reports the conflict.
 - **Audit log, proposals:** new-contact proposals send only the names of the proposed fields to the container log and syslog, like contacts, no longer their values and comment.
 - **Record history:** an entry from a bulk edit, a batch change or phone normalization that only touched fields hidden from the reader is left out completely. Before, its marker still showed that, when and by whom something hidden was changed. Read users no longer see the history of a contact deleted permanently.
@@ -29,6 +39,7 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 - **Backups** are written readable by their owner only (0600).
 - **Server:** the web server refuses to start with `DEBUG=1`. A two-factor code with non-Latin digits, a sign-in body that is not a JSON object and very deeply nested JSON give a normal error instead of a server error.
 - **Browser:** after signing out, content shared with the app but not yet imported is removed. When the user's role or the visible fields change, the app reloads all contacts, so it no longer keeps values the user may no longer see in its offline copy.
+- **Release pipeline:** the manuals PDF build (npm, Playwright, apt) runs in its own job without write access; the job that publishes images and the release no longer stores the token in the checkout. Base images in the `Dockerfile` are pinned by digest.
 
 ### Added
 
@@ -393,7 +404,8 @@ First public beta.
 - German and English, light and dark theme, installable as an app.
 - Images on the GitHub container registry, manuals as PDF, SBOMs and the OpenAPI description attached to the release.
 
-[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.4-beta...HEAD
+[Unreleased]: https://github.com/undone37/Kartei/compare/v0.8.5-beta...HEAD
+[0.8.5-beta]: https://github.com/undone37/Kartei/compare/v0.8.4-beta...v0.8.5-beta
 [0.8.4-beta]: https://github.com/undone37/Kartei/compare/v0.8.3-beta...v0.8.4-beta
 [0.8.3-beta]: https://github.com/undone37/Kartei/compare/v0.8.2-beta...v0.8.3-beta
 [0.8.2-beta]: https://github.com/undone37/Kartei/compare/v0.8.1-beta...v0.8.2-beta
