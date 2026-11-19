@@ -75,7 +75,7 @@ Verlangt dein Administrator die Zwei-Faktor-Anmeldung, zeigt Kartei diese Einric
 
 ![Zwei-Faktor-Anmeldung einrichten](../img/de/account-totp.png)
 
-Bei der Anmeldung fragt Kartei nach dem Passwort den Code ab. Mit dem aktuellen Code (oder einem Wiederherstellungscode) holst du dir auf derselben Seite **Neue Wiederherstellungscodes** oder **schaltest** die Zwei-Faktor-Anmeldung **aus**. Handy und Codes verloren? Die Administration kann sie zurücksetzen.
+Bei der Anmeldung fragt Kartei nach dem Passwort den Code ab. Mit dem aktuellen Code (oder einem Wiederherstellungscode) holst du dir auf derselben Seite **Neue Wiederherstellungscodes** oder **schaltest** die Zwei-Faktor-Anmeldung **aus**. Handy und Codes verloren? Die Administration kann sie zurücksetzen. Zeigt Kartei den Hinweis, deine Wiederherstellungscodes stammten aus einer älteren Version, hol dir dort neue: Die alten gelten weiter, die neuen sind sicherer gespeichert.
 
 ### Benachrichtigungen {#benachrichtigungen}
 

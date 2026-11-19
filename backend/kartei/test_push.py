@@ -155,3 +155,27 @@ class PushApiTests(ApiTestBase):
         Review.objects.create(record=rec, assignee=self.users["maintainer"], reason="manual")
         self.assertEqual(self.deliver(), 1)
         self.assertEqual(self.sent[-1][1]["tag"], "review")
+
+    # audit run 2 K-05: one crafted subscription must not stall push for everyone
+    def test_endpoint_with_a_space_is_refused(self):
+        self.as_("read")
+        sub = new_sub()
+        self.j("post", "/api/me/push", {**sub, "endpoint": sub["endpoint"] + " x"}, status=400)
+
+    def test_a_broken_stored_subscription_doesnt_block_the_others(self):
+        good = new_sub()
+        PushSubscription.objects.create(user=self.users["read"], endpoint="https://fcm.googleapis.com/a b",
+                                        p256dh=good["keys"]["p256dh"], auth=good["keys"]["auth"])  # stored directly
+        self.subscribe("read")
+        Review.objects.create(record=Record.objects.create(kind="person", last_name="X"), assignee=self.users["read"],
+                              reason="manual")
+
+        def fake(req, timeout):  # the real check of the URL first, like urllib does
+            if " " in req.full_url:
+                raise ValueError("InvalidURL")
+            self.sent.append(req.full_url)
+            return FakeResponse()
+        with mock.patch("kartei.push.urlopen", fake), mock.patch("kartei.push.encrypt", lambda p, a, pt: pt):
+            self.assertEqual(push.deliver_due(), 1)
+            self.assertEqual(push.deliver_due(), 0)  # pushed once, not again on every poll
+        self.assertEqual(len(self.sent), 1)

@@ -75,7 +75,7 @@ If your administrator requires two-factor sign-in, Kartei shows this setup right
 
 ![Setting up two-factor sign-in](../img/en/account-totp.png)
 
-When signing in, Kartei asks for the code after the password. With the current code (or a recovery code) you can get **New recovery codes** or **Switch off** the two-factor sign-in on the same page. Lost your phone and the codes? Your administrator can reset it.
+When signing in, Kartei asks for the code after the password. With the current code (or a recovery code) you can get **New recovery codes** or **Switch off** the two-factor sign-in on the same page. Lost your phone and the codes? Your administrator can reset it. If Kartei says your recovery codes are from an older version, get new ones there: the old ones still work, the new ones are stored more securely.
 
 ### Notifications {#notifications}
 

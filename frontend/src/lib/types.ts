@@ -105,6 +105,7 @@ export interface User {
   refs?: number // contacts naming this user (user list only)
   /** two-factor sign-in is on */
   totp?: boolean
+  totp_recovery_legacy?: boolean // recovery codes from before 0.8.5: make new ones
   totp_due?: boolean // required by the admin, not set up yet: nothing else works until it is
 }
 

@@ -11,7 +11,7 @@ import json
 import logging
 import os
 import time
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import Request
 
@@ -81,6 +81,7 @@ def clean(sub):
         u = urlsplit(endpoint)
         host = (u.hostname or "").lower()
         if (u.scheme != "https" or len(endpoint) > 1000 or u.port not in (None, 443)
+                or not endpoint.isascii() or any(c <= " " or c == "\x7f" for c in endpoint)
                 or not any(host == h or host.endswith("." + h) for h in PUSH_HOSTS)):
             return None
         ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), unb64u(p256dh))
@@ -136,7 +137,7 @@ def send(sub, data, key=None, s=None):
             sub.delete()
         else:
             log.warning("push to %s failed: HTTP %s %s", urlsplit(sub.endpoint).hostname, e.code, e.read(300))
-    except (URLError, OSError) as e:
+    except Exception as e:  # anything else (e.g. a malformed stored endpoint) must not stop the other devices
         log.warning("push to %s failed: %s", urlsplit(sub.endpoint).hostname, e)
     return False
 

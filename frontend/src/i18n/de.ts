@@ -1109,6 +1109,7 @@ export default {
   'totp.recovery_once': "Bewahr diese Wiederherstellungscodes sicher auf (z. B. im Passwortmanager). Jeder Code funktioniert einmal, falls du dein Telefon nicht zur Hand hast. Sie werden nur jetzt angezeigt.",
   'totp.copy': "Kopieren",
   'totp.saved': "Gesichert",
+  'totp.recovery_legacy': "Deine Wiederherstellungscodes stammen aus einer älteren Version. Sie gelten weiter, sicherer sind aber neue: Code aus der App eingeben und auf „Neue Wiederherstellungscodes“ klicken.",
   'totp.new_recovery': "Neue Wiederherstellungscodes",
   'totp.disable': "Ausschalten",
   'totp.disabled': "Zwei-Faktor-Anmeldung ausgeschaltet",

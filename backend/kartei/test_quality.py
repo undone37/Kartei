@@ -218,6 +218,18 @@ class QualityReportTests(ApiTestBase):
         self.assertEqual(q["duplicates"]["count"], 0)
 
 
+class HiddenReachTests(ApiTestBase):
+    def test_admin_only_phone_doesnt_count_for_maintainers(self):
+        """Run-2 K-06: the no_reach list must not tell maintainers who has a hidden phone or email."""
+        FieldDef.objects.create(key="private_phone", label_de="Privat", label_en="Private", type="phone",
+                                applies_to="both", visible_to="admin", editable_by="admin")
+        p = Record.objects.create(kind="person", last_name="A", data={"private_phone": "+49 511 1"})
+        self.as_("maintainer")
+        self.assertIn(str(p.uid), self.j("get", "/api/quality")["no_reach"]["items"])
+        self.as_("admin")
+        self.assertNotIn(str(p.uid), self.j("get", "/api/quality")["no_reach"]["items"])
+
+
 class RetentionTrendTests(ApiTestBase):
     def old(self, r, days):
         t = timezone.now() - timedelta(days=days)
