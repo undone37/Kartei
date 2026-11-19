@@ -11,6 +11,8 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 - **Record history:** an entry from a bulk edit, a batch change or phone normalization that only touched fields hidden from the reader is left out completely. Before, its marker still showed that, when and by whom something hidden was changed. Read users no longer see the history of a contact deleted permanently.
 - **Permanent deletion:** with *Anonymise the history* the entries of the proposal a contact came from lose the name, values and comment too.
 - **Proposals:** a proposal for a contact that is now in the recycle bin can no longer be edited by its proposer. Before, editing it showed the contact's current values.
+- **Saved filters, shared services:** a filter published by a maintainer can no longer break CardDAV, the DMZ relay, the Outlook sync or the desk-phone phone books. A saved filter has at most 500 conditions (one huge filter blocked CardDAV for about a minute per request). Conditions like "in the last N days" with more than 100 years are ignored (before, they made CardDAV discovery fail and stopped the relay push and the Outlook sync). A filter that still can't be evaluated is skipped and logged, so the others keep working. Filter names lose characters XML does not allow.
+- **Phone books, CardDAV:** names with the characters U+FFFE/U+FFFF no longer break the Yealink, Snom and Grandstream XML; such characters are removed when saving, like control characters. An overlong CardDAV sync token gives "invalid token" instead of a server error.
 
 ### Added
 

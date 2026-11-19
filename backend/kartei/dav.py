@@ -23,7 +23,7 @@ from django.utils.crypto import salted_hmac
 from django.http import HttpResponse, HttpResponseRedirect
 
 from .net import client_ip, count_distinct_failure
-from .vcard import flavour_for
+from .vcard import XML_ILLEGAL, flavour_for
 
 D, CARD, CS = "DAV:", "urn:ietf:params:xml:ns:carddav", "http://calendarserver.org/ns/"
 ET.register_namespace("d", D)
@@ -103,7 +103,7 @@ def _href(el, url):
 
 def _text(value):
     def fill(el):
-        el.text = value
+        el.text = XML_ILLEGAL.sub("", value) if isinstance(value, str) else value  # e.g. a saved filter's name
     return fill
 
 

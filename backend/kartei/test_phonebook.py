@@ -25,6 +25,12 @@ class PhonebookTests(TestCase):
     def get(self, url, auth=AUTH, **extra):
         return self.client.get(url, HTTP_AUTHORIZATION=auth, **extra) if auth else self.client.get(url, **extra)
 
+    def test_xml_stays_well_formed_with_illegal_characters(self):
+        """Run-2 K-12: U+FFFE in a name saved before 0.8.5 broke the desk-phone XML."""
+        Record.objects.filter(pk=self.koch.pk).update(last_name="Ko\ufffech")
+        for brand in ("yealink", "snom", "grandstream"):
+            ET.fromstring(self.get(f"/phonebook/{brand}.xml").content)
+
     def test_yealink_snom_grandstream(self):
         y = ET.fromstring(self.get("/phonebook/yealink.xml").content)
         entries = {e.findtext("Name"): [(t.get("label"), t.text) for t in e.findall("Telephone")] for e in y}

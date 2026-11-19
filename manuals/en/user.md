@@ -177,7 +177,7 @@ For questions the field filters can't answer, e.g. "persons in Hannover who were
    - **Yes/No fields:** *is checked*, *is not checked*.
    - Every field (except Yes/No fields): *is empty*, *is not empty*.
 4. Add more conditions as needed. The selection at the top decides how they are combined: **All conditions match (AND)**, **At least one matches (OR)** or **None matches (NOT)**.
-5. For more complex rules, click **Group** (with the plus): a group has its own combination and its own conditions. Groups can be nested up to three levels deep.
+5. For more complex rules, click **Group** (with the plus): a group has its own combination and its own conditions. Groups can be nested up to three levels deep. A saved filter can have at most 500 conditions.
 
 Conditions that are incomplete (no field, no value) are ignored. The advanced filter works on top of the search, the list, *People*/*Companies* and the field filters. While it is active, a tag **Advanced: … conditions** appears below the buttons; click it to open the filter again, or click its **×** to remove it. **Reset advanced filter** clears all conditions.
 

@@ -20,6 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from . import audit, dav, monitoring
 from .batch import MIN_PREFIX, national
 from .models import FieldDef, Record, Settings
+from .vcard import XML_ILLEGAL
 from .net import client_ip
 
 DIAL = ("tel_work", "tel_custom", "tel_cell", "tel_home", "tel_assistant")  # no fax: a phone can't call one
@@ -186,7 +187,7 @@ def directory(request, brand):
     items, _ = entries()
     body = FORMATS[brand](_search(items, request.GET.get("q", "")[:100]))
     if brand != "swyx":
-        return HttpResponse(body, content_type="text/xml; charset=utf-8")
+        return HttpResponse(XML_ILLEGAL.sub("", body), content_type="text/xml; charset=utf-8")  # names saved before 0.8.5
     # a Windows import: UTF-8 with BOM by default, ?charset=windows-1252 for an older SwyxWare that expects ANSI
     if request.GET.get("charset", "").lower() in ("windows-1252", "cp1252", "ansi"):
         data, charset = body.encode("cp1252", "replace"), "windows-1252"

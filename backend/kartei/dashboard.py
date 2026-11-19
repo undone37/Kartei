@@ -13,6 +13,7 @@ from .api import (MAINT, READ, _add_new_options, _soft_delete, delete_with_perso
 from .models import (AuditEntry, FieldDef, Kind, Profile, Record, Role, SavedFilter, Settings, default_csv_options,
                      default_xlsx_options, ref_names, user_label)
 from .validation import EMPTY, merge_data
+from .vcard import XML_ILLEGAL
 
 RECENT_MAX, FAVORITES_MAX = 20, 200
 
@@ -120,6 +121,7 @@ def favorite(request):
 # ---------------------------------------------------------------- saved filters
 
 ADV_MODES, ADV_DEPTH, ADV_ITEMS = ("all", "any", "none"), 5, 50
+ADV_LEAVES = 500  # conditions in the whole tree: CardDAV, the relay and Outlook evaluate it for every contact
 
 
 def _clean_adv(g, depth=0):
@@ -145,6 +147,10 @@ def _clean_adv(g, depth=0):
     return {"mode": g["mode"], "items": items}
 
 
+def _leaves(g):
+    return sum(_leaves(x) if "items" in x else 1 for x in g["items"])
+
+
 def _clean_state(st):
     if not isinstance(st, dict) or not isinstance(st.get("filters") or {}, dict):
         return None
@@ -159,13 +165,15 @@ def _clean_state(st):
             out["adv"] = _clean_adv(st["adv"])
         except ValueError:
             return None
+        if _leaves(out["adv"]) > ADV_LEAVES:
+            return None
     return out
 
 
 def _filter_from_body(f, b, rank):
     errors = {}
     if "name" in b:
-        f.name = " ".join(str(b["name"] or "").split())[:100]
+        f.name = " ".join(XML_ILLEGAL.sub("", str(b["name"] or "")).split())[:100]  # also a CardDAV/Outlook name
     if not f.name:
         errors["name"] = "required"
     if "state" in b:

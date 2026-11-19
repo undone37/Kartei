@@ -177,7 +177,7 @@ Für Fragen, die die Feldfilter nicht beantworten – etwa „Personen in Hannov
    - **Ja/Nein-Felder:** *ist angehakt*, *ist nicht angehakt*.
    - Alle Felder (außer Ja/Nein): *ist leer*, *ist nicht leer*.
 4. Füg bei Bedarf weitere Bedingungen hinzu. Die Auswahl oben legt fest, wie sie verknüpft werden: **Alle Bedingungen erfüllt (UND)**, **Mindestens eine erfüllt (ODER)** oder **Keine erfüllt (NICHT)**.
-5. Für kompliziertere Regeln klick auf **Gruppe** (mit dem Plus): Eine Gruppe hat ihre eigene Verknüpfung und eigene Bedingungen. Gruppen lassen sich bis zu drei Ebenen tief verschachteln.
+5. Für kompliziertere Regeln klick auf **Gruppe** (mit dem Plus): Eine Gruppe hat ihre eigene Verknüpfung und eigene Bedingungen. Gruppen lassen sich bis zu drei Ebenen tief verschachteln. Ein gespeicherter Filter kann höchstens 500 Bedingungen haben.
 
 Unvollständige Bedingungen (ohne Feld oder Wert) werden ignoriert. Der erweiterte Filter wirkt zusätzlich zu Suche, Liste, *Personen*/*Firmen* und Feldfiltern. Solange er aktiv ist, steht unter den Knöpfen ein Schildchen **Erweitert: … Bedingungen** – ein Klick darauf öffnet den Filter wieder, das **×** entfernt ihn. **Erweiterten Filter zurücksetzen** löscht alle Bedingungen.
 

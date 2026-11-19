@@ -202,7 +202,7 @@ def leaf(c, d, today):
         if op in ("last", "older"):
             m = re.match(r"\s*([+-]?\d+)", _js_str(value))
             n = int(m[1]) if m else -1
-            if n < 0:
+            if not 0 <= n <= 36600:  # beyond 100 years timedelta overflows (and means nothing)
                 return None
             now, frm = today.isoformat(), (today - timedelta(days=n)).isoformat()
             if op == "last":

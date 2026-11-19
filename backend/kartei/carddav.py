@@ -3,6 +3,7 @@
 With the DMZ relay (relaypush.py) phones use the relay instead; this endpoint then usually stays off (404).
 """
 import hashlib
+import logging
 import re
 import time
 from datetime import datetime, timedelta, timezone as tz
@@ -73,7 +74,7 @@ class Book:
         return f"urn:kartei:sync:{int(timezone.now().timestamp() * 1e6)}:{self.schema}"
 
     def changes(self, token):
-        m = re.fullmatch(r"urn:kartei:sync:(\d+):(\w+)", token)
+        m = re.fullmatch(r"urn:kartei:sync:(\d{1,16}):(\w+)", token)  # longer: past year 2286, would overflow
         if not m or m[2] != self.schema:
             return None
         # ponytail: 5 s overlap like /api/changes, for transactions committing with an older timestamp
@@ -108,6 +109,7 @@ def filter_books():
             if not publish_errors(f)]
 
 
+log = logging.getLogger(__name__)
 _members = {"stamp": None, "at": 0.0, "sets": {}, "view": None}
 
 
@@ -129,7 +131,11 @@ def members(f):
             keys = {x.key for x in fs}
             _members["view"] = (filters.field_dicts(fs), [filters.row(r, keys) for r in _records().select_related("updated_by")], {})
         fields, rows, indexed = _members["view"]
-        _members["sets"][key] = set(filters.match(f.state, rows, fields, None, indexed=indexed))
+        try:
+            _members["sets"][key] = set(filters.match(f.state, rows, fields, None, indexed=indexed))
+        except Exception:  # one broken filter must not take down the listing, the relay push or the others
+            log.exception("saved filter %s could not be evaluated", f.id)
+            _members["sets"][key] = set()
     return _members["sets"][key]
 
 
