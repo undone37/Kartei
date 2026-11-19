@@ -1109,6 +1109,7 @@ export default {
   'totp.recovery_once': "Keep these recovery codes safe (e.g. in your password manager). Each works once if you don't have your phone at hand. They are shown only now.",
   'totp.copy': "Copy",
   'totp.saved': "Saved them",
+  'totp.recovery_legacy': "Your recovery codes are from an older version. They still work, but new ones are safer: enter the code from the app and click “New recovery codes”.",
   'totp.new_recovery': "New recovery codes",
   'totp.disable': "Switch off",
   'totp.disabled': "Two-factor sign-in switched off",

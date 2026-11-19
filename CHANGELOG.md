@@ -13,6 +13,9 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 - **Proposals:** a proposal for a contact that is now in the recycle bin can no longer be edited by its proposer. Before, editing it showed the contact's current values.
 - **Saved filters, shared services:** a filter published by a maintainer can no longer break CardDAV, the DMZ relay, the Outlook sync or the desk-phone phone books. A saved filter has at most 500 conditions (one huge filter blocked CardDAV for about a minute per request). Conditions like "in the last N days" with more than 100 years are ignored (before, they made CardDAV discovery fail and stopped the relay push and the Outlook sync). A filter that still can't be evaluated is skipped and logged, so the others keep working. Filter names lose characters XML does not allow.
 - **Phone books, CardDAV:** names with the characters U+FFFE/U+FFFF no longer break the Yealink, Snom and Grandstream XML; such characters are removed when saving, like control characters. An overlong CardDAV sync token gives "invalid token" instead of a server error.
+- **Recovery codes:** stored with a key derived from the `SECRET_KEY` and longer (80 bits). Before, a copy of the database or a backup alone was enough to work a code out offline. Existing codes keep working; *My account* asks users with older codes to make new ones.
+- **Push notifications:** a crafted push subscription can no longer stop notifications for everyone (and make the others repeat on every run). Such endpoints are refused, and a device that fails no longer stops the rest.
+- **Quality report:** the list *Not reachable* and its trend count only email and phone fields the viewer may see. Before, a person with only an admin-only phone was missing from the maintainers' list.
 
 ### Added
 

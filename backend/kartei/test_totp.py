@@ -1,9 +1,11 @@
 """Two-factor sign-in: setup and confirm, sign-in with code or recovery code, no replay, disable, admin reset."""
 import base64
+import hashlib
 import time
 from unittest import mock
 
 from django.core.cache import cache
+from django.test import override_settings
 
 from . import totp
 from .models import AuditEntry, Profile, Settings
@@ -62,6 +64,31 @@ class TotpTests(ApiTestBase):
         self.client.logout()
         self.login(codes[2], status=401)  # old ones are gone
         self.login(new[0])
+
+    def test_recovery_codes_are_keyed_with_the_secret_key(self):
+        """Run-2 K-07: a database copy alone (no SECRET_KEY) must not let anyone work a code out offline."""
+        codes, hashes = totp.new_recovery_codes()
+        self.assertEqual(len(codes[0]), 21)  # 2 × 40 bits
+        self.assertNotEqual(hashes[0], hashlib.sha256(codes[0].encode()).hexdigest())
+        self.assertEqual(totp.match_recovery(hashes, codes[0].upper()), hashes[0])
+        with override_settings(SECRET_KEY="another-key-" * 4):
+            self.assertIsNone(totp.match_recovery(hashes, codes[0]))
+
+    def test_recovery_codes_from_before_still_work_once(self):
+        secret, codes = self.enable()
+        old = ["abc123-def456", "111111-222222"]
+        Profile.objects.filter(user=self.users["maintainer"]).update(
+            totp_recovery=[hashlib.sha256(c.encode()).hexdigest() for c in old])
+        self.as_("maintainer")
+        self.assertTrue(self.j("get", "/api/session")["user"]["totp_recovery_legacy"])
+        self.client.logout()
+        self.login(old[0])
+        self.client.logout()
+        self.login(old[0], status=401)
+        self.login(old[1])
+        with mock.patch("kartei.totp.time.time", return_value=time.time() + 120):
+            r = self.j("post", "/api/me/totp", {"action": "recovery", "code": now_code(secret)})
+        self.assertFalse(r["user"]["totp_recovery_legacy"])
 
     def test_disable_and_admin_reset(self):
         secret, codes = self.enable()

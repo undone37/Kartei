@@ -169,6 +169,7 @@ def ser_user(u):
             "email": u.email, "role": Role.ADMIN if u.is_superuser else p.role, "language": p.language,
             "list_sort": p.list_sort, "name_order": p.name_order, "push_off": p.push_off,
             "source": p.source, "is_active": u.is_active, "is_superuser": u.is_superuser, "totp": bool(p.totp_secret_enc),
+            "totp_recovery_legacy": bool(p.totp_secret_enc) and totp.legacy_recovery(p.totp_recovery),
             "totp_due": totp_due(u), "last_login": u.last_login.isoformat() if u.last_login else None}
 
 
@@ -310,8 +311,7 @@ def _second_factor(user, p, code):
             p.totp_last_counter, p.totp_failures = step, 0
             p.save(update_fields=["totp_last_counter", "totp_failures"])
             return True
-        h = totp.hash_recovery(code)
-        if h in p.totp_recovery:
+        if h := totp.match_recovery(p.totp_recovery, code):
             p.totp_recovery, p.totp_failures = [x for x in p.totp_recovery if x != h], 0
             p.save(update_fields=["totp_recovery", "totp_failures"])
             audit.log(user, "update", "user", user.id, user.username, {"totp_recovery_used": [None, len(p.totp_recovery)]})
@@ -383,7 +383,7 @@ def my_totp(request):
             codes, p.totp_recovery = totp.new_recovery_codes()
             p.save(update_fields=["totp_recovery"])
             audit.log(u, "update", "user", u.id, u.username, {"totp_recovery_new": [None, len(codes)]})
-            return JsonResponse({"recovery": codes})
+            return JsonResponse({"recovery": codes, "user": ser_user(u)})
         p.totp_secret, p.totp_last_counter, p.totp_recovery = "", None, []
         p.save()
         audit.log(u, "update", "user", u.id, u.username, {"totp": [True, False]})

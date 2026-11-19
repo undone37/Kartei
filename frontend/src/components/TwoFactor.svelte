@@ -80,6 +80,7 @@
     </div>
   {:else if on}
     <p><span class="badge ok">{t('totp.on')}</span> {t('totp.on_hint')}</p>
+    {#if store.user?.totp_recovery_legacy}<p class="legacy">{t('totp.recovery_legacy')}</p>{/if}
     <label class="label" for="totp-code">{t('totp.code_or_recovery')}</label>
     <input id="totp-code" class="input code" class:invalid={error} bind:value={code} autocomplete="one-time-code" />
     {#if error}<div class="error-text">{error}</div>{/if}
@@ -94,6 +95,7 @@
 </section>
 
 <style>
+  .legacy { padding: 8px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); }
   .card { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
   h2 { display: flex; align-items: center; gap: 8px; font-size: 15px; margin-bottom: 4px; }
   p { margin: 0; }

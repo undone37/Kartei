@@ -285,7 +285,7 @@ def report(rank):
     cc = s.phone_country_code if s.phone_normalize else ""
     all_fields = list(FieldDef.objects.filter(archived=False))
     visible = [f for f in all_fields if f.visible(rank)]
-    reach = [f.key for f in all_fields if f.type in ("email", "phone") and f.applies("person")]
+    reach = [f.key for f in visible if f.type in ("email", "phone") and f.applies("person")]  # not by hidden fields
     keys = reviews.responsible_keys()
     active = set(User.objects.filter(is_active=True).values_list("username", flat=True))
     cutoff = timezone.now() - timedelta(days=round(max(s.review_interval_months, 1) * 30.44))
