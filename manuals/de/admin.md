@@ -82,10 +82,10 @@ cp .env.example .env
 | `DATABASE_URL`, `COMPOSE_FILE` | Nur für einen [eigenen PostgreSQL-Server](#eigener-postgresql-server). |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Erster lokaler Admin. Wird beim Start nur angelegt, wenn es überhaupt keinen aktiven Admin gibt und der Benutzername noch frei ist. |
 | `EXPORT_HOST_DIR` | Host-Verzeichnis, das als `/export` eingebunden wird (Standard `./export_out`). |
-| `WEB_PORT` | Veröffentlichter Port von `web` (Standard `8000`). Mit `127.0.0.1:8000` nur auf der Loopback-Schnittstelle. |
+| `WEB_PORT` | Veröffentlichter Port von `web` (Standard `127.0.0.1:8000`: nur auf der Loopback-Schnittstelle, für einen Reverse Proxy auf demselben Host). Für einen Proxy auf einem anderen Host `0.0.0.0:8000` und seine Adresse in `TRUSTED_PROXIES`. |
 | `SECURE_COOKIES` | `1` (Standard). Nur für lokale Tests über reines HTTP auf `0` setzen. |
 | `PROXY_HEADERS` | `1` (Standard): Die Absenderadresse (Sperren nach Fehlversuchen, Protokoll, erlaubte Adressen fürs Monitoring) kommt aus dem letzten Eintrag von `X-Forwarded-For`, den der Reverse Proxy anhängt. Auf `0` setzen, wenn Kartei ohne Reverse Proxy erreichbar ist. |
-| `TRUSTED_PROXIES` | Adressen oder Netze, deren `X-Forwarded-For` und `X-Forwarded-Proto` zählen, durch Kommas getrennt. Standard `127.0.0.0/8,::1/128,172.16.0.0/12` (Loopback und Docker-Netze: Proxy auf demselben Host). Für einen Proxy auf einem anderen Host seine Adresse ergänzen, z. B. `10.0.5.10/32`. Die Header aller anderen werden ignoriert, sie können ihre Adresse also nicht fälschen. |
+| `TRUSTED_PROXIES` | Adressen oder Netze, deren `X-Forwarded-For` und `X-Forwarded-Proto` zählen, durch Kommas getrennt. Standard `auto`: Loopback und das eigene Compose-Netz des Containers, aus dem ein Proxy auf demselben Host kommt. Für einen Proxy auf einem anderen Host seine Adresse setzen, z. B. `10.0.5.10/32` (`auto,10.0.5.10/32`, wenn es zusätzlich einen auf demselben Host gibt). Außerhalb von Docker immer ausdrücklich setzen. Die Header aller anderen werden ignoriert, sie können ihre Adresse also nicht fälschen. |
 | `LOG_LEVEL` | Log-Level von `web` und `exporter` (Standard `INFO`). |
 | `KARTEI_SOURCE_URL` | Link zum Quellcode unten im Benutzermenü (Standard: das Kartei-Repository). Betreibst du eine veränderte Fassung, trag hier deren Quellcode ein: Die AGPL verlangt, ihn den Benutzern anzubieten. |
 
@@ -218,7 +218,7 @@ server {
 }
 ```
 
-Läuft der Proxy auf demselben Host, setz `WEB_PORT=127.0.0.1:8000`, damit Port 8000 aus dem Netz nicht erreichbar ist. Wer Port 8000 direkt erreicht, könnte sonst seine Adresse in `X-Forwarded-For` fälschen. Betreibst du Kartei ohne Reverse Proxy, setz `PROXY_HEADERS=0`.
+Port 8000 ist standardmäßig nur auf `127.0.0.1` veröffentlicht, mit dem Proxy auf demselben Host also aus dem Netz nicht erreichbar. Wer Port 8000 direkt erreicht, könnte sonst seine Adresse in `X-Forwarded-For` fälschen. Läuft der Proxy auf einem anderen Host, setz `WEB_PORT=0.0.0.0:8000`, `TRUSTED_PROXIES` auf die Adresse des Proxys und lass Port 8000 in der Firewall nur vom Proxy zu. Betreibst du Kartei ohne Reverse Proxy, setz `PROXY_HEADERS=0`.
 
 ### Netzwerk und Firewall {#netzwerk-und-firewall}
 
@@ -880,7 +880,7 @@ Der Relay ist dasselbe Image mit anderen Einstellungen (`docker build --target r
 
 1. Kopier auf dem DMZ-Host das Repository (oder nur `Dockerfile`, `backend/`, `compose.relay.yaml`), dann `cp .env.relay.example .env.relay` und setz `SECRET_KEY` und `ALLOWED_HOSTS` (den Hostnamen, den die Telefone nutzen).
 2. In Kartei unter *Einstellungen → Telefone & CardDAV → Externer Relay (DMZ)*: Trag die *Relay-URL* ein (`https://carddav.example.de`, nur HTTPS; Kartei folgt keinen Weiterleitungen, also die Adresse, unter der das Relay antwortet) und klick auf *Token erzeugen*. Kartei speichert das Push-Token verschlüsselt und zeigt nur seinen SHA-256-Wert. Kopier diesen Wert in die `.env.relay` als `RELAY_PUSH_TOKEN_SHA256`. Das Token selbst kommt nie auf den DMZ-Host.
-3. Starte den Relay: `docker compose -f compose.relay.yaml up -d --build`. Er lauscht auf Port 8080 (`RELAY_PORT`); setz einen TLS-Reverse-Proxy davor, eingerichtet wie der für Kartei (`Authorization`, `PROPFIND`/`REPORT` und `X-Forwarded-For` durchreichen, `client_max_body_size 20m`). Die SQLite-Datei liegt im Volume `relaydata`.
+3. Starte den Relay: `docker compose -f compose.relay.yaml up -d --build`. Er lauscht auf `127.0.0.1:8080` (`RELAY_PORT`); setz einen TLS-Reverse-Proxy auf demselben Host davor (für einen auf einem anderen Host: `RELAY_PORT=0.0.0.0:8080` und `TRUSTED_PROXIES` mit seiner Adresse in `.env.relay`), eingerichtet wie der für Kartei (`Authorization`, `PROPFIND`/`REPORT` und `X-Forwarded-For` durchreichen, `client_max_body_size 20m`). Die SQLite-Datei liegt im Volume `relaydata`.
 4. *TLS*: Mit *TLS-Zertifikat prüfen* (Standard) prüft Kartei das Zertifikat des Relays gegen die System-CAs oder, falls eingetragen, gegen das *CA-Zertifikat* (PEM) deiner internen CA. Schalte die Prüfung nur für Tests ab.
 5. Klick auf *Speichern & testen*: Kartei erreicht den Relay und prüft das Token. Dann *Zum Relay übertragen* anhaken, *Max. Löschungen (%)* einstellen und *Speichern*.
 6. Nimm den Haken bei *Eingebauter CardDAV-Server aktiv* heraus. Kartei meldet unter `/carddav/` dann „nicht gefunden“, so nutzen Telefone nicht versehentlich den internen Server. (Beides gleichzeitig geht auch, z. B. während einer Umstellung.)

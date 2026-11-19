@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     env_file: .env.relay
     ports:
-      - "${RELAY_PORT:-8080}:8000"
+      - "${RELAY_PORT:-127.0.0.1:8080}:8000"   # loopback only: the TLS reverse proxy on this host forwards to it
     volumes:
       - relaydata:/data
     read_only: true            # only the SQLite volume is writable

@@ -82,10 +82,10 @@ cp .env.example .env
 | `DATABASE_URL`, `COMPOSE_FILE` | Only for a [dedicated PostgreSQL server](#dedicated-postgresql). |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Initial local admin. Created at start only if there is no active admin at all and the username is not taken yet. |
 | `EXPORT_HOST_DIR` | Host directory mounted as `/export` (default `./export_out`). |
-| `WEB_PORT` | Published port of `web` (default `8000`). `127.0.0.1:8000` publishes it on the loopback interface only. |
+| `WEB_PORT` | Published port of `web` (default `127.0.0.1:8000`: on the loopback interface only, for a reverse proxy on the same host). For a proxy on another host `0.0.0.0:8000`, plus its address in `TRUSTED_PROXIES`. |
 | `SECURE_COOKIES` | `1` (default). Set to `0` only for local tests over plain HTTP. |
 | `PROXY_HEADERS` | `1` (default): the client address (rate limits, audit log, monitoring allowlist) is taken from the last `X-Forwarded-For` entry, which the reverse proxy appends. Set to `0` if Kartei is reached without a reverse proxy. |
-| `TRUSTED_PROXIES` | Addresses or networks whose `X-Forwarded-For` and `X-Forwarded-Proto` count, comma-separated. Default `127.0.0.0/8,::1/128,172.16.0.0/12` (loopback and Docker networks: a proxy on the same host). For a proxy on another host, add its address, e.g. `10.0.5.10/32`. Anyone else's headers are ignored, so they can't fake their address. |
+| `TRUSTED_PROXIES` | Addresses or networks whose `X-Forwarded-For` and `X-Forwarded-Proto` count, comma-separated. Default `auto`: loopback and the container's own Compose network, where a proxy on the same host connects from. For a proxy on another host, set its address, e.g. `10.0.5.10/32` (`auto,10.0.5.10/32` if there is also one on the same host). Outside Docker, always set it explicitly. Anyone else's headers are ignored, so they can't fake their address. |
 | `LOG_LEVEL` | Log level of `web` and `exporter` (default `INFO`). |
 | `KARTEI_SOURCE_URL` | Link to the source code at the bottom of the user menu (default: the Kartei repository). If you run a modified version, point it to your code: the AGPL requires offering it to the users. |
 
@@ -218,7 +218,7 @@ server {
 }
 ```
 
-With the proxy on the same host, set `WEB_PORT=127.0.0.1:8000` so that port 8000 is not reachable from the network. Clients that could reach port 8000 directly could otherwise fake their address in `X-Forwarded-For`. If you run Kartei without a reverse proxy, set `PROXY_HEADERS=0`.
+Port 8000 is only published on `127.0.0.1` by default, so with the proxy on the same host it is not reachable from the network. Clients that could reach port 8000 directly could otherwise fake their address in `X-Forwarded-For`. With the proxy on another host, set `WEB_PORT=0.0.0.0:8000`, `TRUSTED_PROXIES` to the proxy's address, and let the firewall allow port 8000 from the proxy only. If you run Kartei without a reverse proxy, set `PROXY_HEADERS=0`.
 
 ### Network and firewall {#network-and-firewall}
 
@@ -880,7 +880,7 @@ The relay is the same image started with other settings (`docker build --target 
 
 1. On the DMZ host, copy the repository (or just `Dockerfile`, `backend/`, `compose.relay.yaml`), then `cp .env.relay.example .env.relay` and set `SECRET_KEY` and `ALLOWED_HOSTS` (the host name the phones use).
 2. In Kartei, *Settings → Phones & CardDAV → External relay (DMZ)*: enter the *Relay URL* (`https://carddav.example.de`, HTTPS only; Kartei follows no redirects, so enter the address the relay answers at) and click *Generate token*. Kartei keeps the push token encrypted and shows only its SHA-256 value. Copy that value into `.env.relay` as `RELAY_PUSH_TOKEN_SHA256`. The DMZ host never sees the token itself.
-3. Start the relay: `docker compose -f compose.relay.yaml up -d --build`. It listens on port 8080 (`RELAY_PORT`); put a TLS reverse proxy in front of it, configured like the one for Kartei (pass `Authorization`, `PROPFIND`/`REPORT`, `X-Forwarded-For`, `client_max_body_size 20m`). The SQLite file lives in the volume `relaydata`.
+3. Start the relay: `docker compose -f compose.relay.yaml up -d --build`. It listens on `127.0.0.1:8080` (`RELAY_PORT`); put a TLS reverse proxy on the same host in front of it (for one on another host: `RELAY_PORT=0.0.0.0:8080` and `TRUSTED_PROXIES` with its address in `.env.relay`), configured like the one for Kartei (pass `Authorization`, `PROPFIND`/`REPORT`, `X-Forwarded-For`, `client_max_body_size 20m`). The SQLite file lives in the volume `relaydata`.
 4. *TLS*: with *Verify TLS certificate* on (default), Kartei checks the relay's certificate against the system CAs or, if given, the *CA certificate* (PEM) of your internal CA. Switch verification off only for tests.
 5. Click *Save & test*: Kartei reaches the relay and checks the token. Then tick *Push to the relay*, set *Max. deletions (%)* and *Save*.
 6. Untick *Built-in CardDAV server enabled*. Kartei's own `/carddav/` then answers "not found", so phones can't use the inside server by mistake. (Leaving both on is possible, e.g. during a migration.)

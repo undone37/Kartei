@@ -1,5 +1,6 @@
 # --- frontend build (Node 26); the JS output is the same on every platform, so it is built natively
-FROM --platform=$BUILDPLATFORM node:26-alpine AS frontend
+# base images pinned by digest (multi-arch index); Dependabot (docker) moves tag and digest together
+FROM --platform=$BUILDPLATFORM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS frontend
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -7,7 +8,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # --- backend without the frontend (shared by Kartei and the DMZ relay)
-FROM python:3.14-slim AS backend
+FROM python:3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f AS backend
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app/backend
 COPY backend/requirements.txt .
