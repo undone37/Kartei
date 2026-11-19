@@ -54,7 +54,7 @@ class Cards:
         return f"urn:kartei:sync:{int(timezone.now().timestamp() * 1e6)}{':' + self.digest if self.digest else ''}"
 
     def changes(self, token):
-        m = re.fullmatch(r"urn:kartei:sync:(\d+)(?::(\w+))?", token)
+        m = re.fullmatch(r"urn:kartei:sync:(\d{1,16})(?::(\w+))?", token)  # longer: past year 2286, would overflow
         if not m or (m[2] or "") != self.digest:
             return None
         since = datetime.fromtimestamp(int(m[1]) / 1e6, tz=tz.utc) - timedelta(seconds=5)

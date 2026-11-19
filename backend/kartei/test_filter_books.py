@@ -1,13 +1,14 @@
 """Saved filters published as Outlook folders and CardDAV address books."""
 import base64
 import re
+import xml.etree.ElementTree as ET
 from unittest import mock
 
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from . import carddav, graph
+from . import carddav, graph, relaypush
 from .models import FieldDef, Profile, Record, SavedFilter, Settings
 from .tests import ApiTestBase, FakeGraph, sample_records
 
@@ -168,10 +169,51 @@ class FilterBookTests(TestCase):
         self.assertNotIn(f"<d:href>/carddav/f-{self.f.id}/</d:href>", self.dav("PROPFIND", "/carddav/", HTTP_DEPTH="1").content.decode())
 
 
+class BrokenFilterTests(FilterBookTests):
+    """Audit run 2 K-10/K-11: one maintainer filter must not break discovery, the relay push or the Outlook sync."""
+
+    def root(self):
+        r = self.dav("PROPFIND", "/carddav/", HTTP_DEPTH="1")
+        self.assertEqual(r.status_code, 207)
+        return ET.fromstring(r.content)  # well-formed
+
+    def test_xml_illegal_characters_in_a_book_name(self):
+        SavedFilter.objects.filter(pk=self.f.pk).update(name="Fir\x01men\ufffe")  # saved before the input check
+        self.assertIn("Firmen", ET.tostring(self.root(), encoding="unicode"))
+
+    def test_a_huge_day_count_is_ignored(self):
+        self.f.state = {**self.f.state, "adv": {"mode": "all", "items": [
+            {"field": "@updated_at", "op": "last", "value": str(10 ** 12)}]}}
+        self.f.save()
+        self.root()
+        self.assertTrue(carddav.members(self.f))  # condition ignored, like an empty one
+        self.assertIsNotNone(relaypush._books({str(self.company.uid): None}, {}))
+
+    def test_a_filter_that_fails_is_skipped(self):
+        with mock.patch("kartei.filters.match", side_effect=OverflowError), self.assertLogs("kartei.carddav", "ERROR"):
+            self.root()
+            self.assertEqual(carddav.members(self.f), set())
+
+    def test_an_overlong_sync_token_is_invalid_not_an_error(self):
+        body = ('<d:sync-collection xmlns:d="DAV:"><d:sync-token>urn:kartei:sync:9999999999999999999999:x</d:sync-token>'
+                '<d:sync-level>1</d:sync-level><d:prop><d:getetag/></d:prop></d:sync-collection>')
+        self.assertEqual(self.dav("REPORT", f"/carddav/f-{self.f.id}/", body).status_code, 403)
+
+
 class PublishRuleTests(ApiTestBase):
     def create(self, status=201, **extra):
         body = {"name": "Kunden", "state": {"q": "", "scope": "all", "kind": "all", "filters": {}}, **extra}
         return self.j("post", "/api/filters", body, status=status)
+
+    def test_size_and_name_limits(self):
+        self.as_("maintainer")
+        leaf = {"field": "description", "op": "contains", "value": "x"}
+        big = {"mode": "any", "items": [{"mode": "any", "items": [leaf] * 50} for _ in range(11)]}  # 550 conditions
+        state = {"q": "", "scope": "all", "kind": "all", "filters": {}}
+        self.assertEqual(self.create(status=400, state=state | {"adv": big})["fields"]["state"], "invalid")
+        big["items"] = big["items"][:10]  # 500: fine
+        self.create(state=state | {"adv": big})
+        self.assertEqual(self.create(name="Kun\x01den\ufffe 2")["name"], "Kunden 2")
 
     def test_rules(self):
         self.as_("read")

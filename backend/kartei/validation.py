@@ -13,7 +13,7 @@ REGEX_TYPES = ("text", "longtext", "phone", "email", "url")
 EMPTY = (None, "", [])
 _email, _url = EmailValidator(), URLValidator(schemes=["http", "https"])
 # control characters (not tab/newline): invisible, break XLSX files and some vCard parsers
-CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\ufffe\uffff]")  # \ufffe/\uffff: not allowed in XML
 
 
 def _num(value, decimals=None):

@@ -435,7 +435,11 @@ class FilterFolders:
                 continue
             seen.add(name)
             state = f.state if f.owner_id == user.id else dashboard._visible_state(f.state, keys)
-            uids = filters.match(state, rows, fields, username, indexed=indexed)
+            try:
+                uids = filters.match(state, rows, fields, username, indexed=indexed)
+            except Exception:  # one broken filter must not stop the sync of the others
+                log.exception("saved filter %s could not be evaluated", f.id)
+                continue
             out.append((name, {u: self.wanted[u] for u in uids}))
         return out
 
