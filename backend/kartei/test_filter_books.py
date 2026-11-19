@@ -168,10 +168,7 @@ class FilterBookTests(TestCase):
         FieldDef.objects.filter(key="description").update(visible_to="maintainer")  # restricted after publishing
         self.assertNotIn(f"<d:href>/carddav/f-{self.f.id}/</d:href>", self.dav("PROPFIND", "/carddav/", HTTP_DEPTH="1").content.decode())
 
-
-class BrokenFilterTests(FilterBookTests):
-    """Audit run 2 K-10/K-11: one maintainer filter must not break discovery, the relay push or the Outlook sync."""
-
+    # audit run 2 K-10/K-11: one maintainer filter must not break discovery, the relay push or the Outlook sync
     def root(self):
         r = self.dav("PROPFIND", "/carddav/", HTTP_DEPTH="1")
         self.assertEqual(r.status_code, 207)
