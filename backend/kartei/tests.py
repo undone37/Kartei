@@ -1298,6 +1298,7 @@ class RenameTests(TestCase):
 
 
 class OpsTests(TestCase):
+    @override_settings(TRUSTED_PROXIES=["127.0.0.0/8", "172.18.0.0/16"])  # "auto" in a container on that network
     def test_client_ip_behind_proxy(self):
         from django.test import RequestFactory, override_settings
         from .net import client_ip
