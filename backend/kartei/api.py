@@ -29,7 +29,7 @@ from .msg import msg
 from .net import client_ip, count_failure
 from .models import (ROLE_RANK, USER_TYPES, ApiToken, AuditEntry, ExportProfile, FieldDef, FieldSection, FieldType, Kind,
                      Profile, Proposal, Record, Review, Role, ScimGroup, Settings, assignable, user_options)
-from .validation import REGEX_TYPES, clean_core, merge_data
+from .validation import CONTROL, REGEX_TYPES, clean_core, merge_data
 from .vcard import TARGETS as VCARD_TARGETS
 
 READ, MAINT, ADMIN = 0, 1, 2
@@ -1709,7 +1709,7 @@ SETTINGS_ATTRS = ["default_language", "totp_required", "base_url", "trash_days",
                   "ldap_start_tls", "ldap_ca_cert", "ldap_bind_dn", "ldap_user_base", "ldap_user_filter",
                   "ldap_group_admin", "ldap_group_maintainer", "ldap_group_read", "carddav_enabled",
                   "carddav_username", "graph_enabled", "graph_tenant_id", "graph_client_id", "graph_group_id",
-                  "graph_folder", "graph_folder_responsible", "graph_folder_internal", "review_mode", "review_interval_months", "review_campaign_month",
+                  "graph_folder", "graph_folder_responsible", "graph_folder_internal", "graph_filter_prefix", "review_mode", "review_interval_months", "review_campaign_month",
                   "review_campaign_day", "smtp_host", "smtp_port", "smtp_security", "smtp_username", "smtp_from",
                   "review_remind_days", "proposal_notify", "proposal_notify_to",
                   "ad_enabled", "ad_ou", "ad_bind_dn", "ad_kinds", "ad_columns", "ad_max_shrink_percent"]
@@ -1820,6 +1820,8 @@ def settings_put(request):
         errors["totp_required"] = "invalid"
     s.graph_folder, s.graph_folder_responsible, s.graph_folder_internal = (
         str(x or "").strip() for x in (s.graph_folder, s.graph_folder_responsible, s.graph_folder_internal))
+    # not stripped: "Kartei: " keeps its space before the filter's name
+    s.graph_filter_prefix = re.sub(r"\s", " ", CONTROL.sub("", str(s.graph_filter_prefix or "")))[:50].lstrip()
     if not s.graph_folder:
         errors["graph_folder"] = "required"
     seen = {s.graph_folder.casefold()}

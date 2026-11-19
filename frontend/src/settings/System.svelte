@@ -587,6 +587,11 @@
           {#if errors.graph_folder_internal}<div class="error-text">{terr(errors.graph_folder_internal)}</div>{/if}</div>
       </div>
       <p class="hint">{t('graph.personal_hint')}</p>
+      <div>
+        <label class="label" for="gfp">{t('graph.filter_prefix')}</label>
+        <input id="gfp" class="input" bind:value={s.graph_filter_prefix} maxlength="50" />
+        <p class="hint">{t('graph.filter_prefix_hint')}</p>
+      </div>
       <div class="test">
         <button type="button" class="btn" onclick={testGraph} disabled={testing}><PlugZap size={15} />{t('graph.test')}</button>
         <button type="button" class="btn" class:spin={syncSince} onclick={syncNow} disabled={!!syncSince || !s.graph_enabled}><RefreshCw size={15} />{t('graph.sync_now')}</button>

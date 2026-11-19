@@ -1083,7 +1083,7 @@ class FakeGraph:
                                   for r in body["requests"]]}
         res = self._one(method, path, body)
         if res["status"] >= 400:
-            raise graph.GraphError(f"HTTP {res['status']}")
+            raise graph.GraphError(f"HTTP {res['status']}", res["status"])
         return res["body"]
 
     def _one(self, method, path, body):

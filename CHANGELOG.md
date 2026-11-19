@@ -4,6 +4,14 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Security
+
+- **Outlook sync, folders from saved filters:** Kartei remembers the folders it created and only syncs into or deletes those. Before, a filter named like a folder a user already had in their mailbox (e.g. "Privat") took that folder over: its own contacts were removed, and the whole folder was deleted when the filter was unpublished. Such a folder is now left alone, and the sync status reports the conflict.
+
+### Added
+
+- **Prefix for filter folders** (*Settings → System → Outlook*, default "Kartei: "): folders from saved filters are named prefix + filter name, so they don't clash with a user's own folders. After the update the existing filter folders are created once under the new name, and the old ones are removed.
+
 ## [0.8.4-beta] – 2026-11-18
 
 Security fixes from an internal audit (nothing critical, none reachable without signing in):
