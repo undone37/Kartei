@@ -288,7 +288,7 @@ Kartei sichert seine Datenbank selbst: jeden Tag zur Uhrzeit unter *Einstellunge
 
 ![Reiter Sicherung](../img/de/settings-backup.png)
 
-- **Wohin:** Der `exporter` schreibt die Dateien (`kartei-<Datum>-<Uhrzeit>.dump`, das komprimierte Custom-Format von PostgreSQL) nach `/backup`. Standardmäßig ist das das Docker-Volume `backups`. Das funktioniert ohne weitere Einrichtung, liegt aber auf derselben Platte wie die Datenbank. Besser: ein Verzeichnis auf anderem Speicher, z. B. ein NAS-Mount, als `BACKUP_HOST_DIR` in der `.env` (Eigentümer uid 1000: `chown 1000 /mnt/backup/kartei`). Nimm nicht die Export-Freigabe: Wer Exporte lesen darf, bekäme die ganze Datenbank.
+- **Wohin:** Der `exporter` schreibt die Dateien (`kartei-<Datum>-<Uhrzeit>.dump`, das komprimierte Custom-Format von PostgreSQL) nach `/backup`. Standardmäßig ist das das Docker-Volume `backups`. Das funktioniert ohne weitere Einrichtung, liegt aber auf derselben Platte wie die Datenbank. Besser: ein Verzeichnis auf anderem Speicher, z. B. ein NAS-Mount, als `BACKUP_HOST_DIR` in der `.env` (Eigentümer uid 1000: `chown 1000 /mnt/backup/kartei`). Die Sicherungsdateien sind nur für diesen Eigentümer lesbar (0600), denn sie enthalten Passwort-Hashes und Sitzungen. Nimm nicht die Export-Freigabe: Wer Exporte lesen darf, bekäme die ganze Datenbank.
 - **Geprüft:** Jede Datei wird zurückgelesen (`pg_restore --list`), bevor sie zählt. *Wiederherstellung testen* spielt die neueste Sicherung in eine Testdatenbank (`kartei_restore_test`) ein, zählt Kontakte, Felder, Benutzer und Protokolleinträge, vergleicht sie mit der laufenden Datenbank und löscht die Testdatenbank wieder. Bei einem eigenen PostgreSQL-Server braucht der Datenbankbenutzer dafür das Recht, Datenbanken anzulegen (`CREATEDB`).
 - **Überwacht:** Der [Monitoring-Status](#monitoring) meldet `backup` als *warn* nach 26 Stunden ohne Sicherung und als *crit* nach 50 Stunden oder bei einem Fehler, `restore_test` als *warn*, wenn der letzte Test fehlgeschlagen ist.
 - **Jetzt sichern** schreibt sofort eine Sicherung (auch bei ausgeschalteter täglicher Sicherung).
@@ -1205,7 +1205,7 @@ Statt Kartei alle paar Minuten abzufragen, können andere Systeme sofort benachr
 
 - Der Inhalt ist der Kontakt mit den Feldern, die für *Alle* sichtbar sind – wie in der REST-API. Die Entwicklerdokumentation (`docs/API.md`, *Webhooks*) beschreibt die Anfrage und die Prüfung der Signatur.
 - Kartei stellt innerhalb von etwa 10 Sekunden zu. Fehlgeschlagene Zustellungen werden etwa einen Tag lang wiederholt; die Tabelle zeigt das letzte Ergebnis und wie viele Zustellungen warten oder aufgegeben wurden.
-- *Aktiv* schaltet einen Webhook ab, ohne ihn zu löschen; das Schlüsselsymbol erzeugt einen neuen geheimen Schlüssel (der alte gilt sofort nicht mehr).
+- *Aktiv* schaltet einen Webhook ab, ohne ihn zu löschen; das Schlüsselsymbol erzeugt einen neuen geheimen Schlüssel (der alte gilt sofort nicht mehr). Nach einem Wechsel des `SECRET_KEY` kann Kartei die gespeicherten Schlüssel nicht mehr lesen: Die Webhooks senden dann nichts, die Tabelle zeigt *Secret nicht lesbar*, und du erzeugst für jeden einen neuen.
 - Anlegen, Ändern und Löschen von Webhooks steht im Protokoll.
 
 ## Protokoll

@@ -36,6 +36,7 @@ class BackupFileTests(TempBackupDir, TransactionTestCase):
             self.skipTest("pg_dump not installed")
         st = backup.run()
         self.assertTrue(st.get("ok"), st)
+        self.assertEqual(os.stat(Path(self.dir.name) / st["file"]).st_mode & 0o777, 0o600)  # for the owner only
         self.assertTrue(st["file"].startswith("kartei-") and st["file"].endswith(".dump" if backup._postgres() else ".sqlite3"))
         self.assertEqual([f["name"] for f in st["files"]], [st["file"]])
         self.assertEqual(Settings.get().backup_status["file"], st["file"])

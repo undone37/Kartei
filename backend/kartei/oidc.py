@@ -82,7 +82,7 @@ def _claims(id_token):
 def finish(session, s, code, state):
     """The Kartei user for the callback's code, or SignInError."""
     pending = session.pop("oidc", None)
-    if not pending or not state or not hmac.compare_digest(pending["state"], state) or time.time() - pending["at"] > 600:
+    if not pending or not state or not state.isascii() or not hmac.compare_digest(pending["state"], state) or time.time() - pending["at"] > 600:
         raise SignInError("sso_expired")
     meta = discovery(s)
     try:

@@ -68,7 +68,7 @@ def needs(min_rank):
             if request.content_type == "application/json" and request.body:  # not for uploads: no body size limit there
                 try:
                     request.json = json.loads(request.body)
-                except ValueError:
+                except (ValueError, RecursionError):  # RecursionError: nested thousands of levels deep
                     return err("invalid_json")
                 if not isinstance(request.json, dict):  # every endpoint takes a JSON object
                     return err("invalid_json")
@@ -205,7 +205,9 @@ def login_view(request):
         return err("method_not_allowed", 405)
     try:
         body = json.loads(request.body or b"{}")
-    except ValueError:
+    except (ValueError, RecursionError):
+        return err("invalid_json")
+    if not isinstance(body, dict):
         return err("invalid_json")
     username, password = str(body.get("username", "")).strip(), str(body.get("password", ""))
     # after single sign-on a user with two-factor sign-in only sends the code (see oidc_callback)
@@ -368,6 +370,7 @@ def my_totp(request):
         p.totp_secret, p.totp_last_counter, p.totp_recovery = secret, step, hashes
         p.save()
         del request.session["totp_pending"]
+        end_sessions(u, keep=request.session.session_key)  # others opened with the password alone end
         audit.log(u, "update", "user", u.id, u.username, {"totp": [False, True]})
         return JsonResponse({"user": ser_user(u), "recovery": codes})
     if action in ("recovery", "disable"):
@@ -401,8 +404,18 @@ def user_totp_reset(request, pk):
     if p.totp_secret_enc:
         p.totp_secret, p.totp_last_counter, p.totp_recovery = "", None, []
         p.save()
+        end_sessions(u, keep=request.session.session_key)  # the lost phone's sessions too (not the admin's own)
         audit.log(request.user, "update", "user", u.id, u.username, {"totp": [True, False]})
     return JsonResponse(ser_user(u))
+
+
+def end_sessions(user, keep=None):
+    """Sign the user out everywhere except the session `keep`."""
+    # ponytail: decodes every live session; fine for a directory's users, a user → session index if it ever isn't
+    from django.contrib.sessions.models import Session
+    for s in Session.objects.filter(expire_date__gt=timezone.now()).exclude(session_key=keep or ""):
+        if s.get_decoded().get("_auth_user_id") == str(user.pk):
+            s.delete()
 
 
 def logout_view(request):
@@ -1605,9 +1618,12 @@ def _user_snapshot(u):
 
 
 def _admins_left(excluding):
-    return (User.objects.filter(is_active=True).exclude(pk=excluding.pk)
-            .filter(profile__role=Role.ADMIN).exists()
-            or User.objects.filter(is_active=True, is_superuser=True).exclude(pk=excluding.pk).exists())
+    """Call inside a transaction: the other admins' rows stay locked until it ends, so two admins demoting each
+    other at the same time can't both pass."""
+    with transaction.atomic():  # a savepoint inside the caller's transaction; there the locks last until its end
+        admins = User.objects.select_for_update(of=("self",)).filter(
+            Q(profile__role=Role.ADMIN) | Q(is_superuser=True), is_active=True)
+        return any(pk != excluding.pk for pk in admins.values_list("pk", flat=True))
 
 
 @needs(ADMIN)
@@ -1654,13 +1670,14 @@ def user_create(request):
 
 
 @needs(ADMIN)
+@transaction.atomic  # the last-admin check holds until the change is saved
 def user_update(request, pk):
     u = User.objects.filter(pk=pk).first()
     if not u:
         return err("not_found", 404)
     b, p = request.json, profile_of(u)
     before = _user_snapshot(u)
-    demoting = ("role" in b and b["role"] != Role.ADMIN) or b.get("is_active") is False
+    demoting = ("role" in b and b["role"] != Role.ADMIN) or ("is_active" in b and not b["is_active"])
     if demoting and rank_of(u) == ADMIN and not _admins_left(u):
         return err("last_admin", 409)
     if "role" in b:
@@ -1695,6 +1712,7 @@ def user_update(request, pk):
 
 
 @needs(ADMIN)
+@transaction.atomic
 def user_delete(request, pk):
     u = User.objects.filter(pk=pk).first()
     if not u:

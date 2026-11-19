@@ -29,7 +29,7 @@ def code_at(secret, counter):
 def verify(secret, code, last_counter=None, now=None):
     """The step the code belongs to, or None. Codes of last_counter or earlier are refused (no replay)."""
     code = "".join(str(code or "").split())
-    if not secret or len(code) != DIGITS or not code.isdigit():
+    if not secret or len(code) != DIGITS or not (code.isascii() and code.isdigit()):  # "١٢٣٤٥٦" is digits too
         return None
     current = int((now if now is not None else time.time()) // STEP)
     for counter in range(current - WINDOW, current + WINDOW + 1):

@@ -2,6 +2,9 @@
 the request log and gunicorn's own messages are JSON lines like the application's (kartei/logs.py)."""
 import os
 
+if os.environ.get("DEBUG") == "1":  # DEBUG shows tracebacks and allows a built-in SECRET_KEY: never on a server
+    raise RuntimeError("DEBUG=1 is for development only (manage.py runserver); remove it from .env")
+
 accesslog = "-"
 # X-Forwarded-* only from the reverse proxy (same list as Django's TRUSTED_PROXIES, see config/settings.py)
 forwarded_allow_ips = os.environ.get("TRUSTED_PROXIES", "127.0.0.0/8,::1/128,172.16.0.0/12")

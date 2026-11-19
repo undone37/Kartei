@@ -71,6 +71,8 @@ Unter **Mein Konto** kannst du dein Konto mit einem zweiten Faktor schützen: Na
 2. Scanne den QR-Code mit der App (oder gib den Schlüssel darunter von Hand ein) und tipp den Code ein, den die App zeigt, dazu dein aktuelles Passwort. **Einschalten**.
 3. Kartei zeigt einmalig **8 Wiederherstellungscodes**. Bewahr sie sicher auf, z. B. im Passwortmanager: Jeder funktioniert einmal statt des App-Codes, falls du dein Handy nicht zur Hand hast.
 
+Beim Einschalten meldet Kartei dich auf allen anderen Geräten ab; dort meldest du dich mit dem Code neu an.
+
 Verlangt dein Administrator die Zwei-Faktor-Anmeldung, zeigt Kartei diese Einrichtung direkt nach der Anmeldung, und du kannst sie danach nicht abschalten.
 
 ![Zwei-Faktor-Anmeldung einrichten](../img/de/account-totp.png)

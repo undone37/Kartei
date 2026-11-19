@@ -194,6 +194,7 @@ class Store {
     this.prefs({})
     this.cursor = ''
     idbDel(CACHE_KEY).catch(() => {})
+    if ('caches' in window) caches.delete('kartei-share').catch(() => {}) // shared with the app, not yet imported
     // nobody is signed in yet: the browser's language if we have it, else the admin's default
     const browser = navigator.languages.map((l) => l.slice(0, 2)).find((l) => l === 'de' || l === 'en') as Lang | undefined
     setLang(browser ?? this.defaultLang)
@@ -248,7 +249,9 @@ class Store {
       if (this.cursor) {
         const ch = await get(`/api/changes?since=${encodeURIComponent(this.cursor)}`)
         if (epoch !== this.epoch) return // signed out meanwhile
-        if (!ch.reset) {
+        // another account (other tab), another role or fewer fields: unchanged records would keep values this
+        // user may no longer see, so start over like after a reset
+        if (!ch.reset && !this.accessChanged(ch.user, ch.fields)) {
           this.merge(ch.records, ch.deleted)
           // unchanged fields/sections keep their identity: every index over all records is derived from them
           if (JSON.stringify(ch.fields) !== JSON.stringify(this.fields)) this.fields = ch.fields
@@ -289,6 +292,11 @@ class Store {
     } finally {
       this.syncing = false
     }
+  }
+
+  private accessChanged(user: User, fields: { key: string }[]) {
+    const keys = new Set(fields.map((f) => f.key))
+    return user.username !== this.user?.username || user.role !== this.user?.role || this.fields.some((f) => !keys.has(f.key))
   }
 
   private merge(changed: Rec[], deleted: string[]) {

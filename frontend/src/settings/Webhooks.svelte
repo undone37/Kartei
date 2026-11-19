@@ -2,7 +2,7 @@
   import { Copy, KeyRound, Plus, Send, Trash2 } from '@lucide/svelte'
   import { ApiError, del, get, patch, post } from '../lib/api'
   import { dateTime, relTime } from '../lib/format'
-  import { t, terr } from '../lib/i18n.svelte'
+  import { t, terr, tmsg } from '../lib/i18n.svelte'
   import { copyText, toast } from '../lib/toast.svelte'
   import { confirmDialog } from '../lib/confirm.svelte'
 
@@ -45,7 +45,7 @@
     busy = h.id
     try {
       const r = await post<{ ok: boolean; code: number | null; error: string }>(`/api/admin/webhooks/${h.id}/test`)
-      toast(r.ok ? t('hooks.test_ok', { code: String(r.code) }) : t('hooks.test_failed', { error: r.error }), { kind: r.ok ? 'info' : 'error' })
+      toast(r.ok ? t('hooks.test_ok', { code: String(r.code) }) : t('hooks.test_failed', { error: tmsg(r.error) }), { kind: r.ok ? 'info' : 'error' })
     } finally {
       busy = 0
       load()
@@ -104,7 +104,7 @@
         <td>
           {#if h.last_status.at}
             <span class="badge" class:ok={h.last_status.ok} class:warn={!h.last_status.ok}
-                  title={h.last_status.error || ''}>{h.last_status.ok ? t('hooks.ok') : h.last_status.error || t('hooks.failed')}</span>
+                  title={tmsg(h.last_status.error)}>{h.last_status.ok ? t('hooks.ok') : tmsg(h.last_status.error) || t('hooks.failed')}</span>
             <span class="muted small" title={dateTime(h.last_status.at)}>{relTime(h.last_status.at)}</span>
           {:else}<span class="muted">{t('tokens.never')}</span>{/if}
           {#if h.pending}<div class="muted small">{t('hooks.pending', { n: String(h.pending) })}</div>{/if}

@@ -3,6 +3,7 @@ import re
 from django.conf import settings
 from django.http import (FileResponse, HttpResponse, HttpResponseNotFound, HttpResponsePermanentRedirect,
                          HttpResponseRedirect)
+from django.utils.http import content_disposition_header
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 
@@ -66,6 +67,8 @@ def vcf(request, kind, uid):
     if qr:  # a scanning phone needs neither Kartei's UID nor the source link: a smaller, easier to scan code
         body = re.sub(r"(?m)^(UID|SOURCE):.*\r\n(?: .*\r\n)*", "", body)
     resp = HttpResponse(body, content_type="text/vcard; charset=utf-8")
-    if not qr:
-        resp["Content-Disposition"] = f'attachment; filename="{r.display_name or r.uid}.vcf"'.encode("ascii", "replace").decode()
+    resp["Cache-Control"] = "no-store"  # contact data, like /api/
+    if not qr:  # no quotes, backslashes or ";" from the name: browsers parse escaped quotes differently
+        name = re.sub(r'["\\;/]', "", r.display_name).strip() or str(r.uid)
+        resp["Content-Disposition"] = content_disposition_header(True, f"{name}.vcf")
     return resp

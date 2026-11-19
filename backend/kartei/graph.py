@@ -11,19 +11,23 @@ import time
 from datetime import date
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
-from urllib.request import Request, urlopen
+from urllib.request import Request, build_opener
 
 from django.contrib.auth.models import User
 from django.core.mail.backends.base import BaseEmailBackend
 from django.utils import timezone
 
 from .msg import msg
+from .webhooks import _NoRedirect
 from .models import FieldDef, Record, SavedFilter, Settings, ref_names
 from .vcard import _ADR_PARTS, collect
 
 GRAPH = "https://graph.microsoft.com/v1.0"
 PROP = "String {6f1d3c52-8a4e-4d0b-9c7e-2b5f0e9a1d34} Name Kartei"  # "<uid>|<hash>" of what we wrote
 log = logging.getLogger(__name__)
+
+
+_opener = build_opener(_NoRedirect)  # a redirect (even to http) must not carry the bearer token elsewhere
 
 
 class GraphError(Exception):
@@ -58,7 +62,7 @@ def http(method, url, body=None, token=None, form=None, ctype=None):
         data, headers["Content-Type"] = json.dumps(body).encode(), "application/json"
     for attempt in range(5):
         try:
-            with urlopen(Request(url, data, headers, method=method), timeout=60) as r:
+            with _opener.open(Request(url, data, headers, method=method), timeout=60) as r:
                 raw = r.read()
                 return json.loads(raw) if raw else {}
         except HTTPError as e:
@@ -92,6 +96,8 @@ class Client:
             page = http("GET", url, token=self.token)
             out += page.get("value", [])
             url = page.get("@odata.nextLink")
+            if url and not url.startswith(GRAPH + "/"):  # the bearer token goes only to Graph itself
+                raise GraphError(f"unexpected nextLink host: {url[:80]}")
         return out
 
     def batch(self, ops):

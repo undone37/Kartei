@@ -733,6 +733,7 @@ export default {
   'msg.graph_not_configured': "Not set up: tenant, application and secret are missing",
   'msg.graph_no_records': "No contacts – nothing synced",
   'msg.graph_folder_taken': "{mailbox}: a folder “{folder}” already exists that Kartei didn't create. It is left alone and the filter isn't synced there.",
+  'msg.webhook_secret_unreadable': "Secret can't be read (SECRET_KEY changed): please generate a new secret",
   'msg.graph_group_empty': "The group has no members with a mailbox",
   'msg.graph_no_user_read': "Graph returns the group members without an email address: the app lacks the application permission User.Read.All (with admin consent)",
   'msg.graph_no_group': "No group ID given",
