@@ -4,8 +4,13 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Changed
+
+- **Deployment defaults (breaking for some setups):** `web` is published on `127.0.0.1:8000` and the DMZ relay on `127.0.0.1:8080`, no longer on all interfaces. `TRUSTED_PROXIES` defaults to `auto`: loopback plus the container's own Compose network, no longer all of `172.16.0.0/12`. Before, a client that reached port 8000 directly from such an address could fake its address in `X-Forwarded-For` and get around the sign-in lockout, the failure counters and the monitoring and phone book allowlists. **If your reverse proxy runs on another host**, set `WEB_PORT=0.0.0.0:8000` (relay: `RELAY_PORT=0.0.0.0:8080` in `.env.relay`) and `TRUSTED_PROXIES=<the proxy's address>`, and allow the port in the firewall from the proxy only.
+
 ### Security
 
+- **Release pipeline:** the manuals PDF build (npm, Playwright, apt) runs in its own job without write access; the job that publishes images and the release no longer stores the token in the checkout. Base images in the `Dockerfile` are pinned by digest.
 - **Outlook sync, folders from saved filters:** Kartei remembers the folders it created and only syncs into or deletes those. Before, a filter named like a folder a user already had in their mailbox (e.g. "Privat") took that folder over: its own contacts were removed, and the whole folder was deleted when the filter was unpublished. Such a folder is now left alone, and the sync status reports the conflict.
 - **Audit log, proposals:** new-contact proposals send only the names of the proposed fields to the container log and syslog, like contacts, no longer their values and comment.
 - **Record history:** an entry from a bulk edit, a batch change or phone normalization that only touched fields hidden from the reader is left out completely. Before, its marker still showed that, when and by whom something hidden was changed. Read users no longer see the history of a contact deleted permanently.

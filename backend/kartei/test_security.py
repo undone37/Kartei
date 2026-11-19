@@ -7,6 +7,9 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import RequestFactory, override_settings
 
+from config import proxies
+from config.proxies import trusted
+
 from . import exports, ldapusers, syslog, vcard
 from .auth import DbLDAPBackend
 from .management.commands import export_loop
@@ -118,11 +121,30 @@ class ProxyTests(ApiTestBase):
     def ip(self, remote, fwd):
         return client_ip(RequestFactory().get("/", REMOTE_ADDR=remote, HTTP_X_FORWARDED_FOR=fwd))
 
+    @override_settings(TRUSTED_PROXIES=trusted("127.0.0.0/8,172.18.0.0/16"))  # what "auto" gives in a container
     def test_forwarded_for_only_from_a_trusted_proxy(self):
-        self.assertEqual(self.ip("172.18.0.1", "203.0.113.9"), "203.0.113.9")  # the proxy (Docker network)
+        self.assertEqual(self.ip("172.18.0.1", "203.0.113.9"), "203.0.113.9")  # the proxy (Compose network)
+        self.assertEqual(self.ip("172.20.5.9", "1.2.3.4"), "172.20.5.9")  # another 172.x network: no longer trusted
         self.assertEqual(self.ip("10.0.5.31", "1.2.3.4"), "10.0.5.31")  # a client talking to Kartei directly
         with override_settings(TRUSTED_PROXIES=["10.0.5.0/24"]):
             self.assertEqual(self.ip("10.0.5.31", "1.2.3.4"), "1.2.3.4")
+
+    def test_auto_means_loopback_and_the_attached_networks(self):
+        """Run-2 NV-1: not all of 172.16.0.0/12 any more, only the container's own network."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            route, route6 = f"{d}/route", f"{d}/ipv6_route"
+            with open(route, "w") as f:  # default route via 172.18.0.1, the Compose network 172.18.0.0/16
+                f.write("Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\tMTU\tWindow\tIRTT\n"
+                        "eth0\t00000000\t010012AC\t0003\t0\t0\t0\t00000000\t0\t0\t0\n"
+                        "eth0\t000012AC\t00000000\t0001\t0\t0\t0\t0000FFFF\t0\t0\t0\n")
+            with open(route6, "w") as f:
+                f.write("fe800000000000000000000000000000 40 " + "0" * 32 + " 00 " + "0" * 32 + " 00000100 00000001 00000000 00000001 eth0\n"
+                        "fd000000000000000000000000000000 40 " + "0" * 32 + " 00 " + "0" * 32 + " 00000100 00000001 00000000 00000001 eth0\n")
+            self.assertEqual(proxies.attached(route, route6), ["172.18.0.0/16", "fd00::/64"])
+        with mock.patch.object(proxies, "attached", lambda: ["172.18.0.0/16"]):
+            self.assertEqual(trusted("auto"), ["127.0.0.0/8", "::1/128", "172.18.0.0/16"])
+            self.assertEqual(trusted("10.0.0.5, auto"), ["10.0.0.5", "127.0.0.0/8", "::1/128", "172.18.0.0/16"])
 
     def test_failed_sign_ins_are_counted_across_attempts(self):
         cache.clear()

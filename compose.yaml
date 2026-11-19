@@ -28,7 +28,7 @@ services:
     depends_on:
       db: { condition: service_healthy }
     ports:
-      - "${WEB_PORT:-8000}:8000"
+      - "${WEB_PORT:-127.0.0.1:8000}:8000"   # loopback only: the reverse proxy on this host forwards to it
     volumes:
       - ${EXPORT_HOST_DIR:-./export_out}:/export
     healthcheck:

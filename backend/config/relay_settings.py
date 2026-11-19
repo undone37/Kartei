@@ -6,6 +6,8 @@ anywhere: Kartei pushes to /push, phones read /carddav/.
 import os
 from pathlib import Path
 
+from .proxies import trusted
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 DEBUG = os.environ.get("DEBUG", "0") == "1"
@@ -17,8 +19,9 @@ ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost").split(",") + ["127.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 PROXY_HEADERS = os.environ.get("PROXY_HEADERS", "1") == "1"  # see kartei.net; 0 if phones reach the relay directly
 # X-Forwarded-For/-Proto count only from these addresses (the reverse proxy); anyone else could fake their address
-# and so get around rate limits, the monitoring allowlist and the audit log. Default: loopback and Docker networks.
-TRUSTED_PROXIES = [x.strip() for x in os.environ.get("TRUSTED_PROXIES", "127.0.0.0/8,::1/128,172.16.0.0/12").split(",") if x.strip()]
+# and so get around rate limits and the audit log. Default "auto": loopback and the container's own (Compose)
+# network, see config/proxies.py
+TRUSTED_PROXIES = trusted(os.environ.get("TRUSTED_PROXIES", "auto"))
 
 # hex SHA-256 of the push token Kartei sends as "Authorization: Bearer <token>"; empty = push disabled
 RELAY_PUSH_TOKEN_SHA256 = os.environ.get("RELAY_PUSH_TOKEN_SHA256", "").strip().lower()
