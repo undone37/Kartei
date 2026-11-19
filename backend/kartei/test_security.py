@@ -10,7 +10,7 @@ from django.test import RequestFactory, override_settings
 from . import exports, ldapusers, syslog, vcard
 from .auth import DbLDAPBackend
 from .management.commands import export_loop
-from .models import ExportProfile, FieldDef, Profile, Record, SavedFilter, Settings
+from .models import AuditEntry, ExportProfile, FieldDef, Profile, Record, SavedFilter, Settings
 from .net import client_ip
 from .tests import ApiTestBase
 from .validation import clean_value
@@ -247,3 +247,55 @@ class EdgeCaseTests(ApiTestBase):
         o = {**default_csv_options(), "encoding": "cp1252"}
         self.assertEqual(exports.lossy_values(["Name"], [["Müller"], ["Łukasz"], ["Çelik Ş."]], o), 2)
         self.assertEqual(exports.lossy_values(["Name"], [["Łukasz"]], default_csv_options()), 0)  # UTF-8 holds all
+
+
+class AuditRun2Tests(ApiTestBase):
+    """Audit run 2: proposals in the log, markers of hidden-only changes, proposals on trashed contacts."""
+
+    def setUp(self):
+        super().setUp()
+        FieldDef.objects.create(key="secret_note", label_de="Notiz", label_en="Note", type="text", applies_to="both",
+                                visible_to="maintainer", editable_by="maintainer")
+        self.r = Record.objects.create(kind="person", last_name="Hidden")
+
+    def test_proposals_send_only_field_names_to_the_log(self):
+        """K-02: like contacts, a proposal's audit line carries no values or comment."""
+        self.as_("read")
+        body = {"kind": "person", "first_name": "Dummy", "last_name": "Subject",
+                "data": {"email": "dummy.subject@example.invalid"}, "comment": "dummy comment"}
+        with self.assertLogs("kartei.audit", "INFO") as logs:
+            p = self.j("post", "/api/proposals", body, status=201)["proposal"]
+            self.j("patch", f"/api/proposals/{p['id']}", body | {"data": {"email": "dummy.edited@example.invalid"}})
+        for rec in logs.records:
+            self.assertIsInstance(rec.audit["changes"], list)
+            self.assertNotIn("example.invalid", json.dumps(rec.audit))
+            self.assertNotIn("dummy comment", json.dumps(rec.audit))
+
+    def history(self):
+        self.as_("read")
+        return self.j("get", f"/api/records/{self.r.uid}/history")["entries"]
+
+    def test_operation_markers_of_hidden_only_changes_are_left_out(self):
+        """K-03: bulk, batch and normalize markers alone must not tell of a change to a hidden field."""
+        self.as_("maintainer")
+        self.j("post", "/api/records/bulk", {"op": "set", "key": "secret_note", "value": "pending layoff", "uids": [str(self.r.uid)]})
+        for marker in ("batch_from", "normalized"):
+            AuditEntry.objects.create(action="update", target_type="record", target_id=str(self.r.uid), username="maintainer",
+                                      changes={"secret_note": [None, "x"], marker: [None, True]})
+        self.assertEqual(self.history(), [])
+
+    def test_a_bulk_delete_stays_visible(self):
+        AuditEntry.objects.create(action="delete", target_type="record", target_id=str(self.r.uid), username="maintainer",
+                                  changes={"bulk": [None, True]})
+        self.assertEqual([e["changes"] for e in self.history()], [{"bulk": [None, True]}])
+
+    def test_no_proposal_edit_on_a_trashed_contact(self):
+        """K-08: the proposer can't read or annotate a contact in the recycle bin through their proposal."""
+        self.as_("read")
+        p = self.j("post", f"/api/records/{self.r.uid}/proposals", {"kind": "change", "last_name": "Neu"}, status=201)["proposal"]
+        self.as_("maintainer")
+        self.j("delete", f"/api/records/{self.r.uid}")
+        n = AuditEntry.objects.count()
+        self.as_("read")
+        self.j("patch", f"/api/proposals/{p['id']}", {"last_name": "Neuer"}, status=404)
+        self.assertEqual(AuditEntry.objects.count(), n)

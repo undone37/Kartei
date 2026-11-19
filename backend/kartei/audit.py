@@ -35,7 +35,7 @@ def log(user, action, target_type, target_id, label="", changes=None, username=N
 def emit(entry):
     """The entry as a log line (JSON in production, see logs.py) for the container log and the syslog sender.
     Contacts: only the changed field names (data minimisation); everything else with old/new, secrets already masked."""
-    changes = sorted(entry.changes) if entry.target_type == "record" else entry.changes
+    changes = sorted(entry.changes) if entry.target_type in ("record", "proposal") else entry.changes
     level = logging.WARNING if entry.action in FAILURES else logging.INFO  # syslog severity 4 vs 6 for SIEM rules
     log_.log(level, "%s %s %s", entry.action, entry.target_type, entry.target_label, extra={"audit": {
         "event": entry.action, "area": entry.target_type, "object_id": entry.target_id, "object": entry.target_label,

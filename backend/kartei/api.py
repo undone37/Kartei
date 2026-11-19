@@ -680,8 +680,9 @@ def record_report(request, uid):
 
 @needs(READ)
 def history(request, uid):
-    if request.rank < MAINT and Record.objects.filter(uid=uid, deleted_at__isnull=False).exists():
-        return err("not_found", 404)  # the recycle bin is for maintainers, like the contact itself
+    # the recycle bin is for maintainers, like the contact itself; a purged one is gone for good
+    if request.rank < MAINT and not Record.objects.filter(uid=uid, deleted_at__isnull=True).exists():
+        return err("not_found", 404)
     entries = AuditEntry.objects.filter(target_type="record", target_id=str(uid))[:200]
     return JsonResponse({"entries": visible_audit(entries, request.rank)})
 
@@ -691,6 +692,8 @@ RECORD_AUDIT_KEYS = frozenset({
     "first_name", "last_name", "name", "company", "image",
     "anonymized", "proposed_by", "note", "comment", "delete", "reviewed", "batch_from", "started", "adjusted", "kind", "reason",
     "bulk", "normalized", "merged_from", "merged_into", "not_duplicate", "with_company", "handover", "renamed"})
+# markers of the operation that changed fields: without a visible field change they'd still tell that one happened
+OPERATION_KEYS = ("bulk", "batch_from", "normalized")
 
 
 def ser_audit(e, rank, kinds=None):
@@ -700,8 +703,10 @@ def ser_audit(e, rank, kinds=None):
         fields = {f.key: f.visible(rank) for f in FieldDef.objects.all()}
         if e.target_type == "record":  # allowlist: a deleted field's old values must not resurface
             changes = {k: v for k, v in changes.items() if fields.get(k) or (k in RECORD_AUDIT_KEYS and k not in fields)}
-            if not any(fields.get(k) for k in changes):  # a handover marker alone would name a hidden field's user
-                changes.pop("handover", None), changes.pop("renamed", None)
+            if not any(fields.get(k) for k in changes):  # markers alone would tell of (or name) a hidden change
+                for k in ("handover", "renamed") + (OPERATION_KEYS if any(k in fields or k not in RECORD_AUDIT_KEYS
+                                                                         for k in e.changes) else ()):
+                    changes.pop(k, None)
         else:
             changes = {k: v for k, v in changes.items() if fields.get(k, True)}
     return {"id": e.id, "at": e.at.isoformat(), "user": e.username, "action": e.action,
@@ -1031,7 +1036,9 @@ def own_proposal(request, pk):
         p = Proposal.objects.select_for_update().filter(pk=pk, status="pending", proposer=request.user).first()
         if not p:
             return err("not_found", 404)
-        r = records_qs().get(pk=p.record_id) if p.record_id else None  # create: no record yet
+        r = records_qs().filter(pk=p.record_id, deleted_at__isnull=True).first() if p.record_id else None
+        if p.record_id and not r:  # in the recycle bin: like the contact itself, not for the proposer
+            return err("not_found", 404)
         target = ("record", r.uid) if r else ("proposal", p.id)
         if request.method == "DELETE":
             p.status, p.decided_at = "withdrawn", timezone.now()

@@ -31,6 +31,28 @@ class PurgeTests(ApiTestBase):
         self.assertEqual(entries.get(action="purge").changes, {"anonymized": [None, True]})
         self.assertEqual(entries.get(action="update").username, "maintainer")  # who and when stay
 
+    def test_purge_anonymizes_the_new_contact_proposal_too(self):
+        """Run-2 K-04: the proposal's own entries held the name and every proposed value."""
+        self.as_("read")
+        p = self.j("post", "/api/proposals", {"kind": "person", "first_name": "Petra", "last_name": "Privat",
+                                              "data": {"email": "petra@privat.example"}, "comment": "kennt Petra"}, status=201)
+        self.as_("maintainer")
+        uid = self.j("post", f"/api/proposals/{p['proposal']['id']}/accept", {})["record"]["uid"]
+        self.j("delete", f"/api/records/{uid}")
+        self.as_("admin")
+        self.j("delete", f"/api/trash/{uid}")
+        text = " ".join(f"{e.action} {e.target_type} {e.target_label} {e.changes}" for e in AuditEntry.objects.exclude(target_type="field"))
+        for value in ("Privat", "petra@privat.example", "kennt Petra"):
+            self.assertNotIn(value, text)
+        self.assertTrue(AuditEntry.objects.filter(target_type="proposal", action="propose").exists())  # who and when stay
+
+    def test_history_of_a_purged_contact_is_gone_for_read_users(self):
+        Settings.objects.update(purge_anonymize=False)
+        uid = self.make()
+        self.j("delete", f"/api/trash/{uid}")
+        self.as_("read")
+        self.j("get", f"/api/records/{uid}/history", status=404)
+
     def test_purge_without_anonymizing_keeps_values(self):
         Settings.objects.update(purge_anonymize=False)
         uid = self.make()

@@ -1315,7 +1315,7 @@ Each event is an RFC 5424 message (TCP and TLS with octet counting, RFC 6587). T
 
 - MSGID is `audit` for audit events and `app` for application messages.
 - Failed sign-ins, refused access and denied access have severity *warning*, everything else *info*.
-- For contacts only the names of the changed fields are sent, not the values. Users, settings and sign-ins include old and new values; passwords and secrets are masked.
+- For contacts and proposals only the names of the changed fields are sent, not the values or the comment. Users, settings and sign-ins include old and new values; passwords and secrets are masked.
 - Sending never slows Kartei down. If the SIEM is unreachable, events are queued (up to 10,000 per process) and sent when it is back; *Last run* in the status shows failures. A new setting is used at once by the process that saved it and by the others within a minute.
 
 ### Container logs to the SIEM (Fluent Bit)
@@ -1348,7 +1348,7 @@ Kartei holds personal data. Two functions help with the rights of the people in 
 
 ![Access report](../img/en/report.png)
 
-**Erasure (Art. 17).** Deleting a contact first moves it to the recycle bin. *Delete permanently* (or the automatic emptying under *General*) removes it for good. With *Anonymise the history when deleting permanently* (on by default), its entries in the history and the audit log then keep only who did what and when: the name and all values are removed (shown as *(anonymised)*). Turn it off only if you need the values for a documented reason.
+**Erasure (Art. 17).** Deleting a contact first moves it to the recycle bin. *Delete permanently* (or the automatic emptying under *General*) removes it for good. With *Anonymise the history when deleting permanently* (on by default), its entries in the history and the audit log (including those of the proposal it came from) then keep only who did what and when: the name and all values are removed (shown as *(anonymised)*). Turn it off only if you need the values for a documented reason.
 
 > Data that has already been passed on (export files, other systems via the API or webhooks) is not erased by Kartei: the next export run no longer contains the contact, phones and Outlook remove it at the next sync; other systems must delete it themselves (the webhook event `contact.deleted` tells them).
 {: .tip}

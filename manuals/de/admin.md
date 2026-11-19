@@ -1315,7 +1315,7 @@ Jedes Ereignis ist eine RFC-5424-Nachricht (TCP und TLS mit Octet Counting, RFC 
 
 - MSGID ist `audit` für Protokolleinträge und `app` für Meldungen der Anwendung.
 - Fehlgeschlagene Anmeldungen, abgelehnte und verweigerte Zugriffe haben den Schweregrad *warning*, alles andere *info*.
-- Bei Kontakten werden nur die Namen der geänderten Felder gesendet, keine Werte. Benutzer, Einstellungen und Anmeldungen enthalten alten und neuen Wert; Passwörter und Schlüssel sind maskiert.
+- Bei Kontakten und Vorschlägen werden nur die Namen der geänderten Felder gesendet, keine Werte und kein Kommentar. Benutzer, Einstellungen und Anmeldungen enthalten alten und neuen Wert; Passwörter und Schlüssel sind maskiert.
 - Der Versand bremst Kartei nie aus. Ist das SIEM nicht erreichbar, werden Ereignisse zwischengespeichert (bis zu 10.000 je Prozess) und nachgesendet; Fehler zeigt der Status. Eine neue Einstellung gilt sofort im Prozess, der sie gespeichert hat, in den anderen innerhalb einer Minute.
 
 ### Container-Logs an das SIEM (Fluent Bit)
@@ -1348,7 +1348,7 @@ Kartei enthält personenbezogene Daten. Zwei Funktionen helfen bei den Rechten d
 
 ![Datenauskunft](../img/de/report.png)
 
-**Löschung (Art. 17).** Löschen verschiebt einen Kontakt zunächst in den Papierkorb. *Endgültig löschen* (oder das automatische Leeren unter *Allgemein*) entfernt ihn dauerhaft. Mit *Beim endgültigen Löschen den Verlauf anonymisieren* (Standard: an) behalten seine Einträge in Verlauf und Protokoll danach nur, wer wann was getan hat; Name und alle Werte werden entfernt (angezeigt als *(anonymisiert)*). Schalte das nur ab, wenn du die Werte aus einem dokumentierten Grund brauchst.
+**Löschung (Art. 17).** Löschen verschiebt einen Kontakt zunächst in den Papierkorb. *Endgültig löschen* (oder das automatische Leeren unter *Allgemein*) entfernt ihn dauerhaft. Mit *Beim endgültigen Löschen den Verlauf anonymisieren* (Standard: an) behalten seine Einträge in Verlauf und Protokoll (auch die des Vorschlags, aus dem er entstanden ist) danach nur, wer wann was getan hat; Name und alle Werte werden entfernt (angezeigt als *(anonymisiert)*). Schalte das nur ab, wenn du die Werte aus einem dokumentierten Grund brauchst.
 
 > Bereits weitergegebene Daten (Exportdateien, andere Systeme über API oder Webhooks) löscht Kartei nicht selbst: Der nächste Export enthält den Kontakt nicht mehr, Telefone und Outlook entfernen ihn beim nächsten Abgleich; andere Systeme müssen ihn selbst löschen (das Webhook-Ereignis `contact.deleted` sagt es ihnen).
 {: .tip}

@@ -4,6 +4,7 @@ purge() is the one way a contact leaves the recycle bin for good (button and aut
 Settings.purge_anonymize the contact's history keeps who did what and when, but loses all values and the name.
 """
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from . import audit, exports
@@ -16,7 +17,9 @@ def purge(user, r, extra=None):
     from .api import snapshot
     if Settings.get().purge_anonymize:
         # ponytail: values copied into other contacts' entries (e.g. "merged from <name>") stay; they are rare
-        AuditEntry.objects.filter(target_type="record", target_id=str(r.uid)).update(changes={}, target_label="")
+        AuditEntry.objects.filter(Q(target_type="record", target_id=str(r.uid)) |  # and its new-contact proposal
+                                  Q(target_type="proposal", target_id__in=[str(i) for i in r.proposals.values_list("id", flat=True)])
+                                  ).update(changes={}, target_label="")
         audit.log(user, "purge", "record", r.uid, "", {"anonymized": [None, True]} | (extra or {}))
     else:
         audit.log(user, "purge", "record", r.uid, r.display_name, audit.diff(snapshot(r), {}) | (extra or {}))
