@@ -41,22 +41,24 @@ class FilterFolderTests(TestCase):
         private = SavedFilter.objects.create(owner=self.anna, name="Nur Anna", outlook_folder=True,
                                              state={"q": "meier", "scope": "all", "kind": "all", "filters": {}})
         self.assertEqual(graph.run()["failed"], [])
-        self.assertEqual(self.folder("u1", "Meine Kontakte"), ["Alexander Meier"])
-        self.assertEqual(self.folder("u2", "Meine Kontakte"), ["ACME GmbH"])  # the same filter, b's own contacts
-        self.assertEqual(self.folder("u1", "Nur Anna"), ["Alexander Meier"])
-        self.assertIsNone(self.folder("u2", "Nur Anna"))  # not shared with b
-        self.assertEqual(Settings.get().graph_filter_folders, {"u1": ["Meine Kontakte", "Nur Anna"], "u2": ["Meine Kontakte"]})
+        self.assertEqual(self.folder("u1", "Kartei: Meine Kontakte"), ["Alexander Meier"])
+        self.assertEqual(self.folder("u2", "Kartei: Meine Kontakte"), ["ACME GmbH"])  # the same filter, b's own contacts
+        self.assertEqual(self.folder("u1", "Kartei: Nur Anna"), ["Alexander Meier"])
+        self.assertIsNone(self.folder("u2", "Kartei: Nur Anna"))  # not shared with b
+        self.assertEqual({u: sorted(v) for u, v in Settings.get().graph_filter_folders.items()},
+                         {"u1": ["Kartei: Meine Kontakte", "Kartei: Nur Anna"], "u2": ["Kartei: Meine Kontakte"]})
         private.outlook_folder = False
         private.save()
         mine.shared = False  # b no longer sees it
         mine.save()
         graph.run()
-        self.assertIsNone(self.folder("u1", "Nur Anna"))  # unpublished: removed
-        self.assertIsNone(self.folder("u2", "Meine Kontakte"))  # no longer visible: removed
-        self.assertEqual(self.folder("u1", "Meine Kontakte"), ["Alexander Meier"])
+        self.assertIsNone(self.folder("u1", "Kartei: Nur Anna"))  # unpublished: removed
+        self.assertIsNone(self.folder("u2", "Kartei: Meine Kontakte"))  # no longer visible: removed
+        self.assertEqual(self.folder("u1", "Kartei: Meine Kontakte"), ["Alexander Meier"])
         self.assertIsNotNone(self.folder("u1", "Kartei"))  # the main folder is never touched
 
     def test_a_filter_cannot_take_over_the_main_folder(self):
+        Settings.objects.filter(pk=1).update(graph_filter_prefix="")
         SavedFilter.objects.create(owner=self.anna, name="Kartei", outlook_folder=True,
                                    state={"q": "meier", "scope": "all", "kind": "all", "filters": {}})
         graph.run()
@@ -68,8 +70,54 @@ class FilterFolderTests(TestCase):
                                    state={"q": "", "scope": "all", "kind": "all", "filters": {},
                                           "adv": {"mode": "all", "items": [{"field": "description", "op": "contains", "value": "kaffe"}]}})
         graph.run()
-        self.assertEqual(self.folder("u1", "Kaffee"), ["Alexander Meier"])
-        self.assertEqual(len(self.folder("u2", "Kaffee")), Record.objects.count())  # b can't see the field: dropped
+        self.assertEqual(self.folder("u1", "Kartei: Kaffee"), ["Alexander Meier"])
+        self.assertEqual(len(self.folder("u2", "Kartei: Kaffee")), Record.objects.count())  # b can't see the field: dropped
+
+    def own_folder(self, user, name, contact):
+        """A folder the mailbox owner made themselves, with one private contact."""
+        fid = self.fake._id()
+        self.fake.folders[(user, fid)] = {"name": name, "contacts": {self.fake._id(): {"displayName": contact}}}
+
+    def test_a_users_own_folder_of_the_same_name_is_never_touched(self):
+        Settings.objects.filter(pk=1).update(graph_filter_prefix="")  # even without the prefix
+        self.own_folder("u1", "Privat", "Bruder")
+        self.own_folder("u2", "Privat", "Partnerin")
+        f = SavedFilter.objects.create(owner=self.anna, name="Privat", shared=True, outlook_folder=True,
+                                       state={"q": "", "scope": "all", "kind": "all", "filters": {}})
+        failed = graph.run()["failed"]
+        self.assertEqual(self.folder("u1", "Privat"), ["Bruder"])
+        self.assertEqual(self.folder("u2", "Privat"), ["Partnerin"])
+        self.assertEqual(len(failed), 2)
+        self.assertTrue(all(x.startswith("@graph_folder_taken ") for x in failed))
+        self.assertEqual(Settings.get().graph_filter_folders, {})
+        f.outlook_folder = False
+        f.save()
+        graph.run()
+        self.assertEqual(self.folder("u1", "Privat"), ["Bruder"])  # unpublishing doesn't delete it either
+        self.assertEqual(self.folder("u2", "Privat"), ["Partnerin"])
+
+    def test_folders_named_by_0_8_4_are_taken_over_and_renamed_with_the_prefix(self):
+        Settings.objects.filter(pk=1).update(graph_filter_prefix="")
+        SavedFilter.objects.create(owner=self.anna, name="Nur Anna", outlook_folder=True,
+                                   state={"q": "meier", "scope": "all", "kind": "all", "filters": {}})
+        graph.run()
+        old = Settings.get().graph_filter_folders
+        Settings.objects.filter(pk=1).update(graph_filter_prefix="Kartei: ",
+                                             graph_filter_folders={u: list(v) for u, v in old.items()})  # old format
+        self.assertEqual(graph.run()["failed"], [])
+        self.assertIsNone(self.folder("u1", "Nur Anna"))
+        self.assertEqual(self.folder("u1", "Kartei: Nur Anna"), ["Alexander Meier"])
+        self.assertEqual(list(Settings.get().graph_filter_folders["u1"]), ["Kartei: Nur Anna"])
+
+    def test_a_filter_folder_deleted_in_outlook_comes_back(self):
+        SavedFilter.objects.create(owner=self.anna, name="Nur Anna", outlook_folder=True,
+                                   state={"q": "meier", "scope": "all", "kind": "all", "filters": {}})
+        graph.run()
+        fid = Settings.get().graph_filter_folders["u1"]["Kartei: Nur Anna"]
+        del self.fake.folders[("u1", fid)]
+        graph.run()  # notices it's gone
+        self.assertEqual(graph.run()["failed"], [])
+        self.assertEqual(self.folder("u1", "Kartei: Nur Anna"), ["Alexander Meier"])
 
 
 class FilterBookTests(TestCase):

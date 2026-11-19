@@ -27,7 +27,9 @@ log = logging.getLogger(__name__)
 
 
 class GraphError(Exception):
-    pass
+    def __init__(self, message, status=None):
+        super().__init__(message)
+        self.status = status  # HTTP status, if the error came from Graph
 
 
 def _message(body):
@@ -67,7 +69,7 @@ def http(method, url, body=None, token=None, form=None, ctype=None):
                 detail = json.loads(e.read())
             except ValueError:
                 detail = {}
-            raise GraphError(f"HTTP {e.code}: {_message(detail) or e.reason}")
+            raise GraphError(f"HTTP {e.code}: {_message(detail) or e.reason}", e.code)
         except URLError as e:
             raise GraphError(str(e.reason))
 
@@ -217,13 +219,63 @@ def _folder(c, user, name, create=True):
     return c.call("POST", f"/users/{user}/contactFolders", {"displayName": name})["id"] if create else None
 
 
-def sync_mailbox(c, user, folder, wanted):
+def _known(c, user, v):
+    """The filter folders Kartei created in a mailbox: {name: id}. Up to 0.8.4 only the names were kept; those
+    folders were Kartei's, so their ids are looked up once by name."""
+    if isinstance(v, dict):
+        return v
+    return {n: fid for n in v or [] if (fid := _folder(c, user, n, create=False))}
+
+
+def _delete_folder(c, user, fid):
+    try:
+        c.call("DELETE", f"/users/{user}/contactFolders/{fid}")
+    except GraphError as e:
+        if e.status != 404:  # already gone (deleted in Outlook) is fine
+            raise
+
+
+def _filter_folders(c, user, mail, jobs, before, folders_now, add):
+    """Sync one mailbox's saved-filter folders. They are found by the id Kartei got when creating them, never by
+    name: a folder of the same name that Kartei didn't create (e.g. the user's own "Privat") is left alone."""
+    try:
+        known = _known(c, user, before)
+    except GraphError as e:
+        folders_now[user] = before  # retry next run
+        return add(mail, {}, [str(e)])
+    now = folders_now[user] = {}
+    for folder, want in jobs:
+        fid = known.get(folder)
+        try:
+            if not fid:
+                if _folder(c, user, folder, create=False):  # not Kartei's: never adopt (and later delete) it
+                    add(None, {}, [msg("graph_folder_taken", mailbox=mail, folder=folder)])
+                    continue
+                fid = _folder(c, user, folder)
+            now[folder] = fid
+            add(mail, *sync_mailbox(c, user, folder, want, fid))
+        except GraphError as e:
+            if e.status == 404 and folder in known:  # deleted in Outlook: created again on the next run
+                now.pop(folder, None)
+                continue
+            add(mail, {}, [str(e)])
+    for folder, fid in known.items():  # filter unpublished, renamed or no longer visible: its folder goes
+        if folder not in now:
+            try:
+                _delete_folder(c, user, fid)
+            except GraphError as e:
+                now[folder] = fid  # retry next run
+                add(mail, {}, [str(e)])
+
+
+def sync_mailbox(c, user, folder, wanted, fid=None):
     """wanted: {uid: (hash, payload, photo hash, record)}. Returns ({created, updated, deleted, photos}, failures).
 
+    fid: the folder's id when known (filter folders), else it is found by name or created.
     Each contact carries the tag "<uid>|<data hash>|<photo hash>". The photo hash is only written after the
     photo upload succeeded, so a failed upload is retried next run.
     """
-    base = f"/users/{user}/contactFolders/{_folder(c, user, folder)}/contacts"
+    base = f"/users/{user}/contactFolders/{fid or _folder(c, user, folder)}/contacts"
     expand = quote(f"singleValueExtendedProperties($filter=id eq '{PROP}')")
     tag = lambda uid, h, ph: [{"id": PROP, "value": f"{uid}|{h}|{ph}"}]
     have, ops, photos = {}, [], []  # photos: [(contact id or op index, uid)]
@@ -292,8 +344,15 @@ def _sync(s):
     users = kartei_users() if personal_names or published else ({}, {})
     by_filter = FilterFolders(wanted) if published else None
     reserved = {n for n in (s.graph_folder, s.graph_folder_responsible, s.graph_folder_internal) if n}
-    folders_now = {}
+    before = s.graph_filter_folders or {}
+    folders_now = {}  # mailbox -> {filter folder name: id of the folder Kartei created}
     out = {"mailboxes": len(boxes), "created": 0, "updated": 0, "deleted": 0, "photos": 0, "failed": []}
+
+    def add(mail, counts, failed):
+        for k, n in counts.items():
+            out[k] += n
+        out["failed"].extend(f"{mail}: {f}" if mail else f for f in failed)
+
     for user, member in boxes.items():
         jobs = [(s.graph_folder, wanted)]
         name = owner(member, users)
@@ -305,45 +364,35 @@ def _sync(s):
                     c.call("DELETE", f"/users/{user}/contactFolders/{fid}")
         except GraphError as e:
             out["failed"].append(f"{member['mail']}: {e}")
+        filter_jobs = []
         if name:
             for folder, ks, t in personal:
                 mine = (lambda d: any(d.get(k) == name for k in ks)) if t == "user" else \
                     (lambda d: any(name in (d.get(k) or []) for k in ks))
                 jobs.append((folder, {uid: w for uid, w in wanted.items() if mine(w[3].data or {})}))
             if by_filter:
-                extra = by_filter.jobs(name, reserved)
-                jobs += extra
-                folders_now[user] = [f for f, _ in extra]
+                filter_jobs = by_filter.jobs(name, reserved, s.graph_filter_prefix)
         for folder, want in jobs:
             try:
-                counts, failed = sync_mailbox(c, user, folder, want)
+                add(member["mail"], *sync_mailbox(c, user, folder, want))
             except GraphError as e:
-                counts, failed = {}, [str(e)]
-            for k, n in counts.items():
-                out[k] += n
-            out["failed"] += [f"{member['mail']}: {f}" for f in failed]
+                add(member["mail"], {}, [str(e)])
+        if filter_jobs or before.get(user):
+            _filter_folders(c, user, member["mail"], filter_jobs, before.get(user), folders_now, add)
     keep = set(boxes)
     # ponytail: folders of a renamed or cleared setting stay behind (found by name), like a renamed main folder
     names = [n for n in (s.graph_folder, s.graph_folder_responsible, s.graph_folder_internal) if n]
-    before = s.graph_filter_folders or {}
     for user in set(s.graph_mailboxes) - keep:  # left the group: remove the folders
         try:
-            for name in names + before.get(user, []):
+            for name in names:
                 if fid := _folder(c, user, name, create=False):
                     c.call("DELETE", f"/users/{user}/contactFolders/{fid}")
+            for fid in _known(c, user, before.get(user)).values():  # filter folders: only the ones Kartei created
+                _delete_folder(c, user, fid)
         except GraphError as e:
             keep.add(user)  # retry next run
-            folders_now[user] = before.get(user, [])
+            folders_now[user] = before.get(user)
             out["failed"].append(f"{user}: {e}")
-    for user in set(boxes):  # filters unpublished, renamed or no longer visible: their folders go
-        gone = [n for n in before.get(user, []) if n not in folders_now.get(user, []) and n not in reserved]
-        try:
-            for name in gone:
-                if fid := _folder(c, user, name, create=False):
-                    c.call("DELETE", f"/users/{user}/contactFolders/{fid}")
-        except GraphError as e:
-            folders_now[user] = folders_now.get(user, []) + gone  # retry next run
-            out["failed"].append(f"{boxes[user]['mail']}: {e}")
     Settings.objects.filter(pk=1).update(graph_mailboxes=sorted(keep),
                                          graph_filter_folders={u: n for u, n in folders_now.items() if n})
     out["failed"] = out["failed"][:20]
@@ -368,7 +417,8 @@ class FilterFolders:
             self.per_rank[rank] = (filters.field_dicts(fs), rows, {})
         return self.per_rank[rank]
 
-    def jobs(self, username, reserved):
+    def jobs(self, username, reserved, prefix=""):
+        """[(folder name, wanted)]: the folder name is the admin's prefix (e.g. "Kartei: ") plus the filter's name."""
         from . import dashboard, filters
         from .api import profile_of, rank_of
         user = User.objects.filter(username=username, is_active=True).select_related("profile").first()
@@ -380,12 +430,13 @@ class FilterFolders:
         keys = {f["key"] for f in fields}
         out, seen = [], set(reserved)
         for f in dashboard.visible_filters(user, role):
-            if not f.outlook_folder or f.name in seen:  # two filters with one name: the first wins
+            name = prefix + f.name
+            if not f.outlook_folder or name in seen:  # two filters with one name: the first wins
                 continue
-            seen.add(f.name)
+            seen.add(name)
             state = f.state if f.owner_id == user.id else dashboard._visible_state(f.state, keys)
             uids = filters.match(state, rows, fields, username, indexed=indexed)
-            out.append((f.name, {u: self.wanted[u] for u in uids}))
+            out.append((name, {u: self.wanted[u] for u in uids}))
         return out
 
 
