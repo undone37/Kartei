@@ -288,7 +288,7 @@ Kartei backs up its database itself: every day at the time set under *Settings â
 
 ![Backup tab](../img/en/settings-backup.png)
 
-- **Where:** the `exporter` writes the files (`kartei-<date>-<time>.dump`, PostgreSQL's compressed custom format) to `/backup`. By default that is the Docker volume `backups`, which works without further setup but lives on the same disk as the database. Better: a directory on other storage, e.g. a NAS mount, set as `BACKUP_HOST_DIR` in `.env` (owner uid 1000: `chown 1000 /mnt/backup/kartei`). Don't use the export share: everyone who reads exports would get the whole database.
+- **Where:** the `exporter` writes the files (`kartei-<date>-<time>.dump`, PostgreSQL's compressed custom format) to `/backup`. By default that is the Docker volume `backups`, which works without further setup but lives on the same disk as the database. Better: a directory on other storage, e.g. a NAS mount, set as `BACKUP_HOST_DIR` in `.env` (owner uid 1000: `chown 1000 /mnt/backup/kartei`). The backup files are readable by this owner only (0600), since they contain password hashes and sessions. Don't use the export share: everyone who reads exports would get the whole database.
 - **Checked:** every file is read back (`pg_restore --list`) before it counts. *Test restore* restores the newest backup into a scratch database (`kartei_restore_test`), counts contacts, fields, users and audit entries, compares them with the live database and deletes the scratch database again. With a dedicated PostgreSQL server, the database user needs the right to create databases for this (`CREATEDB`).
 - **Watched:** the [monitoring status](#monitoring) reports `backup` as *warn* after 26 hours without a backup and *crit* after 50 hours or on an error, and `restore_test` as *warn* when the last test failed.
 - **Back up now** writes one immediately (also with the daily backup switched off).
@@ -1205,7 +1205,7 @@ Instead of asking Kartei every few minutes, other systems can be notified right 
 
 - The content is the contact with the fields visible to *Everyone*, as in the REST API. The developer documentation (`docs/API.md`, *Webhooks*) describes the request and how to verify the signature.
 - Kartei delivers within about 10 seconds. Failed deliveries are retried for about a day; the table shows the last result and how many deliveries are waiting or were given up.
-- *Active* switches a webhook off without losing it; the key symbol creates a new secret (the old one stops working at once).
+- *Active* switches a webhook off without losing it; the key symbol creates a new secret (the old one stops working at once). After a change of the `SECRET_KEY` Kartei can no longer read the stored secrets: the webhooks then send nothing, the table shows *Secret can't be read*, and you create a new one for each.
 - Creating, changing and deleting webhooks is recorded in the audit log.
 
 ## Audit log

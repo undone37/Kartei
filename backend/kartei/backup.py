@@ -107,6 +107,7 @@ def _dump(path):
                 connection.connection.backup(dst)
             finally:
                 dst.close()
+        os.chmod(tmp, 0o600)  # password hashes, sessions, encrypted secrets: for the owner only
         os.replace(tmp, path)
     finally:
         tmp.unlink(missing_ok=True)

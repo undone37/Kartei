@@ -16,6 +16,14 @@ All notable changes to Kartei are listed here. The format follows [Keep a Change
 - **Recovery codes:** stored with a key derived from the `SECRET_KEY` and longer (80 bits). Before, a copy of the database or a backup alone was enough to work a code out offline. Existing codes keep working; *My account* asks users with older codes to make new ones.
 - **Push notifications:** a crafted push subscription can no longer stop notifications for everyone (and make the others repeat on every run). Such endpoints are refused, and a device that fails no longer stops the rest.
 - **Quality report:** the list *Not reachable* and its trend count only email and phone fields the viewer may see. Before, a person with only an admin-only phone was missing from the maintainers' list.
+- **vCard download:** the file name no longer takes quotes or `;` from the contact's name, so a name can't add a different file name or extension to the download header. The download is no longer cached by the browser.
+- **Two-factor sign-in:** switching it on (or an admin resetting it) signs the user out on all other devices. Before, a session opened with the password alone stayed valid for up to 14 days.
+- **Last administrator:** can no longer be deactivated with `"is_active": 0` or `null` through the API, and two administrators demoting each other at the same moment can no longer both succeed.
+- **Outlook sync:** requests to Microsoft Graph follow no redirects and only follow page links to Graph itself, so the access token can't be sent anywhere else.
+- **Webhooks:** after a change of the `SECRET_KEY` a webhook whose secret can't be read any more sends nothing and says so, instead of sending requests signed with an empty key that the receiver rejects.
+- **Backups** are written readable by their owner only (0600).
+- **Server:** the web server refuses to start with `DEBUG=1`. A two-factor code with non-Latin digits, a sign-in body that is not a JSON object and very deeply nested JSON give a normal error instead of a server error.
+- **Browser:** after signing out, content shared with the app but not yet imported is removed. When the user's role or the visible fields change, the app reloads all contacts, so it no longer keeps values the user may no longer see in its offline copy.
 
 ### Added
 

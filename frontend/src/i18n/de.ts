@@ -733,6 +733,7 @@ export default {
   'msg.graph_not_configured': "Nicht eingerichtet: Mandant, Anwendung und Schlüssel fehlen",
   'msg.graph_no_records': "Keine Kontakte vorhanden – nichts synchronisiert",
   'msg.graph_folder_taken': "{mailbox}: Es gibt schon einen Ordner „{folder}“, den nicht Kartei angelegt hat. Er bleibt unverändert, der Filter wird dort nicht abgeglichen.",
+  'msg.webhook_secret_unreadable': "Secret nicht lesbar (SECRET_KEY geändert): bitte ein neues Secret erzeugen",
   'msg.graph_group_empty': "Die Gruppe hat keine Mitglieder mit Postfach",
   'msg.graph_no_user_read': "Graph liefert die Gruppenmitglieder ohne E-Mail-Adresse: der App fehlt die Anwendungsberechtigung User.Read.All (mit Administratorzustimmung)",
   'msg.graph_no_group': "Keine Gruppen-ID angegeben",

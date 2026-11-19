@@ -299,3 +299,73 @@ class AuditRun2Tests(ApiTestBase):
         self.as_("read")
         self.j("patch", f"/api/proposals/{p['id']}", {"last_name": "Neuer"}, status=404)
         self.assertEqual(AuditEntry.objects.count(), n)
+
+
+class HardeningRun2Tests(ApiTestBase):
+    """Audit run 2, hardening notes and NV-3."""
+
+    def test_vcf_filename_cant_add_header_parameters(self):
+        r = Record.objects.create(kind="person", first_name="Eva", last_name='x"; filename*=UTF-8\'\'evil.html; a="')
+        self.as_("read")
+        resp = self.client.get(f"/person/{r.uid}.vcf")
+        cd = resp["Content-Disposition"]
+        self.assertEqual(resp["Cache-Control"], "no-store")
+        self.assertEqual(cd.count("filename="), 1)
+        self.assertNotIn('"', cd.split('filename="', 1)[1][:-1])  # one plain quoted name, nothing escaped
+        self.assertNotIn(";", cd.split("filename=", 1)[1])
+        self.assertTrue(cd.endswith('.vcf"') or cd.endswith(".vcf"), cd)
+
+    def test_non_ascii_digits_are_a_wrong_code_not_an_error(self):
+        from . import totp
+        self.assertIsNone(totp.verify(totp.new_secret(), "\u0661\u0662\u0663\u0664\u0665\u0666"))
+
+    def test_odd_json_bodies(self):
+        self.assertEqual(self.client.post("/api/login", "[]", content_type="application/json").status_code, 400)
+        self.as_("maintainer")
+        deep = "[" * 100000 + "]" * 100000
+        self.assertEqual(self.client.post("/api/records", deep, content_type="application/json").status_code, 400)
+
+    def test_last_admin_cant_be_deactivated_with_a_falsy_value(self):
+        self.as_("admin")
+        for v in (0, None, ""):
+            self.j("patch", f"/api/admin/users/{self.users['admin'].id}", {"is_active": v}, status=409)
+
+    def sessions(self, user):
+        from django.contrib.sessions.models import Session
+        return [s for s in Session.objects.all() if s.get_decoded().get("_auth_user_id") == str(user.pk)]
+
+    def test_switching_on_2fa_ends_the_other_sessions(self):
+        from django.test import Client
+
+        from . import totp
+        other = Client()
+        other.force_login(self.users["maintainer"])  # e.g. a session somebody opened with the password alone
+        self.as_("maintainer")
+        secret = self.j("post", "/api/me/totp", {"action": "setup"})["secret"]
+        code = totp.code_at(secret, int(__import__("time").time() // 30))
+        self.j("post", "/api/me/totp", {"action": "confirm", "code": code, "password": "pw-" + "maintainer" * 3})
+        self.assertEqual(len(self.sessions(self.users["maintainer"])), 1)  # this one stays
+        self.assertEqual(other.get("/api/bootstrap").status_code, 401)
+        self.as_("admin")
+        self.j("post", f"/api/admin/users/{self.users['maintainer'].id}/totp-reset")
+        self.assertEqual(self.sessions(self.users["maintainer"]), [])  # lost phone: all its sessions end
+
+    def test_graph_follows_no_redirects_and_no_foreign_next_links(self):
+        from . import graph
+        from .webhooks import _NoRedirect
+        self.assertTrue(any(isinstance(h, _NoRedirect) for h in graph._opener.handlers))
+        c = graph.Client.__new__(graph.Client)
+        c.token = "tok"
+        pages = iter([{"value": [1], "@odata.nextLink": "https://evil.example/v1.0/next"}])
+        with mock.patch.object(graph, "http", lambda *a, **k: next(pages)), self.assertRaises(graph.GraphError):
+            c.get_all("/users")
+
+    def test_webhook_without_a_readable_secret_is_not_sent(self):
+        from . import webhooks
+        from .models import Webhook
+        hook = Webhook(name="x", url="https://intranet.example/hook")
+        with mock.patch("kartei.webhooks.urlopen") as send:
+            ok, code, error = webhooks.send(hook, "ping", 0, {})
+        self.assertFalse(ok)
+        self.assertTrue(error.startswith("@webhook_secret_unreadable"))
+        send.assert_not_called()

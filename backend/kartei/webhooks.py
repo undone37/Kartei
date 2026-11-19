@@ -20,6 +20,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 from django.conf import settings as dj
 from django.utils import timezone
 
+from .msg import msg
 from .models import AuditEntry, Webhook, WebhookDelivery
 
 log = logging.getLogger(__name__)
@@ -77,6 +78,8 @@ def signature(secret, timestamp, body):
 
 def send(hook, event, delivery_id, data):
     """POST one event. Returns (ok, status code or None, error text)."""
+    if not hook.secret:  # the SECRET_KEY changed and the stored secret can't be read: the receiver would refuse it
+        return False, None, msg("webhook_secret_unreadable")
     body = json.dumps(data, ensure_ascii=False).encode()
     ts = str(int(time.time()))
     req = Request(hook.url, data=body, method="POST", headers={

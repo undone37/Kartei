@@ -71,6 +71,8 @@ Under **My account** you can protect your account with a second factor: after yo
 2. Scan the QR code with the app (or enter the key shown below it by hand) and type the code the app shows, plus your current password. **Switch on**.
 3. Kartei shows **8 recovery codes** once. Keep them safe, e.g. in your password manager: each works once instead of the app code if you don't have your phone at hand.
 
+Switching it on signs you out on all other devices; sign in there again with the code.
+
 If your administrator requires two-factor sign-in, Kartei shows this setup right after you sign in, and you can't switch it off afterwards.
 
 ![Setting up two-factor sign-in](../img/en/account-totp.png)

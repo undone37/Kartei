@@ -60,6 +60,7 @@ def _snap(u):
             "external_id": p.external_id, "scim_active": p.scim_active, "role": p.role, "is_active": u.is_active}
 
 
+@transaction.atomic  # the last-admin check holds until the change is saved
 def sync(u, s):
     """is_active and role from the provider's "active" and the groups. The last admin is never taken away."""
     p = u.profile
